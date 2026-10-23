@@ -63,14 +63,18 @@ export default async function MePage() {
                       <StatusBadge status={r.status} />
                     </li>
                   ))}
-                  <li className="tl-row">
+                  <li className={`tl-row${j ? " tl-jr-row" : ""}`}>
                     <span className="tl-kind">일지</span>
                     <span className="tl-main">
                       {j ? (
-                        <>
-                          <span className="badge b-del"><Icon name="check" />제출 {md(kstToday(new Date(j.updated_at)))}</span>
-                          <span className="t">{book} · 「{[...j.body].slice(0, 30).join("")}…」</span>
-                        </>
+                        // 닫혀 있을 땐 두 줄 미리보기, 펼치면 전문 (지난 회차 일지는 여기서만 다시 볼 수 있다)
+                        <details className="tl-jr">
+                          <summary>
+                            <span className="t">{book}</span>
+                            <span className="tl-jr-pre" aria-hidden="true">{j.body}</span>
+                          </summary>
+                          <p className="tl-jr-body">{j.body}</p>
+                        </details>
                       ) : c.status === "reading" ? (
                         <>
                           <span className="badge b-req"><Icon name="circle" />미작성</span>
@@ -83,7 +87,7 @@ export default async function MePage() {
                         <span className="m">제출하지 않았어요</span>
                       )}
                     </span>
-                    <span />
+                    {j ? <span className="badge b-del"><Icon name="check" />제출 {md(kstToday(new Date(j.updated_at)))}</span> : <span />}
                   </li>
                   {cf.map((x) => (
                     <li key={x.title} className="tl-row">
