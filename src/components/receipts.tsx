@@ -134,7 +134,7 @@ export function Receipts({
                 )}
                 <span className="rc-txt">
                   <span className="rc-name">{r.file_name}</span>
-                  <span className="rc-meta">{r.size_bytes ? fmtSize(r.size_bytes) : "링크"}</span>
+                  <span className="rc-meta">{r.size_bytes ? fmtSize(r.size_bytes) : /^https?:\/\//.test(r.external_ref ?? "") ? "링크" : "시트 기록"}</span>
                 </span>
               </a>
               <button className="rc-x" type="button" aria-label={`영수증 ${r.file_name} 삭제`} title="삭제" onClick={() => setConfirmId(r.id)}>

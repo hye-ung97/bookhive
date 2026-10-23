@@ -157,6 +157,8 @@ export type BundleRow = {
   seq: number;
   item_count: number;
   request_total: number;
+  /** 시트에서 옮긴 지출 (요청과 연결 안 됨) */
+  is_legacy: boolean;
 };
 
 export type NoticeRow = { bundle_id: string; kind: string; status: string; sent_at: string | null; attachments: number; error: string | null };
@@ -246,7 +248,8 @@ export async function cycleWarnings(cycleId: string): Promise<CycleWarnings> {
   const supabase = await createClient();
   const [budgets, requests, bundles, coffee] = await Promise.all([
     supabase.from("v_participant_budget").select("request_count").eq("cycle_id", cycleId),
-    supabase.from("purchase_requests").select("id").eq("cycle_id", cycleId).is("cancelled_at", null).is("bundle_id", null),
+    // 시트에서 옮긴 요청(legacy_status 있음)은 시트에서 이미 주문·배송된 것이라 묶음 대상이 아니다
+    supabase.from("purchase_requests").select("id").eq("cycle_id", cycleId).is("cancelled_at", null).is("bundle_id", null).is("legacy_status", null),
     supabase.from("order_bundles").select("id, status").eq("cycle_id", cycleId),
     supabase.from("coffee_plans").select("id").eq("cycle_id", cycleId).eq("status", "planned"),
   ]);

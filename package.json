@@ -12,7 +12,8 @@
     "test:integration": "vitest run tests/integration",
     "test:db": "supabase test db",
     "db:start": "supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,supavisor,postgres-meta",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "migrate": "tsx scripts/migrate/run.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

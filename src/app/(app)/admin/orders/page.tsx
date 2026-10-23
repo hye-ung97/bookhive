@@ -36,7 +36,26 @@ function NoticeLine({ b, kind, cycleId }: { b: BundleView; kind: "order_done" | 
   );
 }
 
+/** 시트에서 옮긴 지출: 어떤 요청이 들어갔는지 모르므로 결제액과 영수증만 보여 준다 */
+function LegacyBundleCard({ b, cycleKey }: { b: BundleView; cycleKey: string }) {
+  const label = bundleLabel(b);
+  return (
+    <article className="card" aria-label={`${label} 묶음`}>
+      <div className="bundle-h">
+        <h3>{label}</h3>
+        <span className="badge b-off">시트 기록</span>
+      </div>
+      <p className="diff">
+        주문 {b.ordered_at ? md(b.ordered_at) : "-"} · 결제 {won(b.paid_amount ?? 0)}원{b.note ? ` · ${b.note}` : ""}
+      </p>
+      <p className="t-cap">시트에서 옮긴 지출이라 어떤 요청이 들어갔는지는 연결돼 있지 않아요.</p>
+      <Receipts owner={{ kind: "bundle", id: b.id, cycleKey }} receipts={b.receipts} label="영수증·주문 내역" />
+    </article>
+  );
+}
+
 function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: string; cycleKey: string; round: string }) {
+  if (b.is_legacy && b.item_count === 0) return <LegacyBundleCard b={b} cycleKey={cycleKey} />;
   const label = bundleLabel(b);
   const active = b.items.filter((i) => i.status !== "cancelled");
   const names = active.map((i) => i.member_name);

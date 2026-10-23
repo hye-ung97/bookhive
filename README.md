@@ -48,6 +48,23 @@ AI 키: `GEMINI_API_KEY`(https://aistudio.google.com/apikey), `GROQ_API_KEY`(htt
 
 Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:write`, `users:read`, `users:read.email`), `SLACK_CHANNEL_ID`를 넣고 `SLACK_DRY_RUN=false`. 봇을 공지 채널에 초대해야 한다. 값이 없으면 실제로 보내지 않고 "기록만 남김"으로 처리되며, 나중에 [공지 다시 보내기]로 보낼 수 있다.
 
+## 시트 이관 (3단계)
+
+11월 회차 주문이 끝난 뒤 한 번 실행한다. 원본 CSV·매핑표·리포트는 `data/legacy/`에 생기고 커밋되지 않는다(개인정보·독후감 원문).
+
+1. 두 시트를 "링크가 있는 모든 사용자: 보기"로 열고 `npm run migrate -- fetch`
+2. `npm run migrate -- members` → `data/legacy/members.csv`의 `email` 칸에 각자 로그인할 Google 이메일을 채운다(탈퇴 멤버는 비워도 됨). `delivery_note`는 가장 최근 탭의 이름 메모라 오래된 것은 지운다
+3. `npm run migrate -- import --dry-run --prod` → 운영 DB에 넣어 보고 되돌린다. `data/legacy/report.md`를 총무가 확인
+4. `npm run migrate -- import --prod` → 시트를 보기 전용으로 바꾸고, 사이트에서 12월 회차를 만든다
+
+옮기는 규칙
+- 회차는 탭 이름(읽는 달)으로 정한다. 한도 30,000원, 2026.10·11만 45,000원(9월 휴회 보전). 가장 최근 회차는 "읽는 중", 나머지는 "마감"(`--reading=YYYY-MM|none`)
+- 구분: 배송완료·주문완료는 그대로, 주문변경·0원은 취소, 공란은 마감 회차면 배송완료. 이름 옆 괄호 메모는 떼어 낸다. 2026.07 45행(8월 탭과 중복)은 뺀다
+- 지출: 서점 결제는 "시트 기록" 묶음(어떤 요청이 들어갔는지는 연결하지 않음, 영수증은 드라이브 링크·파일 이름), 스타벅스·커피·원두는 커피 묶음(명단의 잔액을 예약액으로)
+- 일지: 같은 회차에 본인이 신청한 책과 제목 유사도 0.8 이상이면 연결하고, 아니면 원본 제목만 남긴다. 작성일을 모르는 일지(2026.04 이후)는 회차 1일로 표시
+- 한도 검사는 이관 중에만 끈다(`app.bypass_budget`, 로그인 사용자 요청에는 무시됨). 과거 초과 30건은 리포트에 적힌다
+- 다시 실행해도 안전하다: 모든 행이 `legacy_ref`(예: `s1:2026.10:r23`)로 덮어써지고, 바뀐 행만 갱신한다
+
 ## 운영 Supabase
 
 - 프로젝트 `bookhive`(서울, ap-northeast-2). 마이그레이션은 예시 데이터 없이 `supabase db push --db-url <session pooler URL>`로 올린다
@@ -58,8 +75,8 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 
 ```bash
 npm run typecheck && npm run lint
-npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구
-npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·함수 권한 (96개)
+npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·함수 권한·이관 예외 (100개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 
@@ -76,4 +93,5 @@ src/app/(app)/         로그인 후 화면 (홈, 구매 요청, 일지, 내 기
 src/app/api/books/     링크 붙여넣기 시 책 정보 조회
 src/app/api/ai/        AI 초안
 src/app/api/cron/      매일 마감 알림 (vercel.json)
+scripts/migrate/       시트 이관 (parse.ts 순수 파서, run.ts CLI)
 ```
