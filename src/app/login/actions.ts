@@ -13,9 +13,11 @@ async function origin() {
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
+  // 회사 Google 계정만 계정 선택 화면에 보이게 하는 힌트. 실제 가입 제한은 멤버 명단 훅(hook_before_user_created)이 한다
+  const hd = process.env.GOOGLE_HOSTED_DOMAIN;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${await origin()}/auth/callback` },
+    options: { redirectTo: `${await origin()}/auth/callback`, ...(hd ? { queryParams: { hd } } : {}) },
   });
   if (error || !data.url) redirect("/login?error=provider");
   redirect(data.url);
