@@ -27,12 +27,22 @@ npm run dev                 # http://localhost:3000
 
 명단에 없는 이메일은 가입 훅(`hook_before_user_created`)이 거부한다. 운영에서는 Google 로그인만 켠다.
 
+## 주문·배송과 Slack (2단계)
+
+- 관리자 > 주문·배송: 미배정 요청을 구매처별 장바구니 묶음에 담는다. 요청 서점과 구매처가 달라도 된다(교보 요청을 yes24에서 구매)
+- 묶음 이름은 회차·구매처별 순번(yes24 1차, 교보문고 2차). 장바구니 → 주문완료(주문일·도착 예정일·실결제액) → 배송완료
+- 주문완료·배송완료 때 Slack 공지(멘션, 도착 예정일, 주문 이미지 첨부). 묶음당 종류별로 한 번만 나간다
+- 영수증은 Supabase Storage 비공개 버킷(`receipts`)에 브라우저가 직접 올린다(이미지는 압축)
+- 관리자 > 회차 현황: 잔액 있는 사람을 골라 커피 예정으로 묶기 → 사용완료(실결제액) → 영수증
+
+Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:write`, `users:read`, `users:read.email`), `SLACK_CHANNEL_ID`를 넣고 `SLACK_DRY_RUN=false`. 봇을 공지 채널에 초대해야 한다. 값이 없으면 실제로 보내지 않고 "기록만 남김"으로 처리되며, 나중에 [공지 다시 보내기]로 보낼 수 있다.
+
 ## 검사
 
 ```bash
 npm run typecheck && npm run lint
-npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구
-npm run test:db            # pgTAP: 한도 차단·장바구니 잠금·권한(RLS)·가입 훅 (33개)
+npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그 (68개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 

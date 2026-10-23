@@ -4,8 +4,9 @@ import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireAdmin } from "@/lib/auth";
-import { cycleBudgets, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
-import { kstToday, roundKey, roundLabel, won } from "@/lib/format";
+import { coffeePlans, cycleBudgets, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
+import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
+import { BudgetTable, CoffeePlans, type BudgetRow } from "./coffee";
 
 export const metadata: Metadata = { title: "회차 현황" };
 
@@ -29,7 +30,11 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const rows = await cycleBudgets(cycle.id);
+  const [budgets, plans] = await Promise.all([cycleBudgets(cycle.id), coffeePlans(cycle.id)]);
+  const coffeeOf = new Map<string, "planned" | "used">();
+  plans.forEach((p) => p.members.forEach((m) => { if (p.status !== "cancelled" && coffeeOf.get(m.member_id) !== "planned") coffeeOf.set(m.member_id, p.status as "planned" | "used"); }));
+  const rows: BudgetRow[] = budgets.map((b) => ({ ...b, coffee: coffeeOf.get(b.member_id) ?? null }));
+
   const filter = sp.filter ?? "all";
   const shown = rows.filter((r) => filter === "all" || (filter === "remaining" && r.remaining > 0 && r.request_count > 0) || (filter === "none" && r.request_count === 0));
   const fee = rows.reduce((a, r) => a + r.budget, 0);
@@ -60,6 +65,12 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
         <div className="tile"><span>남은 예산</span><b>{won(fee - used - reserved)}원</b></div>
       </div>
 
+      {cycle.status === "requesting" && (
+        <p className="note note-warn">
+          <Icon name="alert" />요청 중인 회차예요. 커피 예정으로 묶은 잔액은 그 사람이 책 요청에 쓸 수 없게 돼요.
+        </p>
+      )}
+
       <section className="block" aria-labelledby="ppl-h">
         <div className="block-head">
           <h2 className="t-heading" id="ppl-h">사람별 예산</h2>
@@ -71,51 +82,12 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
             ))}
           </div>
         </div>
-        <div className="tbl-wrap">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>이름</th>
-                <th className="num">권수</th>
-                <th className="num">사용(원)</th>
-                <th className="num">커피(원)</th>
-                <th className="num">잔액(원)</th>
-                <th>상태</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((r) => (
-                <tr key={r.member_id}>
-                  <td>
-                    {r.name}
-                    {r.role_title && <span className="t-cap"> {r.role_title}</span>}
-                  </td>
-                  <td className="num">{r.request_count}</td>
-                  <td className="num">{won(r.used)}</td>
-                  <td className="num">{r.reserved ? won(r.reserved) : "—"}</td>
-                  <td className="num">{won(r.remaining)}</td>
-                  <td>
-                    {r.request_count === 0 ? (
-                      <span className="badge b-warn">미요청</span>
-                    ) : r.remaining > 0 ? (
-                      <span className="t-cap">잔액 있음</span>
-                    ) : (
-                      <span className="t-cap">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!shown.length && (
-                <tr>
-                  <td colSpan={6}>
-                    <div className="empty"><Icon name="table" /><strong>조건에 맞는 사람이 없어요</strong></div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <p className="t-cap">잔액을 모아 커피 예정으로 묶는 기능은 곧 추가돼요.</p>
+        <BudgetTable key={cycle.id} cycleId={cycle.id} rows={shown} canPlan={cycle.status !== "closed"} defaultTitle={`${md(today)} 커피`} />
+      </section>
+
+      <section className="card" aria-labelledby="cof-h">
+        <h2 className="t-heading" id="cof-h">커피 묶음 · {roundLabel(cycle.month, today)}</h2>
+        <CoffeePlans plans={plans} cycleKey={key} />
       </section>
     </>
   );

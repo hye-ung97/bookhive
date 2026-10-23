@@ -1,5 +1,6 @@
 import "server-only";
 import { roundKey } from "./format";
+import { withThumbs, type ReceiptView } from "./receipts";
 import { createClient } from "./supabase/server";
 import type { Budget, Cycle, RequestRow } from "./types";
 
@@ -82,7 +83,104 @@ export async function cycleBudgets(cycleId: string): Promise<MemberBudgetRow[]> 
     .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 }
 
-export type CycleWarnings = { unrequested: number; unassigned: number; undelivered: number; plannedCoffee: number };
+// ───────── 2단계: 주문 묶음·커피 (관리자 화면) ─────────
+
+export type BundleRow = {
+  id: string;
+  cycle_id: string;
+  store: "yes24" | "kyobo" | "other";
+  status: "cart" | "ordered" | "delivered";
+  paid_amount: number | null;
+  ordered_at: string | null;
+  expected_arrival: string | null;
+  delivered_at: string | null;
+  note: string | null;
+  seq: number;
+  item_count: number;
+  request_total: number;
+};
+
+export type NoticeRow = { bundle_id: string; kind: string; status: string; sent_at: string | null; attachments: number; error: string | null };
+
+export type BundleView = BundleRow & { items: RequestRow[]; receipts: ReceiptView[]; notices: NoticeRow[] };
+
+export async function bundlesForCycle(cycleId: string): Promise<BundleView[]> {
+  const supabase = await createClient();
+  const { data: bundles, error } = await supabase.from("v_bundles").select("*").eq("cycle_id", cycleId).order("created_at");
+  if (error) throw error;
+  const ids = (bundles as BundleRow[]).map((b) => b.id);
+  if (!ids.length) return [];
+  const [{ data: items }, { data: receipts }, { data: notices }] = await Promise.all([
+    supabase.from("v_requests").select(REQUEST_COLUMNS).in("bundle_id", ids).order("created_at").order("id"),
+    supabase.from("receipts").select("id, bundle_id, coffee_plan_id, file_name, mime, size_bytes, external_ref, created_at, storage_path").in("bundle_id", ids).order("created_at"),
+    supabase.from("notification_logs").select("bundle_id, kind, status, sent_at, attachments, error").in("bundle_id", ids),
+  ]);
+  const views = await withThumbs(receipts ?? []);
+  return (bundles as BundleRow[]).map((b) => ({
+    ...b,
+    items: ((items ?? []) as RequestRow[]).filter((r) => r.bundle_id === b.id),
+    receipts: views.filter((r) => r.bundle_id === b.id),
+    notices: ((notices ?? []) as NoticeRow[]).filter((n) => n.bundle_id === b.id),
+  }));
+}
+
+/** 아직 묶음에 담기지 않은 요청 */
+export async function unassignedRequests(cycleId: string): Promise<RequestRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("v_requests")
+    .select(REQUEST_COLUMNS)
+    .eq("cycle_id", cycleId)
+    .is("bundle_id", null)
+    .eq("status", "requested")
+    .order("created_at")
+    .order("id");
+  if (error) throw error;
+  return data as RequestRow[];
+}
+
+export type CoffeePlanView = {
+  id: string;
+  title: string;
+  memo: string | null;
+  status: "planned" | "used" | "cancelled";
+  spent_amount: number | null;
+  used_at: string | null;
+  members: { member_id: string; name: string; amount: number }[];
+  total: number;
+  receipts: ReceiptView[];
+};
+
+export async function coffeePlans(cycleId: string): Promise<CoffeePlanView[]> {
+  const supabase = await createClient();
+  const { data: plans, error } = await supabase
+    .from("coffee_plans")
+    .select("id, title, memo, status, spent_amount, used_at, created_at")
+    .eq("cycle_id", cycleId)
+    .neq("status", "cancelled")
+    .order("created_at");
+  if (error) throw error;
+  const ids = (plans ?? []).map((p) => p.id as string);
+  if (!ids.length) return [];
+  const [{ data: rows }, { data: members }, { data: receipts }] = await Promise.all([
+    supabase.from("coffee_plan_members").select("plan_id, member_id, amount").in("plan_id", ids),
+    supabase.from("members").select("id, name"),
+    supabase.from("receipts").select("id, bundle_id, coffee_plan_id, file_name, mime, size_bytes, external_ref, created_at, storage_path").in("coffee_plan_id", ids).order("created_at"),
+  ]);
+  const names = new Map((members ?? []).map((m) => [m.id as string, m.name as string]));
+  const views = await withThumbs(receipts ?? []);
+  return (plans ?? []).map((p) => {
+    const list = (rows ?? [])
+      .filter((r) => r.plan_id === p.id)
+      .map((r) => ({ member_id: r.member_id as string, name: names.get(r.member_id) ?? "?", amount: r.amount as number }));
+    return {
+      id: p.id, title: p.title, memo: p.memo, status: p.status, spent_amount: p.spent_amount, used_at: p.used_at,
+      members: list, total: list.reduce((a, m) => a + m.amount, 0), receipts: views.filter((r) => r.coffee_plan_id === p.id),
+    };
+  });
+}
+
+export type CycleWarnings ={ unrequested: number; unassigned: number; undelivered: number; plannedCoffee: number };
 
 /** 단계를 넘길 때 확인창에 띄울 남은 일 */
 export async function cycleWarnings(cycleId: string): Promise<CycleWarnings> {

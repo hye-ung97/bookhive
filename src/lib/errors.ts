@@ -46,7 +46,23 @@ export function toUserMessage(error: DbError): string {
     case "CYCLE_EXISTS":
       return "이미 만든 회차예요.";
     case "INVALID_TRANSITION":
-      return "이 단계로는 바로 넘길 수 없어요.";
+      return "이 단계로는 바로 넘길 수 없어요. 새로고침해 주세요.";
+    case "REQUEST_UNAVAILABLE":
+      return "이미 묶음에 담겼거나 취소된 요청이 있어요. 새로고침해 주세요.";
+    case "BUNDLE_LOCKED":
+      return "주문완료된 묶음은 바꿀 수 없어요. 못 산 책은 '품절 취소'로 처리해 주세요.";
+    case "ORDER_FIELDS_REQUIRED":
+      return "주문일·도착 예정일·실결제액을 입력해 주세요.";
+    case "BUNDLE_EMPTY":
+      return "묶음에 책이 없어요.";
+    case "USE_REMOVE":
+      return "장바구니 단계에서는 '빼기'를 써 주세요.";
+    case "NO_MEMBERS":
+      return "커피 예정으로 묶을 사람을 골라 주세요.";
+    case "COFFEE_INELIGIBLE":
+      return "책을 요청했고 잔액이 남은 사람만, 다른 커피 예정에 묶이지 않았을 때 묶을 수 있어요. 새로고침해 주세요.";
+    case "INVALID_SPENT":
+      return `실제 결제액은 예약액(${won(detail.total ?? 0)}원)을 넘을 수 없어요.`;
     default:
       return "처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
   }

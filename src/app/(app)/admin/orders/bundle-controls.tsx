@@ -1,0 +1,241 @@
+"use client";
+
+import { useActionState, useRef, useState, useTransition } from "react";
+import { Icon } from "@/components/icon";
+import { SlackPreview } from "@/components/slack-preview";
+import { kstToday, won } from "@/lib/format";
+import { deliveryNoticeText, orderNoticeText } from "@/lib/notice-text";
+import type { ReceiptView } from "@/lib/receipts";
+import {
+  cancelBundleItem, dissolveBundle, markDelivered, markOrdered, removeFromBundle, resendNotice, revertBundle, type ActionState,
+} from "./actions";
+
+function Result({ state }: { state: ActionState }) {
+  if (!state) return null;
+  return (
+    <p className={`msg ${state.ok ? "msg-ok" : "msg-err"}`} role="status">
+      <Icon name={state.ok ? "checkc" : "alertc"} />
+      {state.message}
+    </p>
+  );
+}
+
+/** 장바구니 묶음에서 한 권 빼기 (마지막 책이면 빈 묶음은 자동 삭제) */
+export function RemoveItem({ requestId, title }: { requestId: string; title: string }) {
+  const [pending, start] = useTransition();
+  const [state, setState] = useState<ActionState>(null);
+  return (
+    <>
+      <button className="btn btn-sm btn-ghost" type="button" disabled={pending} aria-label={`${title} 빼기`}
+        onClick={() => start(async () => setState(await removeFromBundle(requestId)))}>
+        {pending ? "빼는 중…" : "빼기"}
+      </button>
+      {state && !state.ok && <span className="msg msg-err">{state.message}</span>}
+    </>
+  );
+}
+
+/** 주문 후 품절 등으로 못 산 책 취소 (한 번 더 확인) */
+export function CancelItem({ requestId, title }: { requestId: string; title: string }) {
+  const [confirming, setConfirming] = useState(false);
+  const [pending, start] = useTransition();
+  const [state, setState] = useState<ActionState>(null);
+  if (!confirming) {
+    return (
+      <>
+        <button className="btn btn-sm btn-ghost" type="button" onClick={() => setConfirming(true)}>품절 취소</button>
+        {state && !state.ok && <span className="msg msg-err">{state.message}</span>}
+      </>
+    );
+  }
+  return (
+    <span className="row-gap" role="group" aria-label={`${title} 품절 취소 확인`}>
+      <span className="t-cap">금액이 멤버 잔액으로 돌아가요</span>
+      <button className="btn btn-sm btn-danger" type="button" disabled={pending}
+        onClick={() => start(async () => { setState(await cancelBundleItem(requestId)); setConfirming(false); })}>
+        취소 확정
+      </button>
+      <button className="btn btn-sm btn-ghost" type="button" onClick={() => setConfirming(false)}>닫기</button>
+    </span>
+  );
+}
+
+type NoticeBase = { bundleId: string; cycleId: string; round: string; label: string; names: string[]; count: number };
+
+/** 장바구니 단계: 주문일·도착 예정일·실결제액 입력 → 확인창에서 Slack 주문완료 공지 미리보기 후 처리 */
+export function CartPanel({ base, requestTotal, receipts }: { base: NoticeBase; requestTotal: number; receipts: ReceiptView[] }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [orderedAt, setOrderedAt] = useState(kstToday());
+  const [eta, setEta] = useState("");
+  const [paid, setPaid] = useState("");
+  const [message, setMessage] = useState("");
+  const [attached, setAttached] = useState<Set<string>>(new Set());
+  const [skip, setSkip] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
+    const result = await markOrdered(prev, fd);
+    if (result?.ok) dialog.current?.close();
+    return result;
+  }, null);
+
+  const open = () => {
+    if (!orderedAt || !eta || !paid) { setMissing(true); return; }
+    setMissing(false);
+    setMessage(orderNoticeText({ ...base, eta }));
+    setAttached(new Set(receipts.map((r) => r.id)));
+    dialog.current?.showModal();
+  };
+  // 폼 안에 폼을 넣을 수 없어서(묶음 풀기 확인창), 입력칸은 form 속성으로 확인창 안의 주문 폼에 연결한다
+  const formId = `order-${base.bundleId}`;
+
+  return (
+    <div className="stack" style={{ gap: 12 }}>
+      <div className="bform">
+        <div className="field">
+          <label className="label" htmlFor={`od-${base.bundleId}`}>주문일</label>
+          <input className="input" id={`od-${base.bundleId}`} form={formId} name="orderedAt" type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor={`eta-${base.bundleId}`}>도착 예정일</label>
+          <input className="input" id={`eta-${base.bundleId}`} form={formId} name="eta" type="date" value={eta} onChange={(e) => setEta(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor={`paid-${base.bundleId}`}>실결제액</label>
+          <div className="input-unit">
+            <input className="input" id={`paid-${base.bundleId}`} form={formId} name="paid" inputMode="numeric" placeholder={won(requestTotal)}
+              value={paid ? won(Number(paid)) : ""} onChange={(e) => setPaid(e.target.value.replace(/[^\d]/g, "").slice(0, 8))} />
+            <span>원</span>
+          </div>
+        </div>
+      </div>
+      {missing && <p className="msg msg-err" role="alert"><Icon name="alertc" />주문일·도착 예정일·실결제액을 입력해 주세요.</p>}
+      <div className="row-gap" style={{ justifyContent: "space-between" }}>
+        <span className="t-cap">장바구니에 담긴 요청은 멤버가 수정·삭제할 수 없어요.</span>
+        <span className="row-gap">
+          <DissolveButton bundleId={base.bundleId} label={base.label} count={base.count} />
+          <button className="btn btn-primary" type="button" onClick={open}><Icon name="hash" />주문완료 처리 · Slack 공지</button>
+        </span>
+      </div>
+      <Result state={state} />
+
+      <dialog ref={dialog} className="dlg" aria-labelledby={`od-t-${base.bundleId}`}>
+        <form id={formId} action={action} className="dlg-body">
+          <input type="hidden" name="bundleId" value={base.bundleId} />
+          <input type="hidden" name="cycleId" value={base.cycleId} />
+          <h2 id={`od-t-${base.bundleId}`}>{base.label}를 주문완료로 처리할까요?</h2>
+          <p className="muted">요청자 {new Set(base.names).size}명의 상태가 &quot;주문완료&quot;로 바뀌고, 동아리 채널에 도착 예정일과 주문 이미지를 함께 공지해요.</p>
+          <SlackPreview text={message} files={skip ? [] : receipts.filter((r) => attached.has(r.id))} />
+          {receipts.length ? (
+            <fieldset className="att-list">
+              <legend className="label">함께 보낼 파일</legend>
+              {receipts.map((r) => (
+                <label key={r.id} className="att-item">
+                  <input type="checkbox" name="receiptIds" value={r.id} checked={attached.has(r.id)}
+                    onChange={(e) => setAttached((prev) => { const next = new Set(prev); if (e.target.checked) next.add(r.id); else next.delete(r.id); return next; })} />
+                  <span>{r.file_name}</span>
+                </label>
+              ))}
+            </fieldset>
+          ) : (
+            <p className="note note-warn"><Icon name="alert" />첨부할 주문 이미지가 없어요. 주문 내역 캡처를 &quot;영수증·주문 내역&quot;에 먼저 올리면 함께 보낼 수 있어요.</p>
+          )}
+          <div className="field">
+            <label className="label" htmlFor={`om-${base.bundleId}`}>문구 수정</label>
+            <textarea className="textarea" id={`om-${base.bundleId}`} name="message" value={message} onChange={(e) => setMessage(e.target.value)} />
+          </div>
+          <label className="radio"><input type="checkbox" name="skip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Slack 공지 없이 처리만</label>
+          <Result state={state} />
+          <div className="dlg-acts">
+            <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.close()}>취소</button>
+            <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "처리하는 중…" : skip ? "처리만 하기" : "처리하고 공지"}</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+  );
+}
+
+function DissolveButton({ bundleId, label, count }: { bundleId: string; label: string; count: number }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [state, action, pending] = useActionState<ActionState, FormData>(dissolveBundle, null);
+  return (
+    <>
+      <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.showModal()}>묶음 풀기</button>
+      <dialog ref={dialog} className="dlg" aria-labelledby={`dz-${bundleId}`}>
+        <form action={action} className="dlg-body">
+          <h2 id={`dz-${bundleId}`}>{label} 묶음을 풀까요?</h2>
+          <p className="muted">담긴 책 {count}권이 미배정 요청으로 돌아가고, 멤버가 다시 수정·삭제할 수 있어요. 서점 장바구니에 이미 담은 책은 직접 빼 주세요.</p>
+          <input type="hidden" name="bundleId" value={bundleId} />
+          <Result state={state} />
+          <div className="dlg-acts">
+            <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.close()}>취소</button>
+            <button className="btn btn-danger" type="submit" disabled={pending}>묶음 풀기</button>
+          </div>
+        </form>
+      </dialog>
+    </>
+  );
+}
+
+/** 주문완료 단계: 확인창에서 Slack 배송완료 공지 미리보기 후 처리 */
+export function DeliverButton({ base }: { base: NoticeBase }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [message, setMessage] = useState("");
+  const [skip, setSkip] = useState(false);
+  const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
+    const result = await markDelivered(prev, fd);
+    if (result?.ok) dialog.current?.close();
+    return result;
+  }, null);
+  return (
+    <>
+      <button className="btn btn-primary" type="button" onClick={() => { setMessage(deliveryNoticeText(base)); dialog.current?.showModal(); }}>
+        <Icon name="pkg" />배송완료 처리 · Slack 공지
+      </button>
+      <Result state={state} />
+      <dialog ref={dialog} className="dlg" aria-labelledby={`dl-${base.bundleId}`}>
+        <form action={action} className="dlg-body">
+          <h2 id={`dl-${base.bundleId}`}>{base.label} 묶음을 배송완료로 처리할까요?</h2>
+          <p className="muted">책 {base.count}권 · 요청자 {new Set(base.names).size}명의 상태가 &quot;배송완료&quot;로 바뀌고 동아리 채널에 공지돼요.</p>
+          <SlackPreview text={message} />
+          <div className="field">
+            <label className="label" htmlFor={`dm-${base.bundleId}`}>문구 수정</label>
+            <textarea className="textarea" id={`dm-${base.bundleId}`} name="message" value={message} onChange={(e) => setMessage(e.target.value)} />
+          </div>
+          <label className="radio"><input type="checkbox" name="skip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Slack 공지 없이 처리만</label>
+          <input type="hidden" name="bundleId" value={base.bundleId} />
+          <input type="hidden" name="cycleId" value={base.cycleId} />
+          <Result state={state} />
+          <div className="dlg-acts">
+            <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.close()}>취소</button>
+            <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "처리하는 중…" : skip ? "처리만 하기" : "처리하고 공지"}</button>
+          </div>
+        </form>
+      </dialog>
+    </>
+  );
+}
+
+export function RevertButton({ bundleId, to }: { bundleId: string; to: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(revertBundle, null);
+  return (
+    <form action={action} className="row-gap">
+      <input type="hidden" name="bundleId" value={bundleId} />
+      <button className="link" type="submit" disabled={pending}>{to}(으)로 되돌리기</button>
+      <Result state={state} />
+    </form>
+  );
+}
+
+export function ResendButton({ bundleId, cycleId, kind }: { bundleId: string; cycleId: string; kind: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(resendNotice, null);
+  return (
+    <form action={action} className="row-gap">
+      <input type="hidden" name="bundleId" value={bundleId} />
+      <input type="hidden" name="cycleId" value={cycleId} />
+      <input type="hidden" name="kind" value={kind} />
+      <button className="link" type="submit" disabled={pending}>{pending ? "보내는 중…" : "공지 다시 보내기"}</button>
+      <Result state={state} />
+    </form>
+  );
+}

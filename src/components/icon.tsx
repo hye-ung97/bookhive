@@ -99,6 +99,29 @@ const PATHS = {
     </>
   ),
   arrowR: <path d="M5 12h14M13 6l6 6-6 6" />,
+  truck: (
+    <>
+      <path d="M3 6h11v10H3z" />
+      <path d="M14 9h4l3 3v4h-7" />
+      <circle cx="7" cy="18" r="2" />
+      <circle cx="17" cy="18" r="2" />
+    </>
+  ),
+  coffee: (
+    <>
+      <path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" />
+      <path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17" />
+      <path d="M8 2v3M12 2v3" />
+    </>
+  ),
+  x: <path d="M6 6l12 12M18 6 6 18" />,
+  hash: <path d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18" />,
+  file: (
+    <>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <path d="M14 3v6h6" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof PATHS;
