@@ -88,17 +88,18 @@ export async function cycleBudgets(cycleId: string): Promise<MemberBudgetRow[]> 
 export type JournalRow = {
   id: string;
   cycle_id: string;
+  member_id: string;
   purchase_request_id: string | null;
   body: string;
-  ai_assisted: boolean;
   legacy_book_title: string | null;
   created_at: string;
   updated_at: string;
 };
 
-const JOURNAL_COLUMNS = "id, cycle_id, purchase_request_id, body, ai_assisted, legacy_book_title, created_at, updated_at";
+// ai_assisted는 멤버에게 컬럼 권한이 없다 (AI 사용 여부는 내부 기록)
+const JOURNAL_COLUMNS = "id, cycle_id, member_id, purchase_request_id, body, legacy_book_title, created_at, updated_at";
 
-/** 내 일지 (RLS로 본인 것만). cycleId를 주면 그 회차만 */
+/** 내 일지. cycleId를 주면 그 회차만 */
 export async function myJournals(memberId: string, cycleId?: string): Promise<JournalRow[]> {
   const supabase = await createClient();
   let query = supabase.from("journals").select(JOURNAL_COLUMNS).eq("member_id", memberId);
@@ -106,6 +107,26 @@ export async function myJournals(memberId: string, cycleId?: string): Promise<Jo
   const { data, error } = await query;
   if (error) throw error;
   return data as JournalRow[];
+}
+
+export type SharedJournal = JournalRow & { name: string; book: string | null };
+
+/** 모두의 일지: 회차의 일지 전부 (멤버 모두에게 공개). 제출 순 */
+export async function cycleJournals(cycleId: string): Promise<SharedJournal[]> {
+  const supabase = await createClient();
+  const [{ data, error }, { data: members }, { data: requests }] = await Promise.all([
+    supabase.from("journals").select(JOURNAL_COLUMNS).eq("cycle_id", cycleId).order("created_at").order("id"),
+    supabase.from("members").select("id, name"),
+    supabase.from("purchase_requests").select("id, title").eq("cycle_id", cycleId),
+  ]);
+  if (error) throw error;
+  const names = new Map((members ?? []).map((m) => [m.id as string, m.name as string]));
+  const titles = new Map((requests ?? []).map((r) => [r.id as string, r.title as string]));
+  return (data as JournalRow[]).map((j) => ({
+    ...j,
+    name: names.get(j.member_id) ?? "?",
+    book: titles.get(j.purchase_request_id ?? "") ?? j.legacy_book_title,
+  }));
 }
 
 /** 동아리 제출 현황: 책을 신청한 사람 중 일지를 낸 사람 수 */

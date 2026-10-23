@@ -135,7 +135,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </div>
                 <div className="kv">
                   <dt>동아리 제출 현황</dt>
-                  <dd>{progress.submitted} / {progress.writers}명</dd>
+                  <dd className="row-gap">
+                    {progress.submitted} / {progress.writers}명
+                    {progress.submitted > 0 && <Link className="link" href="/journals">읽기</Link>}
+                  </dd>
                 </div>
                 <div className="kv">
                   <dt>읽을 책</dt>

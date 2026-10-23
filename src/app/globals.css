@@ -369,6 +369,9 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .view-body { font-size: 15px; line-height: 26px; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* 모두의 일지 (/journals) */
+.jr-list { display: grid; gap: 12px; max-width: 680px; }
+
 /* 내 기록 */
 .tl { display: grid; gap: 20px; }
 .tl-sec { display: grid; gap: 12px; padding-left: 20px; border-left: 2px solid var(--border); position: relative; }

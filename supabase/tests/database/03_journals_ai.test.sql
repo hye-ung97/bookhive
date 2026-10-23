@@ -1,7 +1,7 @@
 -- 일지·AI 사용 횟수·제출 현황 검증 (npx supabase test db)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 insert into public.members (id, name, email) values
   ('20000000-0000-0000-0000-0000000000a1', '일지A', 'ja@t.test'),
@@ -48,7 +48,10 @@ select is((public.save_journal('20000000-0000-0000-0000-0000000000c1', '20000000
 select lives_ok($$ select public.save_journal('20000000-0000-0000-0000-0000000000c1', '20000000-0000-0000-0000-0000000000d1', '고친 일지', true) $$,
   '같은 회차에 다시 저장하면 수정');
 select is((select count(*) from public.journals where cycle_id = '20000000-0000-0000-0000-0000000000c1'), 1::bigint, '사람당 회차당 1개');
+-- ai_assisted는 멤버에게 컬럼 권한이 없어 DB 권한으로 확인
+reset role;
 select is((select ai_assisted from public.journals where cycle_id = '20000000-0000-0000-0000-0000000000c1'), true, 'AI 초안 사용 여부 기록');
+select pg_temp.login('20000000-0000-0000-0000-0000000000b1');
 select throws_ok($$ insert into public.journals (cycle_id, member_id, purchase_request_id, body)
   values ('20000000-0000-0000-0000-0000000000c1', '20000000-0000-0000-0000-0000000000a1', '20000000-0000-0000-0000-0000000000d1', 'x') $$,
   '42501', null, '테이블에 직접 쓰기는 권한 없음');
@@ -60,9 +63,10 @@ select is((public.save_journal('20000000-0000-0000-0000-0000000000c3', '20000000
 select throws_ok($$ select public.delete_journal('20000000-0000-0000-0000-0000000000c3') $$, 'P0001', 'JOURNAL_LOCKED', '마감 후에는 삭제 불가');
 select lives_ok($$ select public.delete_journal('20000000-0000-0000-0000-0000000000c1') $$, '마감 전에는 삭제 가능');
 
--- B는 A의 일지를 볼 수 없음
+-- B는 A의 일지를 읽을 수 있지만 AI 사용 여부는 못 본다
 select pg_temp.login('20000000-0000-0000-0000-0000000000b2');
-select is((select count(*) from public.journals where member_id = '20000000-0000-0000-0000-0000000000a1'), 0::bigint, '다른 멤버의 일지는 볼 수 없음');
+select is((select body from public.journals where member_id = '20000000-0000-0000-0000-0000000000a1'), '마감 지나서', '다른 멤버의 일지도 읽을 수 있음');
+select throws_ok($$ select ai_assisted from public.journals $$, '42501', null, 'AI 초안 사용 여부는 읽을 수 없음');
 
 -- AI 하루 10회
 select is(public.consume_ai_quota(), 9, '첫 사용 후 9회 남음');

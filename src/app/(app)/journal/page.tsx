@@ -32,7 +32,10 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
             <Icon name="pen" />
             <strong>지금 쓸 수 있는 일지가 없어요</strong>
             <p>책이 도착해 회차가 &quot;읽는 중&quot;이 되면 쓸 수 있어요.</p>
-            <Link className="btn" href="/me">내 기록 보기</Link>
+            <div className="row-gap">
+              <Link className="btn" href="/me">내 기록 보기</Link>
+              <Link className="btn" href="/journals">지난 회차 일지 읽기</Link>
+            </div>
           </div>
         </div>
       </>
@@ -57,9 +60,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
           {cycle.journal_deadline ? <>마감 {md(cycle.journal_deadline)} <DdayChip date={cycle.journal_deadline} today={today} /></> : "마감일 미정"} · 회차당 1편 · 공백 포함 500자 이내
         </p>
       </div>
-      {reading.length > 1 && (
-        <RoundPicker rounds={reading.map((c) => ({ key: roundKey(c.month), label: roundLabel(c.month, today) })).reverse()} current={key} />
-      )}
+      <div className="row-gap">
+        <Link className="btn" href={`/journals?round=${key}`}><Icon name="users" />모두의 일지</Link>
+        {reading.length > 1 && (
+          <RoundPicker rounds={reading.map((c) => ({ key: roundKey(c.month), label: roundLabel(c.month, today) })).reverse()} current={key} />
+        )}
+      </div>
     </div>
   );
 
