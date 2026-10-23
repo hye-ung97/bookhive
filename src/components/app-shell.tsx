@@ -16,6 +16,7 @@ const MEMBER_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin/rounds", label: "회차 현황", icon: "table" },
   { href: "/admin/orders", label: "주문·배송", icon: "truck" },
+  { href: "/admin/members", label: "멤버", icon: "users" },
   { href: "/admin/settings", label: "설정", icon: "bell" },
 ];
 

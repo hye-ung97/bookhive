@@ -71,6 +71,7 @@ body {
 .muted { color: var(--fg2); }
 .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .sr-only-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ───────── 앱 틀: 사이드바 240 | 본문 최대 1120. 768px 미만은 하단 탭 ───────── */
 /* 컨테이너는 자기 자신에게 쿼리를 걸 수 없어서, 바깥 틀(.app-frame)을 기준으로 안쪽 .shell 배치를 바꾼다 */
@@ -338,6 +339,7 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .plan .who-list { font-size: 13px; color: var(--fg2); }
 .plan-rc { grid-column: 1 / -1; }
 .tbl input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); }
+.tbl tr.is-muted td { color: var(--fg2); }
 .tbl tr.is-sel td { background: var(--primary-soft); }
 
 /* 일지 */

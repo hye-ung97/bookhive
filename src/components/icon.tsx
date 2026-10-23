@@ -1,6 +1,13 @@
 // 선 아이콘 모음 (lucide 스타일, 24px 그리드). 색은 currentColor
 const PATHS = {
   bookmark: <path d="M6 3h12v18l-6-4-6 4z" />,
+  users: (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
   home: (
     <>
       <path d="M3 10.5 12 3l9 7.5" />

@@ -260,3 +260,26 @@ export async function cycleWarnings(cycleId: string): Promise<CycleWarnings> {
     plannedCoffee: (coffee.data ?? []).length,
   };
 }
+
+// ───────── 멤버 관리 (관리자) ─────────
+
+export type AdminMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "member";
+  role_title: string | null;
+  status: "active" | "left";
+  slack_linked: boolean;
+  signed_in: boolean;
+  joined_on: string | null;
+  left_on: string | null;
+};
+
+/** 이메일은 RLS로 본인만 보이므로 관리자 전용 DB 함수로 읽는다 */
+export async function adminMembers(): Promise<AdminMember[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_list_members");
+  if (error) throw error;
+  return data as AdminMember[];
+}

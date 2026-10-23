@@ -43,6 +43,14 @@ export function toUserMessage(error: DbError): string {
       return "이미 삭제된 요청이에요.";
     case "NOT_ADMIN":
       return "관리자만 할 수 있어요.";
+    case "MEMBER_INVALID":
+      return "이름과 이메일을 확인해 주세요.";
+    case "EMAIL_TAKEN":
+      return "이미 등록된 이메일이에요.";
+    case "LAST_ADMIN":
+      return "마지막 관리자는 바꾸거나 탈퇴 처리할 수 없어요. 다른 관리자를 먼저 지정해 주세요.";
+    case "MEMBER_NOT_FOUND":
+      return "멤버를 찾을 수 없어요. 새로고침해 주세요.";
     case "CYCLE_EXISTS":
       return "이미 만든 회차예요.";
     case "INVALID_TRANSITION":
