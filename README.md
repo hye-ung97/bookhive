@@ -48,12 +48,18 @@ AI 키: `GEMINI_API_KEY`(https://aistudio.google.com/apikey), `GROQ_API_KEY`(htt
 
 Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:write`, `users:read`, `users:read.email`), `SLACK_CHANNEL_ID`를 넣고 `SLACK_DRY_RUN=false`. 봇을 공지 채널에 초대해야 한다. 값이 없으면 실제로 보내지 않고 "기록만 남김"으로 처리되며, 나중에 [공지 다시 보내기]로 보낼 수 있다.
 
+## 운영 Supabase
+
+- 프로젝트 `bookhive`(서울, ap-northeast-2). 마이그레이션은 예시 데이터 없이 `supabase db push --db-url <session pooler URL>`로 올린다
+- 가입 제한: 대시보드 Authentication > Auth Hooks > Before User Created → Postgres `public.hook_before_user_created` (설정 완료)
+- 접속 정보는 `.env.supabase-prod`(커밋 금지)에 둔다. 앱 키는 Vercel 환경변수에만 넣는다
+
 ## 검사
 
 ```bash
 npm run typecheck && npm run lint
 npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구
-npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수 (89개)
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·함수 권한 (96개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 
