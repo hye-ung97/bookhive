@@ -2,6 +2,18 @@
 
 export type Extracted = { isbn?: string; title?: string; author?: string; price?: number };
 
+// 교보문고는 브라우저 헤더가 없으면 빈 응답을 준다(봇 차단)
+export const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml",
+  "Accept-Language": "ko-KR,ko;q=0.9",
+  "Upgrade-Insecure-Requests": "1",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+};
+
 /** ISBN-13 체크섬 검증. ISBN-10은 978 접두사로 바꿔서 검증 */
 export function normalizeIsbn(value: string | undefined | null): string | undefined {
   if (!value) return undefined;

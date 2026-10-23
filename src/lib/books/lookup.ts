@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "../supabase/admin";
-import { extractKyobo, extractYes24, normalizeIsbn, type Extracted } from "./extract";
+import { BROWSER_HEADERS, extractKyobo, extractYes24, normalizeIsbn, type Extracted } from "./extract";
 import { parseStoreUrl, type Store } from "./parse-store-url";
 
 export type LookupResult = {
@@ -15,18 +15,6 @@ export type LookupResult = {
 };
 
 const CACHE_HOURS = 6;
-
-// 교보문고는 브라우저 헤더가 없으면 빈 응답을 준다(봇 차단)
-const BROWSER_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
-  Accept: "text/html,application/xhtml+xml",
-  "Accept-Language": "ko-KR,ko;q=0.9",
-  "Upgrade-Insecure-Requests": "1",
-  "Sec-Fetch-Dest": "document",
-  "Sec-Fetch-Mode": "navigate",
-  "Sec-Fetch-Site": "none",
-};
 
 type KakaoBook = {
   title: string;

@@ -5,6 +5,7 @@
 //   npm run migrate -- import --dry-run          한 트랜잭션으로 넣어 보고 되돌린다 + 대사 리포트 data/legacy/report.md
 //   npm run migrate -- import --prod             운영 DB(.env.supabase-prod)에 실제로 넣는다
 //   npm run migrate -- relink-receipts [--prod] [--dry-run]   파일 이름만 남은 이관 영수증을 시트의 Drive 링크로 바꾼다
+//   npm run migrate -- backfill-isbn [--prod] [--dry-run]     진행 중 회차의 이관 요청에 서점 링크로 ISBN을 채운다 (AI 초안 책 소개용)
 //
 // 옵션: --reading=2026-11  읽는 중으로 둘 회차 (기본: 가장 최근 회차, none이면 모두 마감)
 //       --db-url=postgres://…  직접 지정 (기본: SUPABASE_DB_URL 또는 로컬)
@@ -14,6 +15,8 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Client } from "pg";
+import { BROWSER_HEADERS, extractKyobo, extractYes24 } from "../../src/lib/books/extract";
+import { parseStoreUrl } from "../../src/lib/books/parse-store-url";
 import {
   buildNameIndex, classifyExpense, extractSheetLinks, isCoffeeExtra, mapStatus, matchBook, parseCsv, parseJournalTab,
   parseMembers, parseRequestTab, parseSheetDate, resolveNames, type RequestTab, type SheetJournal,
@@ -513,10 +516,65 @@ async function upsertJournal(
   else stats.unlinked.push(`${month.slice(0, 7)} ${j.name}: "${j.title}" (신청 책: ${all.map((r) => r.title).join(" / ") || "없음"})`);
 }
 
+/**
+ * 진행 중 회차(요청 받는 중·읽는 중)의 요청 중 ISBN이 없는 것을 서점 링크로 채운다.
+ * 시트에서 온 요청은 ISBN이 없어서 AI 일지 초안이 카카오 책 소개를 못 찾는다.
+ * 서점 페이지는 이 컴퓨터에서 읽는다(교보는 해외 IP를 막는다). 저자가 비어 있으면 함께 채운다
+ */
+async function backfillIsbn() {
+  const dryRun = flag("dry-run") !== undefined;
+  const { client, target } = await dbClient();
+  await client.connect();
+  console.log(`대상 DB: ${target}${dryRun ? " (드라이런: 끝나면 되돌림)" : ""}`);
+  try {
+    await client.query("begin");
+    const { rows } = await client.query(
+      `select pr.id, pr.url, pr.title, to_char(c.month, 'YYYY-MM') as round
+       from public.purchase_requests pr join public.cycles c on c.id = pr.cycle_id
+       where c.status <> 'closed' and pr.isbn is null and pr.cancelled_at is null and pr.url is not null
+       order by c.month, pr.created_at`);
+    let filled = 0;
+    const failed: string[] = [];
+    for (const r of rows) {
+      const parsed = parseStoreUrl(r.url);
+      if (!parsed.ok) { failed.push(`${r.round} ${r.title} (서점 상품 링크가 아님)`); continue; }
+      let isbn: string | undefined;
+      let author: string | undefined;
+      try {
+        const res = await fetch(parsed.url, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(8000), redirect: "follow" });
+        const html = res.ok ? await res.text() : "";
+        ({ isbn, author } = parsed.store === "yes24" ? extractYes24(html) : extractKyobo(html));
+      } catch {
+        // 아래에서 실패로 센다
+      }
+      await new Promise((ok) => setTimeout(ok, 300)); // 서점에 부담 주지 않게
+      if (!isbn) { failed.push(`${r.round} ${r.title} (페이지에서 ISBN을 못 읽음)`); continue; }
+      await client.query("savepoint row");
+      try {
+        await client.query("update public.purchase_requests set isbn = $2, author = coalesce(author, $3) where id = $1", [r.id, isbn, author ?? null]);
+        await client.query("release savepoint row");
+        filled++;
+      } catch {
+        await client.query("rollback to savepoint row");
+        failed.push(`${r.round} ${r.title} (같은 사람이 같은 회차에 같은 책을 이미 요청함)`);
+      }
+    }
+    await client.query(dryRun ? "rollback" : "commit");
+    console.log(`ISBN 없는 진행 중 회차 요청 ${rows.length}건 중 채움 ${filled}건${dryRun ? " (드라이런)" : ""}`);
+    if (failed.length) console.log(`못 채움 ${failed.length}건:\n  ${failed.join("\n  ")}`);
+  } catch (e) {
+    await client.query("rollback").catch(() => {});
+    throw e;
+  } finally {
+    await client.end();
+  }
+}
+
 const command = args[0];
-const main = { fetch: fetchTabs, members: writeMembersTemplate, import: runImport, "relink-receipts": relinkReceipts }[command as "fetch" | "members" | "import" | "relink-receipts"];
+const commands = { fetch: fetchTabs, members: writeMembersTemplate, import: runImport, "relink-receipts": relinkReceipts, "backfill-isbn": backfillIsbn };
+const main = commands[command as keyof typeof commands];
 if (!main) {
-  console.log("사용법: npm run migrate -- fetch | members | import [--dry-run] [--prod] [--reading=YYYY-MM|none] | relink-receipts [--dry-run] [--prod]");
+  console.log("사용법: npm run migrate -- fetch | members | import [--dry-run] [--prod] [--reading=YYYY-MM|none] | relink-receipts | backfill-isbn  (뒤의 둘도 --dry-run --prod)");
   process.exit(1);
 }
 main().catch((e) => {
