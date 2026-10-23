@@ -68,6 +68,33 @@ export function storeOf(raw: string): { store: Store; url: string | null } {
   return { store, url: s };
 }
 
+// ───────── 셀 하이퍼링크 ─────────
+
+const decodeEntities = (t: string) =>
+  t.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
+
+/**
+ * 시트 웹 보기(htmlview) HTML → { 셀에 보이는 글자: 실제 링크 }.
+ * CSV에는 링크가 빠져서 "예스24_293,490.pdf" 같은 영수증 파일 이름만 남는다(실제로는 Drive 링크).
+ * 구글이 감싼 https://www.google.com/url?q=… 는 원래 주소로 푼다. 글자 자체가 주소인 셀은 뺀다
+ */
+export function extractSheetLinks(html: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of html.matchAll(/<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+    const text = decodeEntities(m[2].replace(/<[^>]+>/g, "")).trim();
+    let url = decodeEntities(m[1]);
+    try {
+      const u = new URL(url);
+      if (u.hostname === "www.google.com" && u.pathname === "/url") url = u.searchParams.get("q") ?? url;
+    } catch {
+      continue;
+    }
+    if (text && !/^https?:\/\//.test(text) && /^https?:\/\//.test(url)) out[text] = url;
+  }
+  return out;
+}
+
 // ───────── 구분(상태) ─────────
 
 export type MappedStatus = { legacyStatus: "ordered" | "delivered" | null; cancelled: boolean };

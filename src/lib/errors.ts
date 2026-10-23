@@ -43,6 +43,8 @@ export function toUserMessage(error: DbError): string {
       return "이미 삭제된 요청이에요.";
     case "NOT_ADMIN":
       return "관리자만 할 수 있어요.";
+    case "INVALID_LINK":
+      return "https://로 시작하는 링크를 넣어 주세요.";
     case "MEMBER_INVALID":
       return "이름과 이메일을 확인해 주세요.";
     case "EMAIL_TAKEN":

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildNameIndex, classifyExpense, isCoffeeExtra, mapStatus, matchBook, normalizeTitle, parseCsv, parseJournalTab,
+  buildNameIndex, classifyExpense, extractSheetLinks, isCoffeeExtra, mapStatus, matchBook, normalizeTitle, parseCsv, parseJournalTab,
   parseMembers, parseRequestTab, parseSheetDate, parseWon, resolveNames, splitName, storeOf,
 } from "../../scripts/migrate/parse";
 
@@ -123,5 +123,19 @@ describe("일지 제목 ↔ 신청 책", () => {
   it("여러 권 중 가장 비슷한 책", () => {
     const books = [{ title: "AI 에이전트 실행 세계 1: 원리편" }, { title: "AI 에이전트 실행 세계 2: 설계편" }];
     expect(matchBook("AI 에이전트 실행 세계 2", books)?.item).toBe(books[1]);
+  });
+});
+
+describe("시트 셀 하이퍼링크", () => {
+  it("구글이 감싼 주소를 풀고, 글자가 주소인 셀은 빼고, HTML 엔티티를 되돌림", () => {
+    const html = [
+      '<td><a target="_blank" href="https://www.google.com/url?q=https://drive.google.com/file/d/AbC/view?usp%3Ddrive_link&amp;sa=D&amp;ust=1">예스24_293,490.pdf</a></td>',
+      '<td><a href="https://www.google.com/url?q=https://www.yes24.com/Product/Goods/1&amp;sa=D">https://www.yes24.com/Product/Goods/1</a></td>',
+      '<td><a href="https://drive.google.com/file/d/XyZ/view">26.01.06 예스24 &amp; 교보.pdf</a></td>',
+    ].join("");
+    expect(extractSheetLinks(html)).toEqual({
+      "예스24_293,490.pdf": "https://drive.google.com/file/d/AbC/view?usp=drive_link",
+      "26.01.06 예스24 & 교보.pdf": "https://drive.google.com/file/d/XyZ/view",
+    });
   });
 });

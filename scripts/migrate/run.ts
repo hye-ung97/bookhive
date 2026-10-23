@@ -4,6 +4,7 @@
 //   npm run migrate -- members                   멤버 매핑표 양식 data/legacy/members.csv 를 만든다 → email 칸을 채운다
 //   npm run migrate -- import --dry-run          한 트랜잭션으로 넣어 보고 되돌린다 + 대사 리포트 data/legacy/report.md
 //   npm run migrate -- import --prod             운영 DB(.env.supabase-prod)에 실제로 넣는다
+//   npm run migrate -- relink-receipts [--prod] [--dry-run]   파일 이름만 남은 이관 영수증을 시트의 Drive 링크로 바꾼다
 //
 // 옵션: --reading=2026-11  읽는 중으로 둘 회차 (기본: 가장 최근 회차, none이면 모두 마감)
 //       --db-url=postgres://…  직접 지정 (기본: SUPABASE_DB_URL 또는 로컬)
@@ -14,7 +15,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Client } from "pg";
 import {
-  buildNameIndex, classifyExpense, isCoffeeExtra, mapStatus, matchBook, parseCsv, parseJournalTab,
+  buildNameIndex, classifyExpense, extractSheetLinks, isCoffeeExtra, mapStatus, matchBook, parseCsv, parseJournalTab,
   parseMembers, parseRequestTab, parseSheetDate, resolveNames, type RequestTab, type SheetJournal,
 } from "./parse";
 
@@ -48,6 +49,11 @@ async function fetchTabs() {
       const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${t.gid}`);
       if (!res.ok) throw new Error(`${key}/${t.name}: HTTP ${res.status}`);
       await writeFile(path.join(dir, `${t.name.replace(/[/\\]/g, "_")}.csv`), await res.text());
+      // 구매 신청 탭은 영수증 칸의 Drive 링크도 받아 둔다 (CSV에는 링크가 빠진다)
+      if (key === "s1") {
+        const view = await fetch(`https://docs.google.com/spreadsheets/d/${id}/htmlview/sheet?headers=true&gid=${t.gid}`);
+        if (view.ok) await writeFile(path.join(dir, `${t.name.replace(/[/\\]/g, "_")}.links.json`), JSON.stringify(extractSheetLinks(await view.text()), null, 1));
+      }
     }
     console.log(`${key}: ${tabs.map((t) => t.name).join(", ")}`);
   }
@@ -62,6 +68,12 @@ async function loadTabs(key: "s1" | "s2"): Promise<Tab[]> {
   if (!existsSync(dir)) throw new Error(`${dir} 이 없어요. 먼저 npm run migrate -- fetch`);
   const files = (await readdir(dir)).filter((f) => f.endsWith(".csv")).sort();
   return Promise.all(files.map(async (f) => ({ name: f.slice(0, -4), rows: parseCsv(await readFile(path.join(dir, f), "utf8")) })));
+}
+
+/** 탭별 { 셀 글자: 링크 } (fetch 때 저장). 없으면 빈 객체 */
+async function loadLinks(tab: string): Promise<Record<string, string>> {
+  const file = path.join(DATA, "s1", `${tab}.links.json`);
+  return existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {};
 }
 
 const csvLine = (cells: (string | number | null)[]) =>
@@ -259,7 +271,8 @@ async function runImport() {
       }
       for (const p of t.participants) recon.push({ month: t.month, name: p.name, parsed: parsedSum.get(p.name) ?? 0, sheet: p.sheetTotal });
 
-      // 지출 → 묶음 / 커피
+      // 지출 → 묶음 / 커피. 영수증 칸 글자가 링크였으면 그 링크로
+      const links = await loadLinks(t.tab);
       const coffeePlans: { ref: string; title: string; memo: string | null; amount: number; date: string | null; receipt: string | null; names: string[] }[] = [];
       for (const e of t.expenses) {
         const kind = classifyExpense(e);
@@ -280,7 +293,7 @@ async function runImport() {
           [c.id, kind.store, e.amount, e.date, kind.store === "other" ? e.item : e.note, e.ref, kst(e.date, t.month)],
           "select id from public.order_bundles where legacy_ref = $1", [e.ref],
         );
-        if (e.receipt) await addReceipt(client, { bundleId: b.id }, e.receipt);
+        if (e.receipt) await addReceipt(client, { bundleId: b.id }, e.receipt, links[e.receipt]);
       }
       // 참가자 칸의 커피 명단: 같은 금액의 명단 없는 커피 지출에 붙이고, 없으면 따로 기록
       for (const x of t.extras) {
@@ -320,7 +333,7 @@ async function runImport() {
           else if (b.remaining > 0) await client.query(
             "insert into public.coffee_plan_members (plan_id, member_id, amount) values ($1, $2, $3)", [plan.id, memberId.get(name), b.remaining]);
         }
-        if (p.receipt) await addReceipt(client, { coffeePlanId: plan.id }, p.receipt);
+        if (p.receipt) await addReceipt(client, { coffeePlanId: plan.id }, p.receipt, links[p.receipt]);
       }
     }
 
@@ -411,14 +424,64 @@ async function upsert(client: Client, sql: string, params: unknown[], lookup: st
   return rows[0] ?? (await client.query(lookup, lookupParams)).rows[0];
 }
 
-async function addReceipt(client: Client, owner: { bundleId?: string; coffeePlanId?: string }, ref: string) {
-  const fileName = /^https?:\/\//.test(ref) ? "드라이브 영수증" : ref.slice(0, 200);
+/** 시트 영수증 칸: 링크면 링크로, 파일 이름만 있고 그 글자에 링크가 걸려 있었으면(link) 그 링크로 */
+async function addReceipt(client: Client, owner: { bundleId?: string; coffeePlanId?: string }, cell: string, link?: string) {
+  const isUrl = /^https?:\/\//.test(cell);
+  const ref = isUrl ? cell : (link ?? cell);
+  const fileName = isUrl ? "드라이브 영수증" : cell.slice(0, 200);
+  // 예전 실행에서 파일 이름만 넣었던 영수증은 링크로 바꾼다 (중복으로 넣지 않게)
+  if (ref !== cell) {
+    await client.query(
+      `update public.receipts set external_ref = $3
+       where external_ref = $4 and storage_path is null and (bundle_id = $1::uuid or coffee_plan_id = $2::uuid)`,
+      [owner.bundleId ?? null, owner.coffeePlanId ?? null, ref, cell],
+    );
+  }
   await client.query(
     `insert into public.receipts (bundle_id, coffee_plan_id, file_name, external_ref)
      select $1::uuid, $2::uuid, $3, $4
      where not exists (select 1 from public.receipts where external_ref = $4 and (bundle_id = $1::uuid or coffee_plan_id = $2::uuid))`,
     [owner.bundleId ?? null, owner.coffeePlanId ?? null, fileName, ref],
   );
+}
+
+/**
+ * 이미 옮긴 영수증 중 파일 이름만 남은 것을 시트의 Drive 링크로 바꾼다.
+ * 이관 영수증만(묶음·커피의 legacy_ref로 탭을 안다) 건드리고, 다시 실행해도 안전하다
+ */
+async function relinkReceipts() {
+  const dryRun = flag("dry-run") !== undefined;
+  const { client, target } = await dbClient();
+  await client.connect();
+  console.log(`대상 DB: ${target}${dryRun ? " (드라이런: 끝나면 되돌림)" : ""}`);
+  try {
+    await client.query("begin");
+    const { rows } = await client.query(
+      `select r.id, r.external_ref, coalesce(b.legacy_ref, p.legacy_ref) as owner_ref
+       from public.receipts r
+       left join public.order_bundles b on b.id = r.bundle_id
+       left join public.coffee_plans p on p.id = r.coffee_plan_id
+       where r.storage_path is null and r.external_ref !~ '^https?://' and coalesce(b.legacy_ref, p.legacy_ref) like 's1:%'`);
+    const maps = new Map<string, Record<string, string>>();
+    let linked = 0;
+    const missing: string[] = [];
+    for (const r of rows) {
+      const tab = String(r.owner_ref).split(":")[1];
+      if (!maps.has(tab)) maps.set(tab, await loadLinks(tab));
+      const url = maps.get(tab)![r.external_ref];
+      if (!url) { missing.push(`${tab} ${r.external_ref}`); continue; }
+      await client.query("update public.receipts set external_ref = $2 where id = $1", [r.id, url]);
+      linked++;
+    }
+    await client.query(dryRun ? "rollback" : "commit");
+    console.log(`파일 이름만 남은 이관 영수증 ${rows.length}개 중 링크 연결 ${linked}개${dryRun ? " (드라이런)" : ""}`);
+    if (missing.length) console.log(`시트에서 링크를 못 찾음 ${missing.length}개:\n  ${missing.join("\n  ")}`);
+  } catch (e) {
+    await client.query("rollback").catch(() => {});
+    throw e;
+  } finally {
+    await client.end();
+  }
 }
 
 type RawDates = Map<string, { title: string; date: string }[]>;
@@ -451,9 +514,9 @@ async function upsertJournal(
 }
 
 const command = args[0];
-const main = { fetch: fetchTabs, members: writeMembersTemplate, import: runImport }[command as "fetch" | "members" | "import"];
+const main = { fetch: fetchTabs, members: writeMembersTemplate, import: runImport, "relink-receipts": relinkReceipts }[command as "fetch" | "members" | "import" | "relink-receipts"];
 if (!main) {
-  console.log("사용법: npm run migrate -- fetch | members | import [--dry-run] [--prod] [--reading=YYYY-MM|none]");
+  console.log("사용법: npm run migrate -- fetch | members | import [--dry-run] [--prod] [--reading=YYYY-MM|none] | relink-receipts [--dry-run] [--prod]");
   process.exit(1);
 }
 main().catch((e) => {

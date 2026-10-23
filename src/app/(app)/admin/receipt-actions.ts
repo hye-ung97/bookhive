@@ -37,6 +37,23 @@ export async function attachReceipt(owner: ReceiptOwner, path: string, fileName:
   return { ok: true, message: "영수증을 올렸어요" };
 }
 
+/** 파일 대신 링크(Google Drive 등)로 붙이기. 이름을 비우면 주소로 짐작한다 */
+export async function attachReceiptLink(owner: ReceiptOwner, url: string, name: string) {
+  await requireAdmin();
+  const link = url.trim();
+  const fallback = /drive\.google\.com|docs\.google\.com/.test(link) ? "드라이브 영수증" : "링크";
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_receipt_link", {
+    p_bundle_id: owner.kind === "bundle" ? owner.id : null,
+    p_coffee_plan_id: owner.kind === "coffee" ? owner.id : null,
+    p_url: link,
+    p_name: name.trim() || fallback,
+  });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: "영수증 링크를 붙였어요" };
+}
+
 export async function deleteReceipt(id: string) {
   await requireAdmin();
   const supabase = await createClient();

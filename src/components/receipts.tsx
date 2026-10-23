@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, type DragEvent } from "react";
-import { attachReceipt, deleteReceipt, prepareReceiptUpload, type ReceiptOwner } from "@/app/(app)/admin/receipt-actions";
+import { attachReceipt, attachReceiptLink, deleteReceipt, prepareReceiptUpload, type ReceiptOwner } from "@/app/(app)/admin/receipt-actions";
 import type { ReceiptView } from "@/lib/receipts";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { Icon } from "./icon";
@@ -57,6 +57,9 @@ export function Receipts({
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkName, setLinkName] = useState("");
   const busy = useRef(false);
 
   const update = (key: string, label: string) => setPending((list) => list.map((p) => (p.key === key ? { ...p, label } : p)));
@@ -97,6 +100,20 @@ export function Receipts({
     }
   }
 
+  async function addLink() {
+    if (busy.current) return;
+    busy.current = true;
+    const result = await attachReceiptLink(owner, linkUrl, linkName);
+    busy.current = false;
+    setMessage({ ok: result.ok, text: result.message });
+    if (result.ok) {
+      setLinkUrl("");
+      setLinkName("");
+      setLinkOpen(false);
+      router.refresh();
+    }
+  }
+
   async function remove(id: string) {
     const result = await deleteReceipt(id);
     setConfirmId(null);
@@ -123,10 +140,13 @@ export function Receipts({
         {warnIfEmpty && !receipts.length && !pending.length && <span className="badge b-warn">영수증 없음</span>}
         {receipts.map((r) => {
           const pdf = r.mime === "application/pdf";
+          const link = /^https?:\/\//.test(r.external_ref ?? "") ? r.external_ref! : null;
           return (
             <div key={r.id} className="rcpt">
-              <a className="rc-open" href={`/admin/receipts/${r.id}`} target="_blank" rel="noopener" aria-label={`영수증 ${r.file_name} 새 탭에서 보기`}>
-                {r.thumb_url ? (
+              <a className="rc-open" href={link ?? `/admin/receipts/${r.id}`} target="_blank" rel="noopener noreferrer" aria-label={`영수증 ${r.file_name} 새 탭에서 보기`}>
+                {link ? (
+                  <span className="rc-ic"><Icon name="link" /></span>
+                ) : r.thumb_url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- 1시간짜리 signed URL이라 next/image 최적화 대상이 아님
                   <img src={r.thumb_url} alt="" />
                 ) : (
@@ -134,7 +154,7 @@ export function Receipts({
                 )}
                 <span className="rc-txt">
                   <span className="rc-name">{r.file_name}</span>
-                  <span className="rc-meta">{r.size_bytes ? fmtSize(r.size_bytes) : /^https?:\/\//.test(r.external_ref ?? "") ? "링크" : "시트 기록"}</span>
+                  <span className="rc-meta">{r.size_bytes ? fmtSize(r.size_bytes) : link ? (/drive\.google|docs\.google/.test(link) ? "Google Drive" : "링크") : "시트 기록"}</span>
                 </span>
               </a>
               <button className="rc-x" type="button" aria-label={`영수증 ${r.file_name} 삭제`} title="삭제" onClick={() => setConfirmId(r.id)}>
@@ -155,6 +175,9 @@ export function Receipts({
         <label className="btn btn-sm rc-add" htmlFor={inputId}>
           <Icon name="plus" />이미지·PDF
         </label>
+        <button className="btn btn-sm rc-add" type="button" aria-expanded={linkOpen} onClick={() => setLinkOpen((v) => !v)}>
+          <Icon name="link" />링크
+        </button>
         <input
           className="sr-only-input"
           id={inputId}
@@ -164,6 +187,14 @@ export function Receipts({
           onChange={(e) => { const files = [...(e.target.files ?? [])]; e.target.value = ""; if (files.length) upload(files); }}
         />
       </div>
+      {linkOpen && (
+        <form className="rc-link" onSubmit={(e) => { e.preventDefault(); addLink(); }}>
+          <input className="input" type="url" required placeholder="https://drive.google.com/file/d/…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} aria-label="영수증 링크" />
+          <input className="input" placeholder="이름 (선택)" value={linkName} onChange={(e) => setLinkName(e.target.value)} aria-label="영수증 이름" maxLength={200} />
+          <button className="btn btn-sm btn-primary" type="submit">붙이기</button>
+          <span className="t-cap">Google Drive에 올린 영수증은 동아리 운영진이 볼 수 있게 공유 설정을 확인해 주세요.</span>
+        </form>
+      )}
       {confirming && (
         <div className="note note-warn" role="alertdialog" aria-label="영수증 삭제 확인">
           <Icon name="alert" />
