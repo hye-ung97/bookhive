@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { toUserMessage } from "@/lib/errors";
-import { sendBundleNotice, type NoticeKind, type NoticeResult } from "@/lib/notify";
+import { sendBundleNotice, type NoticeResult } from "@/lib/notify";
 import { removeReceiptFiles } from "@/lib/receipts";
 import { createClient } from "@/lib/supabase/server";
 
@@ -94,7 +94,7 @@ export async function markDelivered(_prev: ActionState, formData: FormData): Pro
 export async function resendNotice(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const supabase = await createClient();
-  const kind = text(formData, "kind") as NoticeKind;
+  const kind = text(formData, "kind") === "delivery_done" ? "delivery_done" : "order_done";
   const bundleId = text(formData, "bundleId");
   const { data: log } = await supabase.from("notification_logs").select("message").eq("dedupe_key", `${kind}:${bundleId}`).maybeSingle();
   const { data: receipts } = kind === "order_done"

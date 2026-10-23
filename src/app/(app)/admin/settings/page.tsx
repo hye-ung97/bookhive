@@ -4,9 +4,13 @@ import { CycleTag } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { requireAdmin } from "@/lib/auth";
 import { activeMemberCount, cycleBudgets, cycleWarnings, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
-import { kstToday, roundKey, roundLabel, won } from "@/lib/format";
+import { SlackPreview } from "@/components/slack-preview";
+import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
+import { buildReminderMessage, reminderFor } from "@/lib/reminders";
+import { slackConfig } from "@/lib/slack";
+import { createClient } from "@/lib/supabase/server";
 import type { Cycle, CycleStatus } from "@/lib/types";
-import { CreateCycleForm, DeadlinesForm, StatusControl } from "./forms";
+import { CreateCycleForm, DeadlinesForm, SendReminderNow, StatusControl } from "./forms";
 
 export const metadata: Metadata = { title: "설정" };
 
@@ -53,7 +57,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     );
   }
 
-  const [warn, participants] = await Promise.all([cycleWarnings(cycle.id), cycleBudgets(cycle.id)]);
+  const supabase = await createClient();
+  const [warn, participants, reminder, { data: logRows }] = await Promise.all([
+    cycleWarnings(cycle.id),
+    cycleBudgets(cycle.id),
+    reminderFor(cycle),
+    supabase.from("notification_logs").select("id, kind, trigger, status, dedupe_key, created_at").eq("cycle_id", cycle.id).order("created_at", { ascending: false }).limit(15),
+  ]);
+  const logs = (logRows ?? []) as { id: number; kind: string; trigger: string; status: string; dedupe_key: string; created_at: string }[];
   const label = roundLabel(cycle.month, today);
   const fee = participants.reduce((a, p) => a + p.budget, 0);
   const i = PHASES.findIndex(([s]) => s === cycle.status);
@@ -136,9 +147,86 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               </div>
             </div>
           </section>
+          <section className="card" aria-labelledby="nt-h">
+            <h2 className="t-heading row-gap" id="nt-h"><Icon name="bell" />Slack 알림</h2>
+            <p className="note note-info">
+              <Icon name="info" />
+              <span>
+                마감일부터 제출할 때까지 <b>매일 오전 9시대</b>, 동아리 채널에 미제출자를 멘션해요. 회차를 다음 단계로 넘기면 멈춰요.
+                주문완료·배송완료 공지는 주문·배송 화면에서 처리할 때 함께 보내요.
+              </span>
+            </p>
+            {slackConfig().dryRun && (
+              <p className="note note-warn"><Icon name="alert" />Slack이 아직 연결되지 않아 실제로 보내지 않고 기록만 남겨요.</p>
+            )}
+            {reminder ? (
+              <>
+                <div className="block-head">
+                  <b>{reminder.kind === "request_reminder" ? "구매 요청" : "일지"} 미제출 · {reminder.targets.length}명</b>
+                  <span className="t-cap">
+                    {reminder.deadline > today ? `${md(reminder.deadline)} 오전 9시대부터 자동 발송` : `${md(reminder.deadline)}부터 매일 발송 중`}
+                  </span>
+                </div>
+                {reminder.targets.length ? (
+                  <>
+                    <div className="row-gap">
+                      {reminder.targets.map((t) => (
+                        <span key={t.memberId} className={`badge ${t.slackConnected ? "b-off" : "b-warn"}`}>
+                          {t.name}{t.slackConnected ? "" : " · Slack 미연결"}
+                        </span>
+                      ))}
+                    </div>
+                    {reminder.targets.some((t) => !t.slackConnected) && (
+                      <p className="t-cap">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
+                    )}
+                    <SlackPreview text={buildReminderMessage(reminder, today)} />
+                    <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={logs.some((l) => l.dedupe_key.endsWith(`:${today}`))} />
+                  </>
+                ) : (
+                  <p className="note note-ok"><Icon name="checkc" />모두 제출했어요.</p>
+                )}
+              </>
+            ) : (
+              <p className="muted">
+                {cycle.status === "closed"
+                  ? "마감된 회차라 알림이 없어요."
+                  : `${cycle.status === "requesting" ? "구매 요청" : "일지"} 마감일을 정하면 그날부터 알림이 나가요.`}
+              </p>
+            )}
+            {logs.length > 0 && (
+              <div className="tbl-wrap">
+                <table className="tbl">
+                  <thead>
+                    <tr><th>일시</th><th>종류</th><th>방식</th><th>결과</th></tr>
+                  </thead>
+                  <tbody>
+                    {logs.map((l) => (
+                      <tr key={l.id}>
+                        <td className="tnum">{new Date(l.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                        <td>{NOTICE_KIND[l.kind] ?? l.kind}</td>
+                        <td>{l.trigger === "cron" ? "자동" : l.trigger === "manual" ? "수동" : "처리 시"}</td>
+                        <td>
+                          <span className={`badge ${l.status === "sent" ? "b-del" : l.status === "failed" ? "b-warn" : "b-off"}`}>
+                            {l.status === "sent" ? "보냄" : l.status === "failed" ? "실패" : l.status === "skipped" ? "기록만" : "대기"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
           {create}
         </div>
       </div>
     </>
   );
 }
+
+const NOTICE_KIND: Record<string, string> = {
+  request_reminder: "요청 마감 알림",
+  journal_reminder: "일지 마감 알림",
+  order_done: "주문완료 공지",
+  delivery_done: "배송완료 공지",
+};

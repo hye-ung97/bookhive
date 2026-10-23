@@ -83,6 +83,65 @@ export async function cycleBudgets(cycleId: string): Promise<MemberBudgetRow[]> 
     .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 }
 
+// ───────── 4단계: 일지 ─────────
+
+export type JournalRow = {
+  id: string;
+  cycle_id: string;
+  purchase_request_id: string | null;
+  body: string;
+  ai_assisted: boolean;
+  legacy_book_title: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const JOURNAL_COLUMNS = "id, cycle_id, purchase_request_id, body, ai_assisted, legacy_book_title, created_at, updated_at";
+
+/** 내 일지 (RLS로 본인 것만). cycleId를 주면 그 회차만 */
+export async function myJournals(memberId: string, cycleId?: string): Promise<JournalRow[]> {
+  const supabase = await createClient();
+  let query = supabase.from("journals").select(JOURNAL_COLUMNS).eq("member_id", memberId);
+  if (cycleId) query = query.eq("cycle_id", cycleId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as JournalRow[];
+}
+
+/** 동아리 제출 현황: 책을 신청한 사람 중 일지를 낸 사람 수 */
+export async function journalProgress(cycleId: string): Promise<{ writers: number; submitted: number }> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("journal_progress", { p_cycle_id: cycleId }).maybeSingle<{ writers: number; submitted: number }>();
+  return data ?? { writers: 0, submitted: 0 };
+}
+
+/** 내 기록: 모든 회차의 내 요청 (취소 제외) */
+export async function myRequestsAll(memberId: string): Promise<RequestRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("v_requests")
+    .select(REQUEST_COLUMNS)
+    .eq("member_id", memberId)
+    .neq("status", "cancelled")
+    .order("created_at")
+    .order("id");
+  if (error) throw error;
+  return data as RequestRow[];
+}
+
+/** 내 커피 묶음 (본인 행만 보인다) */
+export async function myCoffee(memberId: string): Promise<{ cycle_id: string; title: string; status: string; amount: number }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("coffee_plan_members")
+    .select("amount, coffee_plans!inner(cycle_id, title, status)")
+    .eq("member_id", memberId);
+  return (data ?? [])
+    .map((r) => ({ amount: r.amount as number, plan: r.coffee_plans as unknown as { cycle_id: string; title: string; status: string } }))
+    .filter((r) => r.plan.status !== "cancelled")
+    .map((r) => ({ cycle_id: r.plan.cycle_id, title: r.plan.title, status: r.plan.status, amount: r.amount }));
+}
+
 // ───────── 2단계: 주문 묶음·커피 (관리자 화면) ─────────
 
 export type BundleRow = {

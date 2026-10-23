@@ -10,6 +10,8 @@ type NavItem = { href: string; label: string; short?: string; icon: IconName };
 const MEMBER_NAV: NavItem[] = [
   { href: "/", label: "홈", icon: "home" },
   { href: "/requests", label: "구매 요청", icon: "book" },
+  { href: "/journal", label: "일지 쓰기", short: "일지", icon: "pen" },
+  { href: "/me", label: "내 기록", icon: "history" },
 ];
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin/rounds", label: "회차 현황", icon: "table" },
@@ -81,7 +83,7 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} aria-current={isActive(pathname, t.href.startsWith("/admin") ? "/admin" : t.href) ? "page" : undefined}>
               <Icon name={t.icon} />
-              <span>{t.label}</span>
+              <span>{t.short ?? t.label}</span>
             </Link>
           ))}
         </nav>

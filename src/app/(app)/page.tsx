@@ -5,7 +5,7 @@ import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME } from "@/lib/books/parse-store-url";
-import { activeMemberCount, findByKey, listCycles, myBudgets, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
+import { activeMemberCount, findByKey, journalProgress, listCycles, myBudgets, myJournals, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
 import { pickDefaultRound } from "@/lib/rounds";
 import type { Budget, Cycle } from "@/lib/types";
@@ -60,9 +60,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const reading = readingCycle(cycles);
   const tableRound = findByKey(cycles, sp.round) ?? pickDefaultRound(cycles);
   const mineOnly = sp.view === "mine";
-  const [rows, myReadingBooks] = await Promise.all([
+  const [rows, myReadingBooks, myReadingJournal, progress] = await Promise.all([
     tableRound ? requestsForCycle(tableRound.id) : Promise.resolve([]),
     reading ? requestsForCycle(reading.id, me.id) : Promise.resolve([]),
+    reading ? myJournals(me.id, reading.id).then((j) => j[0]) : Promise.resolve(undefined),
+    reading ? journalProgress(reading.id) : Promise.resolve({ writers: 0, submitted: 0 }),
   ]);
   const shown = mineOnly ? rows.filter((r) => r.member_id === me.id) : rows;
   const requesters = new Set(rows.map((r) => r.member_id)).size;
@@ -122,6 +124,20 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               {reading.journal_deadline && <p className="t-cap">일지 마감 {md(reading.journal_deadline)}</p>}
               <dl>
                 <div className="kv">
+                  <dt>내 일지</dt>
+                  <dd>
+                    {myReadingJournal ? (
+                      <span className="badge b-del"><Icon name="check" />제출</span>
+                    ) : (
+                      <span className="badge b-req"><Icon name="circle" />미작성</span>
+                    )}
+                  </dd>
+                </div>
+                <div className="kv">
+                  <dt>동아리 제출 현황</dt>
+                  <dd>{progress.submitted} / {progress.writers}명</dd>
+                </div>
+                <div className="kv">
                   <dt>읽을 책</dt>
                   <dd>
                     {myReadingBooks.length
@@ -130,7 +146,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   </dd>
                 </div>
               </dl>
-              <p className="t-cap">일지 쓰기는 곧 열려요.</p>
+              {myReadingBooks.length > 0 && (
+                <div>
+                  <Link className={`btn${myReadingJournal ? "" : " btn-primary"}`} href="/journal">
+                    {myReadingJournal ? "내 일지 보기" : "일지 쓰기"}
+                    <Icon name="arrowR" />
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <div className="empty">

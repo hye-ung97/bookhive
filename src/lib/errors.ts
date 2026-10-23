@@ -61,6 +61,20 @@ export function toUserMessage(error: DbError): string {
       return "커피 예정으로 묶을 사람을 골라 주세요.";
     case "COFFEE_INELIGIBLE":
       return "책을 요청했고 잔액이 남은 사람만, 다른 커피 예정에 묶이지 않았을 때 묶을 수 있어요. 새로고침해 주세요.";
+    case "JOURNAL_CLOSED":
+      return "지금은 이 회차의 일지를 쓸 수 없어요. 회차가 \"읽는 중\"일 때 쓸 수 있어요.";
+    case "JOURNAL_EMPTY":
+      return "독후감을 입력해 주세요.";
+    case "JOURNAL_TOO_LONG":
+      return `500자까지 쓸 수 있어요. 지금 ${detail.length ?? ""}자예요.`;
+    case "JOURNAL_BOOK_INVALID":
+      return "이 회차에 신청한 책 중에서 골라 주세요.";
+    case "JOURNAL_LOCKED":
+      return "일지 마감이 지나 삭제할 수 없어요. 내용 수정은 할 수 있어요.";
+    case "HAS_JOURNAL":
+      return "이 책으로 쓴 일지가 있어 취소할 수 없어요.";
+    case "AI_QUOTA":
+      return "오늘 AI 초안 횟수를 모두 썼어요. 내일 다시 쓸 수 있어요.";
     case "INVALID_SPENT":
       return `실제 결제액은 예약액(${won(detail.total ?? 0)}원)을 넘을 수 없어요.`;
     default:

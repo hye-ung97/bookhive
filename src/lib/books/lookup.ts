@@ -62,6 +62,26 @@ async function kakaoByIsbn(isbn: string): Promise<KakaoBook | null> {
   return body.documents.find((d) => d.isbn.split(" ").some((v) => normalizeIsbn(v) === isbn)) ?? null;
 }
 
+export type BookInfo = { title: string; authors: string[]; publisher: string | null; contents: string | null };
+
+/** AI 초안의 사실 근거로 쓸 책 소개. books 캐시 → 카카오(키가 있을 때) 순 */
+export async function bookInfoByIsbn(isbn: string): Promise<BookInfo | null> {
+  const db = createAdminClient();
+  const { data: cached } = await db.from("books").select("title, authors, publisher, contents").eq("isbn", isbn).maybeSingle();
+  if (cached?.contents) return { title: cached.title, authors: cached.authors ?? [], publisher: cached.publisher, contents: cached.contents };
+  try {
+    const kakao = await kakaoByIsbn(isbn);
+    if (!kakao) return cached ? { title: cached.title, authors: cached.authors ?? [], publisher: cached.publisher, contents: null } : null;
+    await db.from("books").upsert({
+      isbn, title: kakao.title, authors: kakao.authors, publisher: kakao.publisher, contents: kakao.contents,
+      sale_price: kakao.sale_price, price: kakao.price, thumbnail: kakao.thumbnail, fetched_at: new Date().toISOString(),
+    });
+    return { title: kakao.title, authors: kakao.authors, publisher: kakao.publisher, contents: kakao.contents || null };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 상품 URL → ISBN·제목·판매가. 단계가 실패해도 예외 없이 얻은 만큼 돌려주고(수동 입력 가능),
  * 결과는 store_lookups에 남겨 create_request가 "도서 확인됨" 여부를 서버 기준으로 판단하게 한다.

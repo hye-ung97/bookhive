@@ -3,7 +3,36 @@
 import { useActionState, useRef } from "react";
 import { Icon } from "@/components/icon";
 import type { CycleStatus } from "@/lib/types";
-import { createCycle, setCycleStatus, updateDeadlines, type ActionState } from "./actions";
+import { createCycle, sendReminderNow, setCycleStatus, updateDeadlines, type ActionState } from "./actions";
+
+/** [지금 보내기] (한 번 더 확인) */
+export function SendReminderNow({ cycleId, count, alreadyToday }: { cycleId: string; count: number; alreadyToday: boolean }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
+    const result = await sendReminderNow(prev, fd);
+    dialog.current?.close();
+    return result;
+  }, null);
+  return (
+    <div className="stack" style={{ gap: 8, justifyItems: "end" }}>
+      <button className="btn btn-primary" type="button" onClick={() => dialog.current?.showModal()}>
+        <Icon name="hash" />지금 보내기
+      </button>
+      <Result state={state} />
+      <dialog ref={dialog} className="dlg" aria-labelledby="rm-t">
+        <form action={action} className="dlg-body">
+          <h2 id="rm-t">미제출 {count}명에게 지금 보낼까요?</h2>
+          <p className="muted">동아리 채널에 위 메시지를 올려요.{alreadyToday ? " 오늘 자동 알림이 이미 나가서 두 번 받게 돼요." : ""}</p>
+          <input type="hidden" name="cycleId" value={cycleId} />
+          <div className="dlg-acts">
+            <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.close()}>취소</button>
+            <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "보내는 중…" : "지금 보내기"}</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+  );
+}
 
 function Result({ state }: { state: ActionState }) {
   if (!state) return null;
