@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { __providers, cleanDraft, generateDraft } from "@/lib/ai/generate-draft";
-import { buildReminderMessage } from "@/lib/reminders";
+import { buildReminderMessage, isWeekend, reminderStage } from "@/lib/reminders";
 import { countChars, trimToLimit } from "@/lib/text";
 
 describe("일지 글자 수", () => {
@@ -93,18 +93,44 @@ describe("공급자 요청 형식", () => {
   });
 });
 
-describe("마감 알림 문구", () => {
-  const base = { cycleId: "c", month: "2026-12-01", targets: [{ memberId: "1", name: "김하늘", slackConnected: true }, { memberId: "2", name: "박서준", slackConnected: false }] };
+describe("마감 알림 문구 (시트 시절 Apps Script 방식)", () => {
+  const base = {
+    cycleId: "c", month: "2026-12-01", skipped: [],
+    targets: [{ memberId: "1", name: "김하늘", slackConnected: true }, { memberId: "2", name: "박서준", slackConnected: false }],
+  };
+  const site = "https://club.example";
 
-  it("요청 마감 당일", () => {
-    expect(buildReminderMessage({ ...base, kind: "request_reminder", deadline: "2026-11-13" }, "2026-11-13")).toBe(
-      "[12월 회차] 책 구매 요청 오늘(11/13(금)) 마감이에요.\n@김하늘 @박서준 님, 아직 요청하지 않았다면 오늘 중으로 부탁드려요.",
+  it("마감 당일: 채널엔 제목, 스레드엔 멘션·본문·인원·사이트 버튼", () => {
+    const m = buildReminderMessage({ ...base, kind: "request_reminder", deadline: "2026-11-13" }, "2026-11-13", site);
+    expect(m.title).toBe("💰 [12월 회차 구매 요청 마감일] - 2026년 11월 13일");
+    expect(m.text).toBe(
+      "@김하늘, @박서준\n\n오늘이 *12월 회차 구매 요청 마감일*입니다!\n잊지 말고 오늘 안에 12월 회차 구매 요청을 완료해주세요 🙏\n\n_미작성 인원: 2명_",
     );
+    expect(m.fallback).toBe("오늘이 12월 회차 구매 요청 마감일입니다! 미작성 인원: 2명");
+    expect(m.button).toEqual({ text: "▶ 12월 회차 구매 요청하기", url: "https://club.example/requests?round=2026-12" });
   });
 
-  it("일지 마감이 지난 뒤", () => {
-    expect(buildReminderMessage({ ...base, kind: "journal_reminder", deadline: "2026-12-30" }, "2027-01-02")).toBe(
-      "[2026년 12월 회차] 일지 마감일(12/30(수))이 지났어요.\n@김하늘 @박서준 님, 오늘 중으로 작성 부탁드려요.",
-    );
+  it("지난 날수에 따라 단계가 세짐: 당일 → 1~2일 → 3~4일 → 5일 이상", () => {
+    expect([-3, 0, 1, 2, 3, 4, 5, 9].map(reminderStage)).toEqual(["before", "today", "gentle", "gentle", "warning", "warning", "final", "final"]);
+    const at = (today: string) => buildReminderMessage({ ...base, kind: "request_reminder", deadline: "2026-11-13" }, today, site).title;
+    expect(at("2026-11-16")).toBe("🔥 [⚠️ 12월 회차 구매 요청 마감 3일 초과 ⚠️] - 2026년 11월 16일");
+    expect(at("2026-11-18")).toBe("🚨🚨🚨 [🆘 12월 회차 구매 요청 마감 5일 초과 - 최후 통보 🆘] - 2026년 11월 18일");
+    expect(at("2026-11-10")).toBe("📢 [12월 회차 구매 요청 마감 D-3] - 2026년 11월 10일"); // 마감 전 [지금 보내기]
+  });
+
+  it("일지 알림: 시트 시절 일지 스크립트 문구, 버튼은 사이트 일지 쓰기", () => {
+    const j = { ...base, month: "2026-11-01", kind: "journal_reminder" as const, deadline: "2026-11-23" };
+    const day = buildReminderMessage(j, "2026-11-23", site);
+    expect(day.title).toBe("🚨 [11월 회차 동아리 일지 작성 마감일] - 2026년 11월 23일");
+    expect(day.text).toContain("오늘이 *11월 회차 동아리 일지 작성 마감일*입니다!\n잊지 말고 오늘 안에 작성해주세요 🙏");
+    expect(day.fallback).toBe("오늘이 마감일입니다! 미작성 인원: 2명");
+    const late = buildReminderMessage(j, "2026-11-26", site);
+    expect(late.title).toBe("🔥 [⚠️ 11월 회차 동아리 일지 마감 3일 초과 ⚠️] - 2026년 11월 26일");
+    expect(late.text).toContain("다른 멤버분들이 기다리고 있어요. 😢");
+    expect(late.button).toEqual({ text: "▶ 11월 회차 일지 쓰기", url: "https://club.example/journal?round=2026-11" });
+  });
+
+  it("주말엔 자동 알림을 쉰다", () => {
+    expect(["2026-10-24", "2026-10-25", "2026-10-26"].map(isWeekend)).toEqual([true, true, false]);
   });
 });

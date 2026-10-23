@@ -322,6 +322,12 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .slack-meta b { margin-right: 6px; }
 .slack-meta span { font-size: 12px; color: var(--fg2); }
 .slack-text { font-size: 14px; line-height: 21px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.badge-x { display: inline-grid; place-items: center; margin-left: 4px; padding: 0 2px; border: 0; background: none; color: inherit; opacity: 0.6; cursor: pointer; font: inherit; }
+.badge-x:hover { opacity: 1; }
+.badge-x .ic { width: 12px; height: 12px; }
+.badge-undo { text-decoration: underline; }
+.slack-thread { margin-top: 8px; padding: 8px 0 2px 12px; border-left: 2px solid var(--border-strong); display: grid; gap: 4px; }
+.slack-btn { justify-self: start; margin-top: 4px; padding: 4px 12px; border-radius: 4px; background: #007a5a; color: #fff; font-weight: 600; font-size: 13px; line-height: 20px; }
 .mention { color: var(--primary); background: var(--primary-soft); border-radius: 3px; padding: 0 2px; }
 .slack-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .slack-files img { width: 112px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }

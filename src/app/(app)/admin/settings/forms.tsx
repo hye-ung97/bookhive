@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
 import type { CycleStatus } from "@/lib/types";
 import { createCycle, sendReminderNow, setCycleStatus, updateDeadlines, type ActionState } from "./actions";
@@ -127,22 +127,36 @@ export function DeadlinesForm({ cycleId, request, journal, disabled }: { cycleId
   );
 }
 
+/** 마감일 기본값 (시트 시절부터의 운영 관행): 구매 요청은 읽는 달의 전 달 13일, 일지는 읽는 달 23일 */
+const REQUEST_DEADLINE_DAY = 13;
+const JOURNAL_DEADLINE_DAY = 23;
+const defaultJournalDeadline = (month: string) => (/^\d{4}-\d{2}$/.test(month) ? `${month}-${JOURNAL_DEADLINE_DAY}` : "");
+function defaultRequestDeadline(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  if (!y || !m) return "";
+  const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+  return `${prev.y}-${String(prev.m).padStart(2, "0")}-${REQUEST_DEADLINE_DAY}`;
+}
+
 export function CreateCycleForm({ suggestedMonth, memberCount }: { suggestedMonth: string; memberCount: number }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createCycle, null);
+  const [month, setMonth] = useState(suggestedMonth);
+  const [requestDeadline, setRequestDeadline] = useState<string | null>(null); // 직접 고치기 전엔 달에 맞춰 따라감
+  const [journalDeadline, setJournalDeadline] = useState<string | null>(null);
   return (
     <form action={action} className="stack" style={{ gap: 12 }}>
       <div className="form-grid">
         <div className="field">
           <label className="label" htmlFor="nc-month">회차 (읽는 달)</label>
-          <input className="input" id="nc-month" name="month" type="month" defaultValue={suggestedMonth} required />
+          <input className="input" id="nc-month" name="month" type="month" value={month} onChange={(e) => setMonth(e.target.value)} required />
         </div>
         <div className="field">
           <label className="label" htmlFor="nc-req">구매 요청 마감일</label>
-          <input className="input" id="nc-req" name="requestDeadline" type="date" />
+          <input className="input" id="nc-req" name="requestDeadline" type="date" value={requestDeadline ?? defaultRequestDeadline(month)} onChange={(e) => setRequestDeadline(e.target.value)} />
         </div>
         <div className="field">
           <label className="label" htmlFor="nc-jrn">일지 마감일</label>
-          <input className="input" id="nc-jrn" name="journalDeadline" type="date" />
+          <input className="input" id="nc-jrn" name="journalDeadline" type="date" value={journalDeadline ?? defaultJournalDeadline(month)} onChange={(e) => setJournalDeadline(e.target.value)} />
         </div>
       </div>
       <p className="note note-info">

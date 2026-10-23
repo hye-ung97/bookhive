@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { toUserMessage } from "@/lib/errors";
-import { reminderFor, sendReminder } from "@/lib/reminders";
+import { reminderFor, sendReminder, setReminderSkip } from "@/lib/reminders";
 import { createClient } from "@/lib/supabase/server";
 import type { CycleStatus } from "@/lib/types";
 
@@ -52,6 +52,13 @@ export async function sendReminderNow(_prev: ActionState, formData: FormData): P
   if (result.status === "sent") return { ok: true, message: `Slack에 보냈어요 · ${reminder.targets.length}명 멘션` };
   if (result.status === "skipped") return { ok: true, message: "Slack 미설정이라 보내지 않고 기록만 남겼어요" };
   return { ok: false, message: `보내지 못했어요 (${result.error ?? result.status})` };
+}
+
+/** 이번 회차 알림에서 빼기·다시 넣기 (시트 비고의 "양도·skip" 대신) */
+export async function toggleReminderSkip(formData: FormData): Promise<void> {
+  await requireAdmin();
+  await setReminderSkip(text(formData, "cycleId"), text(formData, "memberId"), text(formData, "skip") === "1");
+  revalidatePath("/admin/settings");
 }
 
 export async function createCycle(_prev: ActionState, formData: FormData): Promise<ActionState> {

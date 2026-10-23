@@ -4,6 +4,8 @@ import { lookupUserIdByEmail, postMessage, postWithFiles, slackConfig } from "./
 
 export type NoticeKind = "order_done" | "delivery_done" | "request_reminder" | "journal_reminder";
 export type NoticeResult = { status: "sent" | "skipped" | "failed" | "already"; error?: string };
+/** 채널 메시지에 이어 다는 스레드 답글: 본문(멘션 포함)과 사이트로 가는 버튼 */
+export type NoticeThread = { text: string; fallback: string; button?: { text: string; url: string } };
 
 /** "@이름"을 Slack 멘션(<@U…>)으로. Slack ID가 없으면 이메일로 찾아 저장하고, 못 찾으면 이름만 남긴다 */
 async function toSlackText(text: string): Promise<string> {
@@ -18,7 +20,7 @@ async function toSlackText(text: string): Promise<string> {
       id = await lookupUserIdByEmail(m.email);
       if (id) await db.from("members").update({ slack_user_id: id }).eq("id", m.id);
     }
-    out = out.replaceAll(`@${m.name}`, id ? `<@${id}>` : m.name);
+    out = out.replaceAll(`@${m.name}`, id ? `<@${id}>` : `*${m.name}*`);
   }
   return out;
 }
@@ -34,8 +36,10 @@ export async function sendNotice(opts: {
   bundleId?: string;
   trigger?: "event" | "cron" | "manual";
   text: string;
+  thread?: NoticeThread;
   receiptIds?: string[];
 }): Promise<NoticeResult> {
+  const logText = opts.thread ? `${opts.text}\n└ ${opts.thread.text}` : opts.text;
   const db = createAdminClient();
   const { data: existing } = await db.from("notification_logs").select("id, status, attempts").eq("dedupe_key", opts.dedupeKey).maybeSingle();
   if (existing?.status === "sent") return { status: "already" };
@@ -46,7 +50,7 @@ export async function sendNotice(opts: {
       .from("notification_logs")
       .insert({
         kind: opts.kind, cycle_id: opts.cycleId, bundle_id: opts.bundleId ?? null, dedupe_key: opts.dedupeKey,
-        trigger: opts.trigger ?? "event", message: opts.text,
+        trigger: opts.trigger ?? "event", message: logText,
       })
       .select("id")
       .single();
@@ -62,7 +66,7 @@ export async function sendNotice(opts: {
 
   if (slackConfig().dryRun) {
     await db.from("notification_logs").update({
-      status: "skipped", message: opts.text, attachments: receipts?.length ?? 0, attempts,
+      status: "skipped", message: logText, attachments: receipts?.length ?? 0, attempts,
       error: "Slack 미설정: 실제로 보내지 않고 기록만 남겼어요", sent_at: now,
     }).eq("id", logId);
     return { status: "skipped" };
@@ -83,13 +87,24 @@ export async function sendNotice(opts: {
     } else {
       ts = await postMessage(text);
     }
+    if (opts.thread && ts) {
+      const body = await toSlackText(opts.thread.text);
+      const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: body } }];
+      if (opts.thread.button) {
+        blocks.push({
+          type: "actions",
+          elements: [{ type: "button", text: { type: "plain_text", text: opts.thread.button.text, emoji: true }, url: opts.thread.button.url, style: "primary" }],
+        });
+      }
+      await postMessage(opts.thread.fallback, { threadTs: ts, blocks });
+    }
     await db.from("notification_logs").update({
-      status: "sent", message: opts.text, attachments: receipts?.length ?? 0, attempts, error: null, slack_ts: ts, sent_at: new Date().toISOString(),
+      status: "sent", message: logText, attachments: receipts?.length ?? 0, attempts, error: null, slack_ts: ts, sent_at: new Date().toISOString(),
     }).eq("id", logId);
     return { status: "sent" };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    await db.from("notification_logs").update({ status: "failed", message: opts.text, attempts, error }).eq("id", logId);
+    await db.from("notification_logs").update({ status: "failed", message: logText, attempts, error }).eq("id", logId);
     return { status: "failed", error };
   }
 }

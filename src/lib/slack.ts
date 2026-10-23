@@ -26,8 +26,14 @@ async function call(method: string, body: Record<string, string>): Promise<Slack
   return data;
 }
 
-export async function postMessage(text: string): Promise<string> {
-  const data = await call("chat.postMessage", { channel: slackConfig().channel, text });
+/** 채널 메시지. thread_ts를 주면 그 메시지의 스레드 답글, blocks를 주면 버튼 등 레이아웃(text는 알림·미리보기용 대체 문구) */
+export async function postMessage(text: string, opts: { threadTs?: string; blocks?: unknown[] } = {}): Promise<string> {
+  const data = await call("chat.postMessage", {
+    channel: slackConfig().channel,
+    text,
+    ...(opts.threadTs ? { thread_ts: opts.threadTs } : {}),
+    ...(opts.blocks ? { blocks: JSON.stringify(opts.blocks) } : {}),
+  });
   return String(data.ts ?? "");
 }
 

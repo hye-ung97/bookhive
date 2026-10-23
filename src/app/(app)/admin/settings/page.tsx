@@ -10,6 +10,7 @@ import { buildReminderMessage, reminderFor } from "@/lib/reminders";
 import { slackConfig } from "@/lib/slack";
 import { createClient } from "@/lib/supabase/server";
 import type { Cycle, CycleStatus } from "@/lib/types";
+import { toggleReminderSkip } from "./actions";
 import { CreateCycleForm, DeadlinesForm, SendReminderNow, StatusControl } from "./forms";
 
 export const metadata: Metadata = { title: "설정" };
@@ -64,6 +65,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     reminderFor(cycle),
     supabase.from("notification_logs").select("id, kind, trigger, status, dedupe_key, created_at").eq("cycle_id", cycle.id).order("created_at", { ascending: false }).limit(15),
   ]);
+  const message = reminder ? buildReminderMessage(reminder, today) : null;
   const logs = (logRows ?? []) as { id: number; kind: string; trigger: string; status: string; dedupe_key: string; created_at: string }[];
   const label = roundLabel(cycle.month, today);
   const fee = participants.reduce((a, p) => a + p.budget, 0);
@@ -152,7 +154,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <p className="note note-info">
               <Icon name="info" />
               <span>
-                마감일부터 제출할 때까지 <b>매일 오전 9시대</b>, 동아리 채널에 미제출자를 멘션해요. 회차를 다음 단계로 넘기면 멈춰요.
+                마감일부터 제출할 때까지 <b>평일 오전 9시대</b>, 동아리 채널에 미제출자를 멘션해요. 채널에는 제목, 스레드에는 멘션과 사이트 바로가기 버튼이 붙고,
+                마감 후 지난 날수에 따라 문구가 세져요(당일 → 1~2일 → 3~4일 → 5일 이상). 회차를 다음 단계로 넘기면 멈춰요.
                 주문완료·배송완료 공지는 주문·배송 화면에서 처리할 때 함께 보내요.
               </span>
             </p>
@@ -164,26 +167,46 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <div className="block-head">
                   <b>{reminder.kind === "request_reminder" ? "구매 요청" : "일지"} 미제출 · {reminder.targets.length}명</b>
                   <span className="t-cap">
-                    {reminder.deadline > today ? `${md(reminder.deadline)} 오전 9시대부터 자동 발송` : `${md(reminder.deadline)}부터 매일 발송 중`}
+                    {reminder.deadline > today ? `${md(reminder.deadline)} 오전 9시대부터 자동 발송` : `${md(reminder.deadline)}부터 평일 매일 발송 중`}
                   </span>
                 </div>
                 {reminder.targets.length ? (
                   <>
                     <div className="row-gap">
                       {reminder.targets.map((t) => (
-                        <span key={t.memberId} className={`badge ${t.slackConnected ? "b-off" : "b-warn"}`}>
+                        <form key={t.memberId} action={toggleReminderSkip} className={`badge ${t.slackConnected ? "b-off" : "b-warn"}`}>
                           {t.name}{t.slackConnected ? "" : " · Slack 미연결"}
-                        </span>
+                          <input type="hidden" name="cycleId" value={cycle.id} />
+                          <input type="hidden" name="memberId" value={t.memberId} />
+                          <input type="hidden" name="skip" value="1" />
+                          <button className="badge-x" type="submit" aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
+                            <Icon name="x" />
+                          </button>
+                        </form>
                       ))}
                     </div>
                     {reminder.targets.some((t) => !t.slackConnected) && (
                       <p className="t-cap">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
                     )}
-                    <SlackPreview text={buildReminderMessage(reminder, today)} />
+                    <SlackPreview text={message!.title} thread={{ text: message!.text, button: message!.button?.text }} />
                     <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={logs.some((l) => l.dedupe_key.endsWith(`:${today}`))} />
                   </>
                 ) : (
                   <p className="note note-ok"><Icon name="checkc" />모두 제출했어요.</p>
+                )}
+                {reminder.skipped.length > 0 && (
+                  <div className="row-gap">
+                    <span className="t-cap">알림에서 뺀 사람</span>
+                    {reminder.skipped.map((t) => (
+                      <form key={t.memberId} action={toggleReminderSkip} className="badge b-off">
+                        {t.name}
+                        <input type="hidden" name="cycleId" value={cycle.id} />
+                        <input type="hidden" name="memberId" value={t.memberId} />
+                        <input type="hidden" name="skip" value="0" />
+                        <button className="badge-x badge-undo" type="submit" aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
+                      </form>
+                    ))}
+                  </div>
                 )}
               </>
             ) : (

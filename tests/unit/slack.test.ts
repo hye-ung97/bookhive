@@ -40,6 +40,13 @@ describe("Slack 클라이언트", () => {
     expect(form(calls[0].body)).toEqual({ channel: "C123", text: "안녕" });
   });
 
+  it("스레드 답글: thread_ts와 버튼 블록(JSON)을 함께 보냄", async () => {
+    const calls = mockFetch([{ json: { ok: true, ts: "1700.2" } }]);
+    const blocks = [{ type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "▶ 가기" }, url: "https://x.test" }] }];
+    await postMessage("대체 문구", { threadTs: "1700.1", blocks });
+    expect(form(calls[0].body)).toEqual({ channel: "C123", text: "대체 문구", thread_ts: "1700.1", blocks: JSON.stringify(blocks) });
+  });
+
   it("이미지 공지: 업로드 주소 받기 → 바이트 올리기 → 채널에 공유하며 본문 붙이기", async () => {
     const calls = mockFetch([
       { json: { ok: true, upload_url: "https://files.slack.com/upload/v1/abc", file_id: "F1" } },
