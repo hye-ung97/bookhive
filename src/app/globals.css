@@ -386,6 +386,10 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .login-logo .ic { width: 28px; height: 28px; }
 .login-logo .serif { font-size: 28px; line-height: 36px; color: var(--fg); }
 .login-card { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; display: grid; gap: 16px; }
+.policy { width: min(640px, 100%); }
+.policy h2 { font-size: 15px; line-height: 22px; margin: 0 0 6px; }
+.policy ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.policy p, .policy li { line-height: 22px; }
 .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; width: 100%; border-radius: var(--r); border: 1px solid var(--border-strong); background: var(--surface); color: var(--fg); font: 500 15px/20px var(--font-sans); cursor: pointer; }
 .gbtn:hover { background: var(--muted); }
 .gmark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); }

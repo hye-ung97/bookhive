@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icon";
 import { getMe } from "@/lib/auth";
@@ -48,7 +49,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             {notMember ? "다른 계정으로 로그인" : "Google 계정으로 계속하기"}
           </button>
         </form>
-        <p className="t-cap">등록된 멤버만 이용할 수 있어요.</p>
+        <p className="t-cap">
+          등록된 멤버만 이용할 수 있어요 · <Link href="/privacy">개인정보처리방침</Link>
+        </p>
         {process.env.NEXT_PUBLIC_DEV_EMAIL_LOGIN === "true" && (
           <>
             <hr className="sep" />
