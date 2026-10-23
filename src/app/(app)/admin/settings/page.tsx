@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { activeMemberCount, cycleBudgets, cycleWarnings, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
 import { SlackPreview } from "@/components/slack-preview";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
-import { buildReminderMessage, reminderFor } from "@/lib/reminders";
+import { activeReminderKind, buildReminderMessage, reminderFor, type DueReminder, type ReminderKind } from "@/lib/reminders";
 import { slackConfig } from "@/lib/slack";
 import { createClient } from "@/lib/supabase/server";
 import type { Cycle, CycleStatus } from "@/lib/types";
@@ -59,13 +59,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }
 
   const supabase = await createClient();
-  const [warn, participants, reminder, { data: logRows }] = await Promise.all([
+  const [warn, participants, requestReminder, journalReminder, { data: logRows }] = await Promise.all([
     cycleWarnings(cycle.id),
     cycleBudgets(cycle.id),
-    reminderFor(cycle),
+    reminderFor(cycle, "request_reminder"),
+    reminderFor(cycle, "journal_reminder"),
     supabase.from("notification_logs").select("id, kind, trigger, status, dedupe_key, created_at").eq("cycle_id", cycle.id).order("created_at", { ascending: false }).limit(15),
   ]);
-  const message = reminder ? buildReminderMessage(reminder, today) : null;
   const logs = (logRows ?? []) as { id: number; kind: string; trigger: string; status: string; dedupe_key: string; created_at: string }[];
   const label = roundLabel(cycle.month, today);
   const fee = participants.reduce((a, p) => a + p.budget, 0);
@@ -162,59 +162,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             {slackConfig().dryRun && (
               <p className="note note-warn"><Icon name="alert" />Slack이 아직 연결되지 않아 실제로 보내지 않고 기록만 남겨요.</p>
             )}
-            {reminder ? (
-              <>
-                <div className="block-head">
-                  <b>{reminder.kind === "request_reminder" ? "구매 요청" : "일지"} 미제출 · {reminder.targets.length}명</b>
-                  <span className="t-cap">
-                    {reminder.deadline > today ? `${md(reminder.deadline)} 오전 9시대부터 자동 발송` : `${md(reminder.deadline)}부터 평일 매일 발송 중`}
-                  </span>
-                </div>
-                {reminder.targets.length ? (
-                  <>
-                    <div className="row-gap">
-                      {reminder.targets.map((t) => (
-                        <form key={t.memberId} action={toggleReminderSkip} className={`badge ${t.slackConnected ? "b-off" : "b-warn"}`}>
-                          {t.name}{t.slackConnected ? "" : " · Slack 미연결"}
-                          <input type="hidden" name="cycleId" value={cycle.id} />
-                          <input type="hidden" name="memberId" value={t.memberId} />
-                          <input type="hidden" name="skip" value="1" />
-                          <button className="badge-x" type="submit" aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
-                            <Icon name="x" />
-                          </button>
-                        </form>
-                      ))}
-                    </div>
-                    {reminder.targets.some((t) => !t.slackConnected) && (
-                      <p className="t-cap">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
-                    )}
-                    <SlackPreview text={message!.title} thread={{ text: message!.text, button: message!.button?.text }} />
-                    <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={logs.some((l) => l.dedupe_key.endsWith(`:${today}`))} />
-                  </>
-                ) : (
-                  <p className="note note-ok"><Icon name="checkc" />모두 제출했어요.</p>
-                )}
-                {reminder.skipped.length > 0 && (
-                  <div className="row-gap">
-                    <span className="t-cap">알림에서 뺀 사람</span>
-                    {reminder.skipped.map((t) => (
-                      <form key={t.memberId} action={toggleReminderSkip} className="badge b-off">
-                        {t.name}
-                        <input type="hidden" name="cycleId" value={cycle.id} />
-                        <input type="hidden" name="memberId" value={t.memberId} />
-                        <input type="hidden" name="skip" value="0" />
-                        <button className="badge-x badge-undo" type="submit" aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
-                      </form>
-                    ))}
-                  </div>
-                )}
-              </>
+            {cycle.status === "closed" ? (
+              <p className="muted">마감된 회차라 알림이 없어요.</p>
             ) : (
-              <p className="muted">
-                {cycle.status === "closed"
-                  ? "마감된 회차라 알림이 없어요."
-                  : `${cycle.status === "requesting" ? "구매 요청" : "일지"} 마감일을 정하면 그날부터 알림이 나가요.`}
-              </p>
+              <>
+                <ReminderBlock kind="request_reminder" cycle={cycle} reminder={requestReminder} today={today} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("request_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
+                <hr className="sep" />
+                <ReminderBlock kind="journal_reminder" cycle={cycle} reminder={journalReminder} today={today} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("journal_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
+              </>
             )}
             {logs.length > 0 && (
               <div className="tbl-wrap">
@@ -244,6 +199,96 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
     </>
+  );
+}
+
+/** 알림 종류 하나: 언제부터 나가는지, 누구에게, 어떤 메시지로 */
+function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
+  kind: ReminderKind;
+  cycle: Cycle;
+  reminder: DueReminder | null;
+  today: string;
+  alreadyToday: boolean;
+}) {
+  const isRequest = kind === "request_reminder";
+  const name = isRequest ? "구매 요청 마감 알림" : "일지 마감 알림";
+  const deadline = isRequest ? cycle.request_deadline : cycle.journal_deadline;
+  const active = activeReminderKind(cycle) === kind;
+
+  // 요청을 마감한 뒤의 구매 요청 알림은 끝난 것
+  if (isRequest && !active) {
+    return (
+      <div className="block-head">
+        <b>{name}</b>
+        <span className="t-cap">요청을 마감해서 더 보내지 않아요</span>
+      </div>
+    );
+  }
+  if (!deadline || !reminder) {
+    return (
+      <div className="block-head">
+        <b>{name}</b>
+        <span className="t-cap">{isRequest ? "구매 요청" : "일지"} 마감일을 정하면 그날부터 알림이 나가요</span>
+      </div>
+    );
+  }
+
+  const schedule = !active
+    ? `요청 마감 후 ${md(deadline)} 오전 9시대부터 평일 자동 발송`
+    : deadline > today
+      ? `${md(deadline)} 오전 9시대부터 평일 자동 발송`
+      : `${md(deadline)}부터 평일 매일 발송 중`;
+  // 지금 보낼 수 있는 알림은 오늘 기준, 아직 단계가 안 된 알림은 첫 발송일 기준 미리보기
+  const previewDay = active ? today : deadline > today ? deadline : today;
+  const message = buildReminderMessage(reminder, previewDay);
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <div className="block-head">
+        <b>{name} · 미제출 {reminder.targets.length}명</b>
+        <span className="t-cap">{schedule}</span>
+      </div>
+      {reminder.targets.length ? (
+        <>
+          <div className="row-gap">
+            {reminder.targets.map((t) => (
+              <form key={t.memberId} action={toggleReminderSkip} className={`badge ${t.slackConnected ? "b-off" : "b-warn"}`}>
+                {t.name}{t.slackConnected ? "" : " · Slack 미연결"}
+                <input type="hidden" name="cycleId" value={cycle.id} />
+                <input type="hidden" name="memberId" value={t.memberId} />
+                <input type="hidden" name="skip" value="1" />
+                <button className="badge-x" type="submit" aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
+                  <Icon name="x" />
+                </button>
+              </form>
+            ))}
+          </div>
+          {!active && <p className="t-cap">지금 기준 대상이에요. 일지를 쓰면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>}
+          {reminder.targets.some((t) => !t.slackConnected) && (
+            <p className="t-cap">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
+          )}
+          <p className="t-cap">{active ? "지금 보내면 나가는 메시지" : `${md(previewDay)} 첫 알림 미리보기`}</p>
+          <SlackPreview text={message.title} thread={{ text: message.text, button: message.button?.text }} />
+          {active && <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={alreadyToday} />}
+        </>
+      ) : (
+        <p className="note note-ok"><Icon name="checkc" />{isRequest ? "모두 요청했어요." : "모두 제출했어요."}</p>
+      )}
+      {reminder.skipped.length > 0 && (
+        <div className="row-gap">
+          <span className="t-cap">알림에서 뺀 사람</span>
+          {reminder.skipped.map((t) => (
+            <form key={t.memberId} action={toggleReminderSkip} className="badge b-off">
+              {t.name}
+              <input type="hidden" name="cycleId" value={cycle.id} />
+              <input type="hidden" name="memberId" value={t.memberId} />
+              <input type="hidden" name="skip" value="0" />
+              <button className="badge-x badge-undo" type="submit" aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
+            </form>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

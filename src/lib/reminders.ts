@@ -23,9 +23,15 @@ export type DueReminder = {
 
 type CycleRow = { id: string; month: string; status: string; request_deadline: string | null; journal_deadline: string | null };
 
-/** 회차 하나의 알림 대상 (마감 전이어도 계산한다: 설정 화면 미리보기용) */
-export async function reminderFor(cycle: CycleRow): Promise<DueReminder | null> {
-  const kind: ReminderKind | null = cycle.status === "requesting" ? "request_reminder" : cycle.status === "reading" ? "journal_reminder" : null;
+/** 지금 단계에서 자동으로 나가는 알림 종류: 요청 받는 중이면 구매 요청, 읽는 중이면 일지 */
+export const activeReminderKind = (cycle: Pick<CycleRow, "status">): ReminderKind | null =>
+  cycle.status === "requesting" ? "request_reminder" : cycle.status === "reading" ? "journal_reminder" : null;
+
+/**
+ * 회차 하나의 알림 대상 (마감 전이어도 계산한다: 설정 화면 미리보기용).
+ * kind를 주면 단계와 상관없이 그 종류로 계산한다 (요청 받는 중에 앞으로 나갈 일지 알림 미리보기)
+ */
+export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = activeReminderKind(cycle)): Promise<DueReminder | null> {
   const deadline = kind === "request_reminder" ? cycle.request_deadline : cycle.journal_deadline;
   if (!kind || !deadline) return null;
 
