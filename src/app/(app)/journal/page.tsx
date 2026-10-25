@@ -61,7 +61,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         </p>
       </div>
       <div className="row-gap">
-        <Link className="btn" href={`/journals?round=${key}`}><Icon name="users" />모두의 일지</Link>
+        <Link className="btn" href={`/journals?round=${key}`}><Icon name="users" />일지 모두보기</Link>
         {reading.length > 1 && (
           <RoundPicker rounds={reading.map((c) => ({ key: roundKey(c.month), label: roundLabel(c.month, today) })).reverse()} current={key} />
         )}
