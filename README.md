@@ -39,6 +39,7 @@ npm run dev                 # http://localhost:3000
 
 - 일지 쓰기: 읽는 중인 회차에, 그 회차에 본인이 신청한 책으로 한 편(500자 이내). 일지 마감일이 지나도 쓸 수 있고 "지각"으로 표시된다. 회차를 마감하면 읽기 전용
 - 모두의 일지(`/journals`): 회차별로 멤버 모두의 일지를 읽는다(시트 시절처럼 공개). AI 초안 사용 여부(`ai_assisted`)는 컬럼 권한으로 숨긴다
+- [CSV 내려받기]·[시트에 올리기]: 운영진(관리자)만 보이고, 주소로 직접 불러도 막는다. [시트에 올리기]는 누를 때마다 구글 시트의 회차 탭(`2026.11`)을 지금 일지로 통째로 덮어쓴다(자동 동기화 없음). 두 버튼이 같은 표(`src/lib/journal-sheet.ts`)를 쓴다
 - AI 초안: 책 소개(카카오) + 내 메모로 초안을 만들어 미리보기 → [본문에 넣기]. Gemini → Groq 순서로 시도하고, 둘 다 안 되면 프롬프트를 복사해 다른 AI에 붙여 넣는다. 1인 하루 10회
 - 마감 알림: 매일 오전 9시대(Vercel Cron `0 0 * * *` UTC) `/api/cron/daily`가 마감일이 지난 회차의 미제출자를 동아리 채널에 멘션한다. 요청 마감 알림은 [요청 마감하기], 일지 알림은 [회차 마감하기]를 누르면 멈춘다. 같은 날 두 번 불려도 한 번만 나간다
 - 관리자 > 설정 > Slack 알림: 대상·문구 미리보기, [지금 보내기], 발송 기록
@@ -48,6 +49,18 @@ AI 키: `GEMINI_API_KEY`(https://aistudio.google.com/apikey), `GROQ_API_KEY`(htt
 크론: `CRON_SECRET`을 Vercel 환경변수에 넣으면 Vercel이 `Authorization: Bearer <값>`으로 부른다. 로컬 확인은 `curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/daily`.
 
 Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:write`, `users:read`, `users:read.email`), `SLACK_CHANNEL_ID`를 넣고 `SLACK_DRY_RUN=false`. 봇을 공지 채널에 초대해야 한다. 값이 없으면 실제로 보내지 않고 "기록만 남김"으로 처리되며, 나중에 [공지 다시 보내기]로 보낼 수 있다.
+
+## 모두의 일지 시트 연결
+
+사이트가 시트에 직접 쓰지 않고, 시트에 붙인 Apps Script 웹 앱에 표를 보낸다. Google Cloud 프로젝트·서비스 계정이 필요 없고, 스크립트는 시트 주인 권한으로 돈다.
+
+1. 일지를 모을 구글 시트를 새로 만들고 확장 프로그램 > Apps Script에 `scripts/sheets/journals.gs`를 붙여 넣는다
+2. 프로젝트 설정 > 스크립트 속성에 `SECRET`(긴 임의 문자열, 예: `openssl rand -hex 32`)을 넣는다
+3. 배포 > 새 배포 > 웹 앱: 실행 사용자 "나", 액세스 "모든 사용자" → 권한 승인 → 웹 앱 URL(`.../exec`)을 복사한다
+4. Vercel 환경변수에 `JOURNAL_SHEET_WEBAPP_URL`(3의 URL), `JOURNAL_SHEET_SECRET`(2와 같은 값)을 넣는다
+
+- 회사 Workspace 계정에서 액세스 "모든 사용자"가 안 보이면 관리자가 막아 둔 것이다. 개인 Google 계정으로 시트를 만들면 된다
+- 스크립트를 고치면 배포 관리 > 수정 > 새 버전으로 다시 배포해야 반영된다(URL은 그대로)
 
 ## 시트 이관 (3단계)
 
@@ -78,7 +91,7 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 
 ```bash
 npm run typecheck && npm run lint
-npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서
+npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)
 npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·함수 권한·이관 예외 (100개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```

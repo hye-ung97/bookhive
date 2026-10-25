@@ -34,6 +34,7 @@ export default function PrivacyPage() {
             <li>Supabase(서울 리전): 로그인과 데이터 저장</li>
             <li>Vercel: 사이트 실행</li>
             <li>Slack: 동아리 채널 공지</li>
+            <li>Google 스프레드시트: 운영진이 [시트에 올리기]를 누르면 회차의 일지(이름·책·본문)를 동아리 시트에 복사</li>
             <li>Kakao 책 검색: 책 정보 조회 (ISBN만 보냄)</li>
             <li>Google Gemini, Groq: AI 일지 초안 (책 소개와 메모를 보냄. 무료 등급이라 학습에 쓰일 수 있으니 개인정보는 적지 마세요)</li>
           </ul>

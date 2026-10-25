@@ -6,6 +6,8 @@ import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
 import { cycleJournals, findByKey, listCycles, readingCycle, type SharedJournal } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel } from "@/lib/format";
+import { sheetEnabled } from "@/lib/sheets";
+import { UploadJournals } from "./upload-journals";
 
 export const metadata: Metadata = { title: "모두의 일지" };
 
@@ -62,6 +64,14 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
           <Icon name="pen" />
           <span>아직 이 회차 일지를 쓰지 않았어요. <Link className="link" href={`/journal?round=${key}`}>일지 쓰기</Link></span>
         </p>
+      )}
+      {me.isAdmin && journals.length > 0 && (
+        <div className="row-gap">
+          <a className="btn btn-sm" href={`/journals/export?round=${key}`} download>
+            <Icon name="file" />CSV 내려받기
+          </a>
+          {sheetEnabled() && <UploadJournals key={key} round={key} />}
+        </div>
       )}
       {journals.length ? (
         <div className="jr-list">
