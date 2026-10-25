@@ -6,11 +6,13 @@ export type SheetCell = string | number;
 
 /**
  * 시트 한 줄 = 책 한 권: [책 제목, 단가, 수량, 예상 금액, 요청자].
+ * 요청자 이름 가나다순, 한 사람의 책은 요청한 순서대로.
  * 머리글은 시트에 이미 있으니 넣지 않는다. 책은 한 권씩 요청하니 수량은 1, 예상 금액은 단가와 같다
  */
 export function requestSheetRows(rows: RequestRow[]): SheetCell[][] {
-  // TODO: 시트에 들어갈 줄 순서 정하기 (지금은 요청 들어온 순서 그대로)
-  return rows.map((r) => [r.title, r.price, 1, r.price, r.member_name]);
+  return [...rows]
+    .sort((a, b) => a.member_name.localeCompare(b.member_name, "ko"))
+    .map((r) => [r.title, r.price, 1, r.price, r.member_name]);
 }
 
 /**
