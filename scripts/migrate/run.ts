@@ -4,6 +4,7 @@
 //   npm run migrate -- members                   멤버 매핑표 양식 data/legacy/members.csv 를 만든다 → email 칸을 채운다
 //   npm run migrate -- import --dry-run          한 트랜잭션으로 넣어 보고 되돌린다 + 대사 리포트 data/legacy/report.md
 //   npm run migrate -- import --prod             운영 DB(.env.supabase-prod)에 실제로 넣는다
+//   npm run migrate -- journals [--tab=2026-10] [--prod] [--dry-run]   이관 뒤 시트에 늦게 채워진 일지만 넣는다 (이미 있는 일지는 그대로)
 //   npm run migrate -- relink-receipts [--prod] [--dry-run]   파일 이름만 남은 이관 영수증을 시트의 Drive 링크로 바꾼다
 //   npm run migrate -- backfill-isbn [--prod] [--dry-run]     진행 중 회차의 이관 요청에 서점 링크로 ISBN을 채운다 (AI 초안 책 소개용)
 //
@@ -174,18 +175,7 @@ async function runImport() {
   const readingFlag = flag("reading");
   const reading = readingFlag === "none" ? null : readingFlag ? `${readingFlag}-01` : withRequests.at(-1)?.month ?? null;
 
-  // 일지 날짜: 시트2 raw 탭(이름·날짜·제목)에서 같은 사람의 비슷한 제목으로 찾고, 없으면 회차 1일
-  const rawDates: RawDates = new Map();
-  const raw = s2.find((t) => t.name === "raw");
-  if (raw) {
-    const [h, ...rows] = raw.rows;
-    const [ni, di, ti] = ["Name", "날짜", "Book Title"].map((k) => h.indexOf(k));
-    for (const r of rows) {
-      const d = parseSheetDate(r[di] ?? "");
-      const name = (r[ni] ?? "").trim();
-      if (d && name) rawDates.set(name, [...(rawDates.get(name) ?? []), { title: r[ti] ?? "", date: d }]);
-    }
-  }
+  const rawDates = readRawDates(s2);
 
   const { client, target } = await dbClient();
   await client.connect();
@@ -215,7 +205,7 @@ async function runImport() {
 
     // 2) 회차별: 회차 → 참가자 → 신청 → 지출(묶음·커피)
     const cycleId = new Map<string, string>();
-    const requestsByKey = new Map<string, { id: string; title: string; cancelled: boolean }[]>(); // `${month}|${name}`
+    const requestsByKey: RequestsByKey = new Map();
     const recon: { month: string; name: string; parsed: number; sheet: number | null }[] = [];
 
     for (const t of withRequests) {
@@ -341,26 +331,8 @@ async function runImport() {
     }
 
     // 3) 일지
-    const journalStats = { imported: 0, linked: 0, unlinked: [] as string[], weak: [] as string[] };
-    const seen = new Set<string>();
-    for (const t of s2) {
-      const parsed = t.name === "raw" || t.name === "sample" ? null : parseJournalTab(t.name, t.rows);
-      if (!parsed) continue;
-      problems.push(...parsed.problems);
-      const cid = cycleId.get(parsed.month);
-      if (!cid) { if (parsed.journals.length) problems.push(`일지 탭 ${t.name}: 같은 달 신청 탭이 없어 건너뜀 (${parsed.journals.length}편)`); continue; }
-      for (const j of parsed.journals) {
-        const mid = memberId.get(j.name);
-        if (!mid) { problems.push(`${j.ref} 회원목록에 없는 이름 "${j.name}" → 건너뜀`); continue; }
-        const dup = `${parsed.month}|${j.name}`;
-        if (seen.has(dup)) { problems.push(`${j.ref} ${j.name}의 같은 회차 두 번째 일지 → 건너뜀`); continue; }
-        seen.add(dup);
-        const { rows: existing } = await client.query(
-          "select legacy_ref from public.journals where cycle_id = $1 and member_id = $2", [cid, mid]);
-        if (existing[0] && existing[0].legacy_ref !== j.ref) { problems.push(`${j.ref} 사이트에서 이미 쓴 일지가 있어 건너뜀`); continue; }
-        await upsertJournal(client, cid, mid, j, parsed.month, requestsByKey, rawDates, journalStats);
-      }
-    }
+    const journalStats: JournalStats = { imported: 0, linked: 0, unlinked: [], weak: [] };
+    await importJournalTabs(client, s2, { cycleId, memberId, requestsByKey, rawDates }, journalStats, problems);
 
     // 4) 대사: DB 계산값 vs 시트 행 재계산 vs 시트 total 칸
     const { rows: db } = await client.query(
@@ -488,12 +460,108 @@ async function relinkReceipts() {
 }
 
 type RawDates = Map<string, { title: string; date: string }[]>;
+type RequestsByKey = Map<string, { id: string; title: string; cancelled: boolean }[]>; // `${month}|${name}`
+type JournalStats = { imported: number; linked: number; unlinked: string[]; weak: string[] };
 const monthsBetween = (a: string, b: string) => (Number(a.slice(0, 4)) - Number(b.slice(0, 4))) * 12 + Number(a.slice(5, 7)) - Number(b.slice(5, 7));
+
+/** 일지 날짜: 시트2 raw 탭(이름·날짜·제목)에서 같은 사람의 비슷한 제목으로 찾고, 없으면 회차 1일 */
+function readRawDates(s2: Tab[]): RawDates {
+  const rawDates: RawDates = new Map();
+  const raw = s2.find((t) => t.name === "raw");
+  if (!raw) return rawDates;
+  const [h, ...rows] = raw.rows;
+  const [ni, di, ti] = ["Name", "날짜", "Book Title"].map((k) => h.indexOf(k));
+  for (const r of rows) {
+    const d = parseSheetDate(r[di] ?? "");
+    const name = (r[ni] ?? "").trim();
+    if (d && name) rawDates.set(name, [...(rawDates.get(name) ?? []), { title: r[ti] ?? "", date: d }]);
+  }
+  return rawDates;
+}
+
+/**
+ * 시트2 월별 탭의 일지를 넣는다 (사람당 회차당 한 편). 사이트에서 쓴 일지는 건드리지 않는다.
+ * keepExisting이면 이미 옮긴 일지도 덮어쓰지 않는다(이관 뒤 사이트에서 고쳤을 수 있다). 새로 넣은 일지를 돌려준다
+ */
+async function importJournalTabs(
+  client: Client, tabs: Tab[],
+  ids: { cycleId: Map<string, string>; memberId: Map<string, string>; requestsByKey: RequestsByKey; rawDates: RawDates },
+  stats: JournalStats, problems: string[], keepExisting = false,
+): Promise<string[]> {
+  const added: string[] = [];
+  const seen = new Set<string>();
+  for (const t of tabs) {
+    const parsed = t.name === "raw" || t.name === "sample" ? null : parseJournalTab(t.name, t.rows);
+    if (!parsed) continue;
+    problems.push(...parsed.problems);
+    const cid = ids.cycleId.get(parsed.month);
+    if (!cid) { if (parsed.journals.length) problems.push(`일지 탭 ${t.name}: 같은 달 회차가 없어 건너뜀 (${parsed.journals.length}편)`); continue; }
+    for (const j of parsed.journals) {
+      const mid = ids.memberId.get(j.name);
+      if (!mid) { problems.push(`${j.ref} 회원목록에 없는 이름 "${j.name}" → 건너뜀`); continue; }
+      const dup = `${parsed.month}|${j.name}`;
+      if (seen.has(dup)) { problems.push(`${j.ref} ${j.name}의 같은 회차 두 번째 일지 → 건너뜀`); continue; }
+      seen.add(dup);
+      const { rows: existing } = await client.query(
+        "select legacy_ref from public.journals where cycle_id = $1 and member_id = $2", [cid, mid]);
+      if (existing[0] && existing[0].legacy_ref !== j.ref) { problems.push(`${j.ref} 사이트에서 이미 쓴 일지가 있어 건너뜀`); continue; }
+      if (existing[0] && keepExisting) continue;
+      await upsertJournal(client, cid, mid, j, parsed.month, ids.requestsByKey, ids.rawDates, stats);
+      if (!existing[0]) added.push(`${j.ref} ${j.name}: "${j.title}"`);
+    }
+  }
+  return added;
+}
+
+/**
+ * 이관 뒤 시트에 늦게 채워진 일지만 넣는다 (먼저 fetch로 시트를 다시 받는다).
+ * import를 다시 돌리면 이관 뒤 사이트에서 바뀐 요청·회차 상태까지 시트 값으로 덮이므로 따로 둔다.
+ * 회차·멤버·신청 책은 DB에서 찾고, 이미 있는 일지는 이관분이든 사이트 작성분이든 건드리지 않는다
+ */
+async function importJournals() {
+  const dryRun = flag("dry-run") !== undefined;
+  const only = flag("tab");
+  const s2 = await loadTabs("s2");
+  const tabs = only ? s2.filter((t) => t.name === only) : s2;
+  if (only && !tabs.length) throw new Error(`시트2에 ${only} 탭이 없어요 (탭 이름 예: 2026-10)`);
+  const { client, target } = await dbClient();
+  await client.connect();
+  console.log(`대상 DB: ${target}${dryRun ? " (드라이런: 끝나면 되돌림)" : ""}`);
+  try {
+    await client.query("begin");
+    const { rows: cycles } = await client.query("select id, month::text from public.cycles");
+    // 이름이 겹치면 이관 멤버(legacy_no 있음)가 이기도록 뒤에 둔다
+    const { rows: members } = await client.query("select id, name from public.members order by legacy_no nulls first");
+    const { rows: requests } = await client.query(
+      `select pr.id, pr.title, pr.cancelled_at is not null as cancelled, c.month::text as month, m.name
+       from public.purchase_requests pr join public.cycles c on c.id = pr.cycle_id join public.members m on m.id = pr.member_id`);
+    const requestsByKey: RequestsByKey = new Map();
+    for (const r of requests) requestsByKey.set(`${r.month}|${r.name}`, [...(requestsByKey.get(`${r.month}|${r.name}`) ?? []), r]);
+
+    const stats: JournalStats = { imported: 0, linked: 0, unlinked: [], weak: [] };
+    const problems: string[] = [];
+    const added = await importJournalTabs(client, tabs, {
+      cycleId: new Map(cycles.map((c) => [c.month, c.id])),
+      memberId: new Map(members.map((m) => [m.name, m.id])),
+      requestsByKey, rawDates: readRawDates(s2),
+    }, stats, problems, true);
+    await client.query(dryRun ? "rollback" : "commit");
+
+    console.log(`새로 넣은 일지 ${added.length}편 · 신청 책과 연결 ${stats.linked}편${dryRun ? " (드라이런)" : ""}`);
+    for (const a of added) console.log(`  ${a}`);
+    for (const w of [...stats.weak, ...stats.unlinked]) console.log(`  확인: ${w}`);
+    if (problems.length) console.log(`건너뜀 ${problems.length}건:\n  ${problems.join("\n  ")}`);
+  } catch (e) {
+    await client.query("rollback").catch(() => {});
+    throw e;
+  } finally {
+    await client.end();
+  }
+}
 
 async function upsertJournal(
   client: Client, cycleId: string, memberId: string, j: SheetJournal, month: string,
-  requestsByKey: Map<string, { id: string; title: string; cancelled: boolean }[]>,
-  rawDates: RawDates, stats: { imported: number; linked: number; unlinked: string[]; weak: string[] },
+  requestsByKey: RequestsByKey, rawDates: RawDates, stats: JournalStats,
 ) {
   const all = requestsByKey.get(`${month}|${j.name}`) ?? [];
   // 취소 안 된 책을 먼저 보고, 없으면 취소된 책까지
@@ -513,7 +581,7 @@ async function upsertJournal(
   stats.imported++;
   if (hit) stats.linked++;
   if (hit && hit.score < 0.9) stats.weak.push(`${month.slice(0, 7)} ${j.name}: "${j.title}" → "${hit.item.title}" (${hit.score.toFixed(2)})`);
-  else stats.unlinked.push(`${month.slice(0, 7)} ${j.name}: "${j.title}" (신청 책: ${all.map((r) => r.title).join(" / ") || "없음"})`);
+  else if (!hit) stats.unlinked.push(`${month.slice(0, 7)} ${j.name}: "${j.title}" (신청 책: ${all.map((r) => r.title).join(" / ") || "없음"})`);
 }
 
 /**
@@ -571,10 +639,10 @@ async function backfillIsbn() {
 }
 
 const command = args[0];
-const commands = { fetch: fetchTabs, members: writeMembersTemplate, import: runImport, "relink-receipts": relinkReceipts, "backfill-isbn": backfillIsbn };
+const commands = { fetch: fetchTabs, members: writeMembersTemplate, import: runImport, journals: importJournals, "relink-receipts": relinkReceipts, "backfill-isbn": backfillIsbn };
 const main = commands[command as keyof typeof commands];
 if (!main) {
-  console.log("사용법: npm run migrate -- fetch | members | import [--dry-run] [--prod] [--reading=YYYY-MM|none] | relink-receipts | backfill-isbn  (뒤의 둘도 --dry-run --prod)");
+  console.log("사용법: npm run migrate -- fetch | members | import [--dry-run] [--prod] [--reading=YYYY-MM|none] | journals [--tab=YYYY-MM] | relink-receipts | backfill-isbn  (뒤의 셋도 --dry-run --prod)");
   process.exit(1);
 }
 main().catch((e) => {

@@ -58,6 +58,8 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 3. `npm run migrate -- import --dry-run --prod` → 운영 DB에 넣어 보고 되돌린다. `data/legacy/report.md`를 총무가 확인
 4. `npm run migrate -- import --prod` → 시트를 보기 전용으로 바꾸고, 사이트에서 12월 회차를 만든다
 
+이관 뒤 시트에 일지가 늦게 채워졌으면 `fetch` 후 `npm run migrate -- journals --tab=2026-10 --prod`(먼저 `--dry-run`). 빠진 일지만 넣고 이미 있는 일지는 건드리지 않는다. `import`를 다시 돌리면 사이트에서 바꾼 요청·회차 상태까지 시트 값으로 덮인다
+
 옮기는 규칙
 - 회차는 탭 이름(읽는 달)으로 정한다. 한도 30,000원, 2026.10·11만 45,000원(9월 휴회 보전). 가장 최근 회차는 "읽는 중", 나머지는 "마감"(`--reading=YYYY-MM|none`)
 - 구분: 배송완료·주문완료는 그대로, 주문변경·0원은 취소, 공란은 마감 회차면 배송완료. 이름 옆 괄호 메모는 떼어 낸다. 2026.07 45행(8월 탭과 중복)은 뺀다
