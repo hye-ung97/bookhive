@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { parseStoreUrl } from "@/lib/books/parse-store-url";
 import { toUserMessage } from "@/lib/errors";
 import { won } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { notifyNewRequest } from "@/lib/treasurer-notices";
 
 export type ActionState = { ok: boolean; message: string } | null;
 
@@ -39,8 +41,10 @@ export async function submitRequest(_prev: ActionState, formData: FormData): Pro
     p_idem: text(formData, "idem") || null,
   });
   if (error) return { ok: false, message: toUserMessage(error) };
+  const created = data as { id: string; remaining: number };
+  after(() => notifyNewRequest(created.id)); // 총무 DM은 응답을 보낸 뒤에
   revalidatePath("/", "layout");
-  return { ok: true, message: `요청했어요 · 남은 금액 ${won((data as { remaining: number }).remaining)}원` };
+  return { ok: true, message: `요청했어요 · 남은 금액 ${won(created.remaining)}원` };
 }
 
 export async function cancelRequest(_prev: ActionState, formData: FormData): Promise<ActionState> {

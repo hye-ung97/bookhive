@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "./supabase/admin";
 import { lookupUserIdByEmail, postMessage, postWithFiles, slackConfig } from "./slack";
 
-export type NoticeKind = "order_done" | "delivery_done" | "request_reminder" | "journal_reminder";
+export type NoticeKind = "order_done" | "delivery_done" | "request_reminder" | "journal_reminder" | "new_request" | "new_journal";
 export type NoticeResult = { status: "sent" | "skipped" | "failed" | "already"; error?: string };
 /** 채널 메시지에 이어 다는 스레드 답글: 본문(멘션 포함)과 사이트로 가는 버튼 */
 export type NoticeThread = { text: string; fallback: string; button?: { text: string; url: string } };
@@ -25,9 +25,32 @@ async function toSlackText(text: string): Promise<string> {
   return out;
 }
 
+/** 총무: 활동 중인 운영진 중 직함에 "총무"가 들어간 사람. Slack ID가 없으면 이메일로 찾아 저장한다 */
+async function treasurerSlackIds(): Promise<string[]> {
+  const db = createAdminClient();
+  const { data: members } = await db
+    .from("members")
+    .select("id, email, slack_user_id")
+    .eq("status", "active")
+    .eq("role", "admin")
+    .ilike("role_title", "%총무%");
+  const ids: string[] = [];
+  for (const m of members ?? []) {
+    let id: string | null = m.slack_user_id;
+    if (!id) {
+      id = await lookupUserIdByEmail(m.email);
+      if (id) await db.from("members").update({ slack_user_id: id }).eq("id", m.id);
+    }
+    if (id) ids.push(id);
+  }
+  if (!ids.length) throw new Error(members?.length ? "총무의 Slack 계정을 이메일로 찾지 못했어요" : "직함이 총무인 운영진이 없어요");
+  return ids;
+}
+
 /**
- * Slack 채널 공지 하나. dedupe_key당 한 번만 보낸다(이미 보냈으면 'already').
+ * Slack 공지 하나. dedupe_key당 한 번만 보낸다(이미 보냈으면 'already').
  * 실패했거나 Slack 미설정으로 기록만 남은 공지는 같은 키로 다시 시도할 수 있다.
+ * to: "treasurer"면 동아리 채널 대신 총무에게 DM (첨부·스레드 없이 본문만)
  */
 export async function sendNotice(opts: {
   kind: NoticeKind;
@@ -35,6 +58,7 @@ export async function sendNotice(opts: {
   cycleId: string;
   bundleId?: string;
   trigger?: "event" | "cron" | "manual";
+  to?: "channel" | "treasurer";
   text: string;
   thread?: NoticeThread;
   receiptIds?: string[];
@@ -75,7 +99,9 @@ export async function sendNotice(opts: {
   try {
     const text = await toSlackText(opts.text);
     let ts: string | null = null;
-    if (receipts?.length) {
+    if (opts.to === "treasurer") {
+      for (const id of await treasurerSlackIds()) ts = await postMessage(text, { channel: id });
+    } else if (receipts?.length) {
       const files = await Promise.all(
         receipts.map(async (r) => {
           const { data, error } = await db.storage.from("receipts").download(r.storage_path);

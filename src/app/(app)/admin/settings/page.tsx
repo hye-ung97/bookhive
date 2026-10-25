@@ -59,12 +59,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }
 
   const supabase = await createClient();
-  const [warn, participants, requestReminder, journalReminder, { data: logRows }] = await Promise.all([
+  const [warn, participants, requestReminder, journalReminder, { data: logRows }, { data: treasurers }, { data: failedDms }] = await Promise.all([
     cycleWarnings(cycle.id),
     cycleBudgets(cycle.id),
     reminderFor(cycle, "request_reminder"),
     reminderFor(cycle, "journal_reminder"),
-    supabase.from("notification_logs").select("id, kind, trigger, status, dedupe_key, created_at").eq("cycle_id", cycle.id).order("created_at", { ascending: false }).limit(15),
+    // 요청·일지마다 나가는 총무 DM은 따로 센다 (15줄을 다 차지해 마감 알림 기록이 밀려나지 않게)
+    supabase.from("notification_logs").select("id, kind, trigger, status, dedupe_key, created_at").eq("cycle_id", cycle.id)
+      .not("kind", "in", `(${TREASURER_KINDS})`).order("created_at", { ascending: false }).limit(15),
+    supabase.from("members").select("name").eq("status", "active").eq("role", "admin").ilike("role_title", "%총무%"),
+    supabase.from("notification_logs").select("error").eq("cycle_id", cycle.id).in("kind", TREASURER_KINDS).eq("status", "failed")
+      .order("created_at", { ascending: false }),
   ]);
   const logs = (logRows ?? []) as { id: number; kind: string; trigger: string; status: string; dedupe_key: string; created_at: string }[];
   const label = roundLabel(cycle.month, today);
@@ -159,6 +164,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 주문완료·배송완료 공지는 주문·배송 화면에서 처리할 때 함께 보내요.
               </span>
             </p>
+            <p className="note note-info">
+              <Icon name="info" />
+              <span>
+                멤버가 책을 요청하거나 일지를 처음 쓰면 <b>총무</b>에게 Slack DM을 보내요(받는 사람: {treasurers?.length ? treasurers.map((t) => t.name).join(", ") : "없음"}).
+                멤버 화면에서 운영진 직함에 &quot;총무&quot;가 들어간 사람이 받아요.
+              </span>
+            </p>
+            {failedDms && failedDms.length > 0 && (
+              <p className="note note-warn"><Icon name="alert" />이 회차 총무 알림 {failedDms.length}건을 보내지 못했어요: {failedDms[0].error}</p>
+            )}
             {slackConfig().dryRun && (
               <p className="note note-warn"><Icon name="alert" />Slack이 아직 연결되지 않아 실제로 보내지 않고 기록만 남겨요.</p>
             )}
@@ -291,6 +306,8 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
     </div>
   );
 }
+
+const TREASURER_KINDS = ["new_request", "new_journal"];
 
 const NOTICE_KIND: Record<string, string> = {
   request_reminder: "요청 마감 알림",

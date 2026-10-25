@@ -47,6 +47,12 @@ describe("Slack 클라이언트", () => {
     expect(form(calls[0].body)).toEqual({ channel: "C123", text: "대체 문구", thread_ts: "1700.1", blocks: JSON.stringify(blocks) });
   });
 
+  it("사람 ID를 주면 그 사람에게 DM (총무 알림)", async () => {
+    const calls = mockFetch([{ json: { ok: true, ts: "1700.3" } }]);
+    await postMessage("새 요청", { channel: "U999" });
+    expect(form(calls[0].body)).toEqual({ channel: "U999", text: "새 요청" });
+  });
+
   it("이미지 공지: 업로드 주소 받기 → 바이트 올리기 → 채널에 공유하며 본문 붙이기", async () => {
     const calls = mockFetch([
       { json: { ok: true, upload_url: "https://files.slack.com/upload/v1/abc", file_id: "F1" } },

@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { toUserMessage } from "@/lib/errors";
 import { normalizeBody } from "@/lib/text";
 import { createClient } from "@/lib/supabase/server";
+import { notifyNewJournal } from "@/lib/treasurer-notices";
 
 export type ActionState = { ok: boolean; message: string } | null;
 
@@ -20,8 +22,10 @@ export async function saveJournal(_prev: ActionState, formData: FormData): Promi
     p_ai_assisted: text(formData, "aiAssisted") === "1",
   });
   if (error) return { ok: false, message: toUserMessage(error) };
+  const saved = data as { id: string; late: boolean };
+  after(() => notifyNewJournal(saved.id, saved.late)); // 총무 DM은 응답을 보낸 뒤에 (redirect해도 실행된다)
   revalidatePath("/", "layout");
-  redirect(`/journal?round=${round}&saved=${(data as { late: boolean }).late ? "late" : "1"}`);
+  redirect(`/journal?round=${round}&saved=${saved.late ? "late" : "1"}`);
 }
 
 export async function deleteJournal(_prev: ActionState, formData: FormData): Promise<ActionState> {

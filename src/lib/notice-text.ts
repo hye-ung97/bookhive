@@ -1,4 +1,4 @@
-import { md } from "./format";
+import { md, won } from "./format";
 
 // Slack 공지 기본 문구 (관리자가 보내기 전에 수정할 수 있다). 사람은 "@이름"으로 쓰고, 보낼 때 Slack 멘션으로 바꾼다
 
@@ -19,4 +19,37 @@ export function orderNoticeText({ round, label, names, count, eta }: Base & { et
 
 export function deliveryNoticeText({ round, label, names, count }: Base): string {
   return `[${round}] ${label} 주문 책 ${count}권이 도착했어요.\n${mention(names)} 님은 라운지 책장에서 찾아가 주세요.`;
+}
+
+// ───────── 총무 DM: 멤버가 책을 요청하거나 일지를 처음 쓸 때 (시트 시절 Slack 워크플로 알림 대신) ─────────
+
+/** Slack이 서식으로 읽는 &, <, >를 글자 그대로 보이게 (책 제목·일지 본문용) */
+export const slackEscape = (s: string) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+
+/** round: 회차 이름(12월 회차), link: 사이트의 그 회차 전체 구매 요청. "구매일지 링크" 자리 */
+export function requestNoticeText({ round, title, url, price, name, link }: {
+  round: string; title: string; url: string | null; price: number; name: string; link: string;
+}): string {
+  return [
+    `• 요청 항목: ${slackEscape(title)}${url ? ` / ${url}` : ""}`,
+    `• 금액: ${won(price)}원`,
+    `• 요청자: ${name}`,
+    `<${link}|${round} 전체 구매 요청 보기>`,
+  ].join("\n");
+}
+
+/**
+ * 작성자·책 제목·지각 여부만 (본문은 링크로). 구매 요청 알림과 같은 모양.
+ * book: 신청한 책 제목(이관 일지는 원본 제목, 둘 다 없으면 null), late: 일지 마감일이 지나 쓴 "지각" 일지,
+ * link: 모두의 일지에서 이 일지로 바로 가는 주소
+ */
+export function journalNoticeText({ round, name, book, late, link }: {
+  round: string; name: string; book: string | null; late: boolean; link: string;
+}): string {
+  return [
+    `• 작성자: ${name}`,
+    `• 책 제목: ${book ? slackEscape(book) : "-"}`,
+    `• 지각 여부: ${late ? "지각" : "아니요"}`,
+    `<${link}|${round} 일지 보기>`,
+  ].join("\n");
 }
