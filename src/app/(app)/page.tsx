@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { CYCLE_STATUS_LABEL, CycleTag, DdayChip, StatusBadge } from "@/components/badges";
 import { BudgetGauge } from "@/components/budget-gauge";
+import { CopyButton } from "@/components/copy-button";
 import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME } from "@/lib/books/parse-store-url";
 import { activeMemberCount, findByKey, journalProgress, listCycles, myBudgets, myJournals, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
+import { requestSheetRows, toTsv } from "@/lib/request-sheet";
 import { pickDefaultRound } from "@/lib/rounds";
 import type { Budget, Cycle } from "@/lib/types";
 
@@ -181,6 +183,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <Link href={roundHref()} aria-current={!mineOnly} scroll={false}>전체</Link>
                 <Link href={roundHref("mine")} aria-current={mineOnly} scroll={false}>내 요청</Link>
               </div>
+              {me.isAdmin && (
+                <CopyButton
+                  text={toTsv(requestSheetRows(shown))}
+                  label="시트용 복사"
+                  title="사용 항목 · 단가 · 수량 · 예상 금액 · 성명 순서로 복사해요. 시트의 '사용 항목' 첫 빈칸에 붙여넣어 주세요"
+                />
+              )}
             </div>
           )}
         </div>
