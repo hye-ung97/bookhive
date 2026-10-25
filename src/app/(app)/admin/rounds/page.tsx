@@ -4,7 +4,7 @@ import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireAdmin } from "@/lib/auth";
-import { coffeePlans, cycleBudgets, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
+import { coffeePlans, cycleBudgets, findByKey, listCycles, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
 import { overdueDocs } from "@/lib/rounds";
 import { BudgetTable, CoffeePlans, type BudgetRow } from "./coffee";
@@ -32,10 +32,12 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const [budgets, plans] = await Promise.all([cycleBudgets(cycle.id), coffeePlans(cycle.id)]);
+  const [budgets, plans, requests] = await Promise.all([cycleBudgets(cycle.id), coffeePlans(cycle.id), requestsForCycle(cycle.id)]);
   const coffeeOf = new Map<string, "planned" | "used">();
   plans.forEach((p) => p.members.forEach((m) => { if (p.status !== "cancelled" && coffeeOf.get(m.member_id) !== "planned") coffeeOf.set(m.member_id, p.status as "planned" | "used"); }));
-  const rows: BudgetRow[] = budgets.map((b) => ({ ...b, coffee: coffeeOf.get(b.member_id) ?? null }));
+  const rows: BudgetRow[] = budgets.map((b) => ({
+    ...b, coffee: coffeeOf.get(b.member_id) ?? null, books: requests.filter((r) => r.member_id === b.member_id),
+  }));
 
   const filter = sp.filter ?? "all";
   const shown = rows.filter((r) => filter === "all" || (filter === "remaining" && r.remaining > 0 && r.request_count > 0) || (filter === "none" && r.request_count === 0));

@@ -363,6 +363,17 @@ a.doc > .ic { color: var(--fg2); }
 .tbl input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); }
 .tbl tr.is-muted td { color: var(--fg2); }
 .tbl tr.is-sel td { background: var(--primary-soft); }
+/* 사람별 예산: 행을 눌러 그 사람의 요청 책 펼치기 */
+.tbl tr.is-click { cursor: pointer; }
+.tbl tr.is-click:not(.is-sel):hover td { background: var(--muted); }
+.row-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.row-toggle .ic { width: 14px; height: 14px; color: var(--fg2); transition: transform 0.15s; }
+.row-toggle[aria-expanded="true"] .ic { transform: rotate(90deg); }
+.row-toggle-pad { padding-left: 18px; } /* 펼칠 게 없는 행도 이름 줄을 맞춘다 */
+.tbl tr.tbl-sub td { border-top: 0; padding-top: 0; }
+.bk-list { display: grid; gap: 6px; margin: 0 0 0 6px; padding: 2px 0 2px 12px; border-left: 2px solid var(--border-strong); list-style: none; }
+.bk-item { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13px; }
+.bk-item .t { overflow-wrap: anywhere; }
 
 /* 일지 */
 .split-j { grid-template-columns: minmax(0, 680px) minmax(0, 1fr); }

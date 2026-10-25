@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { Fragment, useActionState, useRef, useState } from "react";
+import { StatusBadge } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { Receipts } from "@/components/receipts";
 import type { CoffeePlanView, MemberBudgetRow } from "@/lib/data";
 import { won } from "@/lib/format";
+import type { RequestRow } from "@/lib/types";
 import { cancelCoffeePlan, createCoffeePlan, markCoffeeUsed, type ActionState } from "./actions";
 
 function Result({ state }: { state: ActionState }) {
@@ -17,11 +19,27 @@ function Result({ state }: { state: ActionState }) {
   );
 }
 
-export type BudgetRow = MemberBudgetRow & { coffee: "planned" | "used" | null };
+export type BudgetRow = MemberBudgetRow & { coffee: "planned" | "used" | null; books: RequestRow[] };
+
+/** 행을 펼치면 보이는 그 사람의 요청 책 (취소 제외, 먼저 들어온 순) */
+function BookList({ books }: { books: RequestRow[] }) {
+  return (
+    <ul className="bk-list">
+      {books.map((b) => (
+        <li key={b.id} className="bk-item">
+          <span className="t">{b.title}</span>
+          <span className="tnum muted">{won(b.price)}원</span>
+          <StatusBadge status={b.status} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** 사람별 예산 표 + 잔액 있는 사람을 골라 커피 예정으로 묶기 */
 export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId: string; rows: BudgetRow[]; canPlan: boolean; defaultTitle: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await createCoffeePlan(prev, fd);
@@ -35,6 +53,7 @@ export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId:
   const picked = rows.filter((r) => selected.has(r.member_id));
   const total = picked.reduce((a, r) => a + r.remaining, 0);
   const toggle = (id: string, on: boolean) => setSelected((prev) => { const next = new Set(prev); if (on) next.add(id); else next.delete(id); return next; });
+  const toggleOpen = (id: string) => setOpen((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   return (
     <>
@@ -52,30 +71,54 @@ export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId:
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.member_id} className={selected.has(r.member_id) ? "is-sel" : undefined}>
-                <td>
-                  <input type="checkbox" aria-label={`${r.name} 선택`} title={eligible(r) ? undefined : why(r)} disabled={!eligible(r)}
-                    checked={selected.has(r.member_id)} onChange={(e) => toggle(r.member_id, e.target.checked)} />
-                </td>
-                <td>{r.name}{r.role_title && <span className="t-cap"> {r.role_title}</span>}</td>
-                <td className="num">{r.request_count}</td>
-                <td className="num">{won(r.used)}</td>
-                <td className="num">{r.reserved ? won(r.reserved) : "—"}</td>
-                <td className="num">{won(r.remaining)}</td>
-                <td>
-                  {r.coffee ? (
-                    <span className="badge b-cof"><Icon name="coffee" />{r.coffee === "used" ? "커피 사용" : "커피 예약"}</span>
-                  ) : r.request_count === 0 ? (
-                    <span className="badge b-warn">미요청</span>
-                  ) : r.remaining > 0 ? (
-                    <span className="t-cap">잔액 있음</span>
-                  ) : (
-                    <span className="t-cap">—</span>
+            {rows.map((r) => {
+              const canOpen = r.books.length > 0;
+              const isOpen = canOpen && open.has(r.member_id);
+              const cls = [selected.has(r.member_id) && "is-sel", canOpen && "is-click", isOpen && "is-open"].filter(Boolean).join(" ");
+              return (
+                <Fragment key={r.member_id}>
+                  <tr className={cls || undefined} onClick={canOpen ? () => toggleOpen(r.member_id) : undefined}>
+                    {/* 체크박스를 누를 때는 펼치지 않는다 */}
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" aria-label={`${r.name} 선택`} title={eligible(r) ? undefined : why(r)} disabled={!eligible(r)}
+                        checked={selected.has(r.member_id)} onChange={(e) => toggle(r.member_id, e.target.checked)} />
+                    </td>
+                    <td>
+                      {canOpen ? (
+                        // 클릭은 행(tr)으로 올라가 펼친다. 버튼은 키보드·스크린리더용
+                        <button className="row-toggle" type="button" aria-expanded={isOpen}>
+                          <Icon name="chevR" />{r.name}
+                        </button>
+                      ) : (
+                        <span className="row-toggle-pad">{r.name}</span>
+                      )}
+                      {r.role_title && <span className="t-cap"> {r.role_title}</span>}
+                    </td>
+                    <td className="num">{r.request_count}</td>
+                    <td className="num">{won(r.used)}</td>
+                    <td className="num">{r.reserved ? won(r.reserved) : "—"}</td>
+                    <td className="num">{won(r.remaining)}</td>
+                    <td>
+                      {r.coffee ? (
+                        <span className="badge b-cof"><Icon name="coffee" />{r.coffee === "used" ? "커피 사용" : "커피 예약"}</span>
+                      ) : r.request_count === 0 ? (
+                        <span className="badge b-warn">미요청</span>
+                      ) : r.remaining > 0 ? (
+                        <span className="t-cap">잔액 있음</span>
+                      ) : (
+                        <span className="t-cap">—</span>
+                      )}
+                    </td>
+                  </tr>
+                  {isOpen && (
+                    <tr className="tbl-sub">
+                      <td />
+                      <td colSpan={6}><BookList books={r.books} /></td>
+                    </tr>
                   )}
-                </td>
-              </tr>
-            ))}
+                </Fragment>
+              );
+            })}
             {!rows.length && (
               <tr><td colSpan={7}><div className="empty"><Icon name="table" /><strong>조건에 맞는 사람이 없어요</strong></div></td></tr>
             )}
