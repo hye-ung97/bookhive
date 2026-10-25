@@ -129,6 +129,26 @@ export async function cycleJournals(cycleId: string): Promise<SharedJournal[]> {
   }));
 }
 
+export type Participant = { member_id: string; name: string };
+
+/**
+ * 관리자: 회차 참가자 중 지금 활동 중인 멤버 (마감 알림과 같은 기준. 관리자는 RLS로 모든 행이 보인다).
+ * 탈퇴해도 참가자 행은 남으므로 members.status로 거른다
+ */
+export async function cycleParticipants(cycleId: string): Promise<Participant[]> {
+  const supabase = await createClient();
+  const [{ data, error }, { data: members }] = await Promise.all([
+    supabase.from("cycle_participants").select("member_id").eq("cycle_id", cycleId),
+    supabase.from("members").select("id, name").eq("status", "active"),
+  ]);
+  if (error) throw error;
+  const active = new Map((members ?? []).map((m) => [m.id as string, m.name as string]));
+  return (data ?? []).flatMap((p) => {
+    const name = active.get(p.member_id as string);
+    return name ? [{ member_id: p.member_id as string, name }] : [];
+  });
+}
+
 /** 동아리 제출 현황: 책을 신청한 사람 중 일지를 낸 사람 수 */
 export async function journalProgress(cycleId: string): Promise<{ writers: number; submitted: number }> {
   const supabase = await createClient();

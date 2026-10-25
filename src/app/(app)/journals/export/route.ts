@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { cycleJournals, findByKey, listCycles } from "@/lib/data";
+import { cycleJournals, cycleParticipants, findByKey, listCycles } from "@/lib/data";
 import { roundKey } from "@/lib/format";
 import { journalRows, sheetTabName, toCsv } from "@/lib/journal-sheet";
 
@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
   await requireAdmin();
   const cycle = findByKey(await listCycles(), request.nextUrl.searchParams.get("round") ?? undefined);
   if (!cycle) return new Response("NOT_FOUND", { status: 404 });
-  const csv = toCsv(journalRows(await cycleJournals(cycle.id), cycle));
+  const [journals, participants] = await Promise.all([cycleJournals(cycle.id), cycleParticipants(cycle.id)]);
+  const csv = toCsv(journalRows(journals, participants));
   const filename = encodeURIComponent(`활동일지 ${sheetTabName(cycle.month)}.csv`);
   return new Response(csv, {
     headers: {
