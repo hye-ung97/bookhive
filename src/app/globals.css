@@ -326,6 +326,19 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .badge-x:hover { opacity: 1; }
 .badge-x .ic { width: 12px; height: 12px; }
 .badge-undo { text-decoration: underline; }
+/* 회사 제출 문서 (활동 계획서·보고서 링크) */
+.docs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.doc { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); color: var(--fg); text-decoration: none; }
+a.doc:hover { border-color: var(--border-strong); }
+a.doc:hover b { text-decoration: underline; text-underline-offset: 2px; }
+a.doc > .ic { color: var(--fg2); }
+.doc b { font-size: 14px; line-height: 20px; font-weight: 600; }
+.doc-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; background: var(--primary-soft); color: var(--primary); }
+.doc.is-empty { border-style: dashed; }
+.doc.is-empty .doc-ic { background: var(--muted); color: var(--fg2); }
+.doc.is-due { background: var(--warn-bg); border-color: transparent; }
+.doc.is-due .t-cap { color: var(--warn-fg); }
+@container app (max-width: 767px) { .docs { grid-template-columns: minmax(0, 1fr); } }
 .rc-link { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .rc-link .t-cap { grid-column: 1 / -1; }
 @container app (max-width: 767px) { .rc-link { grid-template-columns: 1fr; } }

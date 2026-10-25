@@ -8,6 +8,8 @@ export type Cycle = {
   budget_note: string | null;
   request_deadline: string | null;
   journal_deadline: string | null;
+  plan_url: string | null; // 회사에 내는 활동 계획서
+  report_url: string | null; // 활동 보고서
 };
 
 export type RequestStatus = "requested" | "cart" | "ordered" | "delivered" | "cancelled";

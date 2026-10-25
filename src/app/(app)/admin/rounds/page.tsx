@@ -6,7 +6,9 @@ import { RoundPicker } from "@/components/round-picker";
 import { requireAdmin } from "@/lib/auth";
 import { coffeePlans, cycleBudgets, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
+import { overdueDocs } from "@/lib/rounds";
 import { BudgetTable, CoffeePlans, type BudgetRow } from "./coffee";
+import { DocLinks } from "./doc-links";
 
 export const metadata: Metadata = { title: "회차 현황" };
 
@@ -64,6 +66,9 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
         <div className="tile"><span>커피 (예약·사용)</span><b>{won(reserved)}원</b></div>
         <div className="tile"><span>남은 예산</span><b>{won(fee - used - reserved)}원</b></div>
       </div>
+
+      <DocLinks key={cycle.id} cycleId={cycle.id} title={`회사 제출 문서 · ${roundLabel(cycle.month, today)}`}
+        plan={cycle.plan_url} report={cycle.report_url} overdue={overdueDocs(cycle, today)} />
 
       {cycle.status === "requesting" && (
         <p className="note note-warn">

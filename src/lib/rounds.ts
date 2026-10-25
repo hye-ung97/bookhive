@@ -19,3 +19,16 @@ export function pickDefaultRound(cycles: Cycle[]): Cycle | undefined {
 
   return cycles.length ? latest(cycles) : undefined;
 }
+
+export type CycleDoc = "plan" | "report";
+
+/**
+ * 회차 현황에서 "낼 때가 됐는데 링크가 비어 있어요"로 노랗게 보여줄 문서.
+ * 회사 제출 일정상 이미 만들었어야 하는데 링크를 넣어 두지 않은 문서만 돌려준다.
+ * 아직 낼 때가 아닌 문서까지 노랗게 하면 늘 떠 있는 경고가 되어 무시당한다.
+ * cycle.month는 읽는 달 'YYYY-MM-01', today는 KST 'YYYY-MM-DD' (둘 다 문자열 비교 가능)
+ */
+export function overdueDocs(cycle: Pick<Cycle, "month" | "plan_url" | "report_url">, today: string): CycleDoc[] {
+  // TODO: 회사 제출 일정에 맞춰 채우기
+  return [];
+}

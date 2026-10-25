@@ -10,6 +10,8 @@ const cycle = (month: string, status: CycleStatus): Cycle => ({
   budget_note: null,
   request_deadline: null,
   journal_deadline: null,
+  plan_url: null,
+  report_url: null,
 });
 
 describe("pickDefaultRound", () => {

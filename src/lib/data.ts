@@ -4,7 +4,7 @@ import { withThumbs, type ReceiptView } from "./receipts";
 import { createClient } from "./supabase/server";
 import type { Budget, Cycle, RequestRow } from "./types";
 
-const CYCLE_COLUMNS = "id, month, status, budget_per_person, budget_note, request_deadline, journal_deadline";
+const CYCLE_COLUMNS = "id, month, status, budget_per_person, budget_note, request_deadline, journal_deadline, plan_url, report_url";
 const REQUEST_COLUMNS =
   "id, cycle_id, member_id, member_name, title, author, isbn, price, store, url, verified, looked_up_price, bundle_id, purchase_store, expected_arrival, status, created_at";
 

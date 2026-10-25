@@ -40,6 +40,20 @@ export async function markCoffeeUsed(_prev: ActionState, formData: FormData): Pr
   return { ok: true, message: "사용완료로 처리했어요 · 영수증을 올려 주세요" };
 }
 
+/** 회사에 내는 활동 계획서·보고서 링크. 빈 칸으로 저장하면 지운다 */
+export async function updateDocLinks(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_cycle_doc_links", {
+    p_cycle_id: text(formData, "cycleId"),
+    p_plan_url: text(formData, "planUrl") || null,
+    p_report_url: text(formData, "reportUrl") || null,
+  });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath("/admin/rounds");
+  return { ok: true, message: "링크를 저장했어요" };
+}
+
 export async function cancelCoffeePlan(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const supabase = await createClient();
