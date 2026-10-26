@@ -3,20 +3,23 @@ import Link from "next/link";
 import { CycleTag, StatusBadge } from "@/components/badges";
 import { BudgetGauge } from "@/components/budget-gauge";
 import { Icon } from "@/components/icon";
+import { PenaltyPips } from "@/components/penalty-pips";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME } from "@/lib/books/parse-store-url";
-import { listCycles, myBudgets, myCoffee, myJournals, myRequestsAll } from "@/lib/data";
+import { listCycles, listPenalties, myBudgets, myCoffee, myJournals, myRequestsAll } from "@/lib/data";
 import { kstToday, md, roundLabel, won } from "@/lib/format";
+import { PENALTY_OUT, penaltyStanding } from "@/lib/penalties";
 
 export const metadata: Metadata = { title: "내 기록" };
 
 export default async function MePage() {
   const me = await requireMe();
   const today = kstToday();
-  const [cycles, budgets, requests, journals, coffee] = await Promise.all([
-    listCycles(), myBudgets(me.id), myRequestsAll(me.id), myJournals(me.id), myCoffee(me.id),
+  const [cycles, budgets, requests, journals, coffee, penalties] = await Promise.all([
+    listCycles(), myBudgets(me.id), myRequestsAll(me.id), myJournals(me.id), myCoffee(me.id), listPenalties(me.id),
   ]);
   const mine = cycles.filter((c) => budgets.has(c.id) || requests.some((r) => r.cycle_id === c.id));
+  const penaltyTotal = penalties.reduce((a, p) => a + p.points, 0);
 
   return (
     <>
@@ -26,6 +29,16 @@ export default async function MePage() {
           <p className="t-cap">회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p>
         </div>
       </div>
+      {/* 모바일 하단 탭에는 벌점이 없어 여기서 들어간다 */}
+      <Link className="pen-me" href="/penalties">
+        <span className="pen-label">내 벌점</span>
+        <span className="go">전체 보기<Icon name="chevR" /></span>
+        <span className="full row-gap" style={{ gap: 12 }}>
+          <PenaltyPips total={penaltyTotal} size="md" />
+          <span className="pen-score md">{penaltyTotal}<small> / {PENALTY_OUT}점</small></span>
+        </span>
+        <span className="full t-cap">{penaltyStanding(penaltyTotal).message}</span>
+      </Link>
       {!mine.length ? (
         <div className="card"><div className="empty"><Icon name="history" /><strong>아직 기록이 없어요</strong></div></div>
       ) : (

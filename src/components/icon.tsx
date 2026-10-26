@@ -141,6 +141,12 @@ const PATHS = {
     </>
   ),
   hash: <path d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18" />,
+  flag: (
+    <>
+      <path d="M5 21V4" />
+      <path d="M5 4h12l-2.5 4.5L17 13H5" />
+    </>
+  ),
   file: (
     <>
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />

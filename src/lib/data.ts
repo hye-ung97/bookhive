@@ -1,5 +1,6 @@
 import "server-only";
 import { roundKey } from "./format";
+import type { PenaltyRow } from "./penalties";
 import { withThumbs, type ReceiptView } from "./receipts";
 import { createClient } from "./supabase/server";
 import type { Budget, Cycle, RequestRow } from "./types";
@@ -322,6 +323,22 @@ export async function cycleWarnings(cycleId: string): Promise<CycleWarnings> {
     undelivered: (bundles.data ?? []).filter((b) => b.status !== "delivered").length,
     plannedCoffee: (coffee.data ?? []).length,
   };
+}
+
+// ───────── 벌점 ─────────
+
+/** 벌점 내역 (멤버 모두에게 공개). 최근 순. memberId를 주면 그 사람 것만 */
+export async function listPenalties(memberId?: string): Promise<PenaltyRow[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("penalties")
+    .select("id, member_id, given_on, points, reason, created_at")
+    .order("given_on", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (memberId) query = query.eq("member_id", memberId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as PenaltyRow[];
 }
 
 // ───────── 멤버 관리 (관리자) ─────────

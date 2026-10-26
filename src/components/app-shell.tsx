@@ -5,13 +5,15 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "./icon";
 
-type NavItem = { href: string; label: string; short?: string; icon: IconName };
+type NavItem = { href: string; label: string; short?: string; icon: IconName; noTab?: boolean };
 
 const MEMBER_NAV: NavItem[] = [
   { href: "/", label: "홈", icon: "home" },
   { href: "/requests", label: "구매 요청", icon: "book" },
   { href: "/journal", label: "일지 쓰기", short: "일지", icon: "pen" },
   { href: "/me", label: "내 기록", icon: "history" },
+  // 모바일 하단 탭은 자리가 모자라 넣지 않는다. 내 기록 맨 위 카드에서 들어간다
+  { href: "/penalties", label: "벌점", icon: "flag", noTab: true },
 ];
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin/rounds", label: "회차 현황", icon: "table" },
@@ -31,7 +33,10 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
       <span className="lbl">{item.label}</span>
     </Link>
   );
-  const tabs: NavItem[] = [...MEMBER_NAV, ...(me.isAdmin ? [{ href: "/admin/rounds", label: "운영", icon: "grid" as const }] : [])];
+  const tabs: NavItem[] = [...MEMBER_NAV.filter((t) => !t.noTab), ...(me.isAdmin ? [{ href: "/admin/rounds", label: "운영", icon: "grid" as const }] : [])];
+  // 탭에 없는 화면은 들어오는 탭에 불을 켠다 (운영 화면 → 운영, 벌점 → 내 기록)
+  const tabActive = (href: string) =>
+    href.startsWith("/admin") ? isActive(pathname, "/admin") : isActive(pathname, href) || (href === "/me" && isActive(pathname, "/penalties"));
   const initial = me.name.slice(-2, -1) || me.name[0];
 
   return (
@@ -82,7 +87,7 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
         </div>
         <nav className="tabs" aria-label="하단 메뉴">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} aria-current={isActive(pathname, t.href.startsWith("/admin") ? "/admin" : t.href) ? "page" : undefined}>
+            <Link key={t.href} href={t.href} aria-current={tabActive(t.href) ? "page" : undefined}>
               <Icon name={t.icon} />
               <span>{t.short ?? t.label}</span>
             </Link>
