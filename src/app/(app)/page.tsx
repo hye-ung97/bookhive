@@ -6,8 +6,9 @@ import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME } from "@/lib/books/parse-store-url";
-import { activeMemberCount, findByKey, journalProgress, listCycles, myBudgets, myJournals, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
+import { activeMembers, findByKey, journalProgress, listCycles, myBudgets, myJournals, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
+import { requestRoster } from "@/lib/request-roster";
 import { requestSheetRows, toTsv } from "@/lib/request-sheet";
 import { pickDefaultRound } from "@/lib/rounds";
 import type { Budget, Cycle } from "@/lib/types";
@@ -57,7 +58,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const me = await requireMe();
   const sp = await searchParams;
   const today = kstToday();
-  const [cycles, budgets, memberTotal] = await Promise.all([listCycles(), myBudgets(me.id), activeMemberCount()]);
+  const [cycles, budgets, members] = await Promise.all([listCycles(), myBudgets(me.id), activeMembers()]);
   const open = openCycles(cycles);
   const reading = readingCycle(cycles);
   const tableRound = findByKey(cycles, sp.round) ?? pickDefaultRound(cycles);
@@ -69,7 +70,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     reading ? journalProgress(reading.id) : Promise.resolve({ writers: 0, submitted: 0 }),
   ]);
   const shown = mineOnly ? rows.filter((r) => r.member_id === me.id) : rows;
-  const requesters = new Set(rows.map((r) => r.member_id)).size;
+  // 하단 "N / M명 요청"과 명단은 같은 기준으로 센다 (보기 전환과 상관없이 회차 전체)
+  const roster = requestRoster(rows, members);
   const [, month, day] = today.split("-").map(Number);
   const weekday = md(today).slice(-2, -1);
   const roundHref = (view?: string) => {
@@ -223,9 +225,28 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </div>
             <div className="rows-foot">
               <span>
-                {requesters} / {memberTotal}명 요청 · {rows.length}권 <CycleTag status={tableRound.status} />
+                {roster.done.length} / {members.length}명 요청 · {rows.length}권 <CycleTag status={tableRound.status} />
               </span>
               <span>합계 {won(rows.reduce((a, r) => a + r.price, 0))}원</span>
+            </div>
+            <div className="stack" style={{ gap: 8 }}>
+              {roster.done.length > 0 && (
+                <div className="row-gap" role="group" aria-label="요청한 사람">
+                  <span className="t-cap tnum">요청한 사람 {roster.done.length}명</span>
+                  {roster.done.map((p) => (
+                    <span key={p.member_id} className="badge b-del">{p.name}{p.member_id === me.id ? " (나)" : ""}</span>
+                  ))}
+                </div>
+              )}
+              {roster.pending.length > 0 && (
+                <div className="row-gap" role="group" aria-label="요청 안 한 사람">
+                  {/* 접수가 끝난 회차는 더 요청할 수 없으니 "아직"을 뗀다 */}
+                  <span className="t-cap tnum">{tableRound.status === "requesting" ? "아직 " : ""}요청 안 한 사람 {roster.pending.length}명</span>
+                  {roster.pending.map((p) => (
+                    <span key={p.member_id} className="badge b-off">{p.name}{p.member_id === me.id ? " (나)" : ""}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         ) : (

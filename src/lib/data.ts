@@ -67,6 +67,14 @@ export async function activeMemberCount(): Promise<number> {
   return count ?? 0;
 }
 
+/** 활동 중인 멤버 이름 (멤버 목록은 이름까지 모두에게 공개라 RPC 없이 읽는다) */
+export async function activeMembers(): Promise<Participant[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("members").select("id, name").eq("status", "active");
+  if (error) throw error;
+  return (data ?? []).map((m) => ({ member_id: m.id as string, name: m.name as string }));
+}
+
 export type MemberBudgetRow = Budget & { name: string; role_title: string | null };
 
 /** 관리자: 회차 참가자 전원의 예산 (관리자는 RLS로 모든 행이 보인다) */
