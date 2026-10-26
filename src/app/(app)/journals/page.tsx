@@ -4,7 +4,7 @@ import { CycleTag } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
-import { cycleJournals, findByKey, listCycles, readingCycle, type SharedJournal } from "@/lib/data";
+import { cycleJournals, findByKey, journalPending, listCycles, readingCycle, type SharedJournal } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel } from "@/lib/format";
 import { sheetEnabled } from "@/lib/sheets";
 import { UploadJournals } from "./upload-journals";
@@ -45,7 +45,9 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
 
   const key = roundKey(cycle.month);
   const label = roundLabel(cycle.month, today);
-  const journals = sortJournals(await cycleJournals(cycle.id), me.id);
+  // 아직 안 쓴 사람은 마감된 회차에도 남긴다: 그달에 안 낸 건 안 낸 것
+  const [all, pending] = await Promise.all([cycleJournals(cycle.id), journalPending(cycle.id)]);
+  const journals = sortJournals(all, me.id);
   const wrote = journals.some((j) => j.member_id === me.id);
 
   return (
@@ -71,6 +73,15 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
             <Icon name="file" />CSV 내려받기
           </a>
           {sheetEnabled() && <UploadJournals key={key} round={key} />}
+        </div>
+      )}
+      {pending.length > 0 && (
+        <div className="row-gap" role="group" aria-label="일지를 안 쓴 사람">
+          {/* 회차를 마감하면 더 쓸 수 없으니 "아직"을 뗀다 */}
+          <span className="t-cap tnum">{cycle.status === "closed" ? "" : "아직 "}안 쓴 사람 {pending.length}명</span>
+          {pending.map((p) => (
+            <span key={p.member_id} className="badge b-off">{p.name}{p.member_id === me.id ? " (나)" : ""}</span>
+          ))}
         </div>
       )}
       {journals.length ? (

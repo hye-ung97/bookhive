@@ -149,6 +149,20 @@ export async function cycleParticipants(cycleId: string): Promise<Participant[]>
   });
 }
 
+/**
+ * 모두의 일지 "아직 안 쓴 사람": 활동 중인 참가자 중 책을 신청했는데 일지가 없는 사람 (마감 알림과 같은 기준). 이름 가나다순.
+ * 참가자 명단은 RLS로 본인 행만 보이므로 이름만 돌려주는 RPC로 읽는다. 곁들이는 정보라 실패해도 화면은 그린다
+ */
+export async function journalPending(cycleId: string): Promise<Participant[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("journal_pending", { p_cycle_id: cycleId });
+  if (error) {
+    console.warn("[journal-pending] failed", error.message);
+    return [];
+  }
+  return (data as Participant[]).sort((a, b) => a.name.localeCompare(b.name, "ko"));
+}
+
 /** 동아리 제출 현황: 책을 신청한 사람 중 일지를 낸 사람 수 */
 export async function journalProgress(cycleId: string): Promise<{ writers: number; submitted: number }> {
   const supabase = await createClient();
