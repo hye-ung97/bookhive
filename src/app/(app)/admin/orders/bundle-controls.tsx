@@ -60,6 +60,41 @@ export function CancelItem({ requestId, title }: { requestId: string; title: str
   );
 }
 
+/** 장바구니 단계: 묶음의 책 링크를 새 탭으로 한꺼번에 열기. 크롬은 클릭 한 번에 팝업 하나만 허용해서, 막힌 개수를 세어 안내한다 */
+export function OpenAllLinks({ links, hint }: { links: string[]; hint: string }) {
+  const [result, setResult] = useState<{ opened: number; blocked: number } | null>(null);
+  const open = () => {
+    let opened = 0;
+    for (const href of links) {
+      // features에 noopener를 주면 열려도 null이 와서 차단을 알 수 없다. 빈 탭(같은 출처)일 때 opener를 끊고 이동
+      const w = window.open("", "_blank");
+      if (!w) continue;
+      w.opener = null;
+      w.location.href = href;
+      opened++;
+    }
+    setResult({ opened, blocked: links.length - opened });
+  };
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <div className="openall">
+        <span className="row-gap" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}><Icon name="info" />{hint}</span>
+        <button className="btn btn-sm btn-primary" type="button" onClick={open}><Icon name="link" />링크 모두 열기 · {links.length}</button>
+      </div>
+      {result && (result.blocked ? (
+        <p className="note note-warn" role="alert">
+          <Icon name="alert" />
+          <span>
+            크롬이 팝업을 막아 {links.length}개 중 {result.opened}개만 열렸어요. 주소창 오른쪽 팝업 차단 아이콘에서 &quot;항상 허용&quot;을 고른 뒤 다시 눌러 주세요. (처음 한 번만)
+          </span>
+        </p>
+      ) : (
+        <p className="msg msg-ok" role="status"><Icon name="checkc" />{result.opened}개 탭을 열었어요.</p>
+      ))}
+    </div>
+  );
+}
+
 type NoticeBase = { bundleId: string; cycleId: string; round: string; label: string; names: string[]; count: number };
 
 /** 장바구니 단계: 주문일·도착 예정일·실결제액 입력 → 확인창에서 Slack 주문완료 공지 미리보기 후 처리 */

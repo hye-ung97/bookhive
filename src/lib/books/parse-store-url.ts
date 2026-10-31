@@ -60,3 +60,19 @@ export function storeSearchUrl(store: Store, query: string): string {
     ? `https://search.kyobobook.co.kr/search?keyword=${q}`
     : `https://www.yes24.com/Product/Search?domain=BOOK&query=${q}`;
 }
+
+/** 교보 옛 상품 주소는 ISBN(barcode)을 받아 새 상품 페이지로 308 이동시킨다. yes24에는 이런 주소가 없다 */
+export const kyoboIsbnUrl = (isbn: string) => `https://www.kyobobook.co.kr/product/detailViewKor.laf?barcode=${isbn}`;
+
+export type BuyLink = { href: string; kind: "product" | "search" };
+
+/** 실제로 살 서점(buyStore)에서 이 요청을 장바구니에 담을 링크. product는 상품 페이지, search는 검색 결과 */
+export function buyLink(
+  item: { store: Store | "other"; url: string | null; isbn: string | null; title: string },
+  buyStore: Store,
+): BuyLink {
+  if (item.store === buyStore && item.url) return { href: item.url, kind: "product" };
+  // url이 없는 같은 서점 요청(시트 이관 등)도 ISBN이 있으면 검색보다 상품 페이지가 낫다
+  if (buyStore === "kyobo" && item.isbn) return { href: kyoboIsbnUrl(item.isbn), kind: "product" };
+  return { href: storeSearchUrl(buyStore, item.isbn ?? item.title), kind: "search" };
+}

@@ -275,6 +275,9 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .bundles { display: grid; gap: 16px; }
 .bundle-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .bundle-h h3 { font-size: 16px; line-height: 22px; font-weight: 600; }
+.openall { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border-radius: var(--r); background: var(--primary-soft); font-size: 13px; line-height: 18px; }
+.openall .ic { color: var(--primary); }
+.openall .btn .ic { color: inherit; }
 .bitems { display: grid; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
 .bitem { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); font-size: 13px; }
 .bitem:first-child { border-top: 0; }

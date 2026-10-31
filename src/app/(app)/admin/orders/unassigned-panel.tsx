@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
-import { STORE_NAME, storeSearchUrl, type Store } from "@/lib/books/parse-store-url";
+import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { won } from "@/lib/format";
 import { putIntoBundles, type ActionState } from "./actions";
 
@@ -69,7 +69,7 @@ export function UnassignedPanel({
       <h2 className="t-heading" id="un-h">미배정 요청 · {items.length}건</h2>
       {items.length ? (
         <>
-          <p className="t-cap">링크를 눌러 서점 장바구니에 담은 뒤, 담은 책을 체크해 묶음으로 만들어요. 열어 본 링크는 회색으로 바뀌어요.</p>
+          <p className="t-cap">책을 체크해 묶음으로 만든 뒤, 묶음의 &quot;링크 모두 열기&quot;로 서점 장바구니에 담아요. 열어 본 링크는 회색으로 바뀌어요.</p>
           {byStore.map(({ store, list }) => (
             <div key={store} className="ogrp">
               <div className="ogrp-h">
@@ -78,6 +78,7 @@ export function UnassignedPanel({
               </div>
               {list.map((i) => {
                 const target = buyStore === "auto" ? i.store : buyStore;
+                const buy = target !== i.store ? buyLink(i, target) : null;
                 return (
                   <div key={i.id} className="ochk">
                     <input type="checkbox" id={`un-${i.id}`} checked={selected.has(i.id)} onChange={(e) => toggle(i.id, e.target.checked)} />
@@ -92,9 +93,9 @@ export function UnassignedPanel({
                           <Icon name="link" /><span>{shortUrl(i.url)}</span>
                         </a>
                       )}
-                      {target !== i.store && (
-                        <a className="blink" href={storeSearchUrl(target, i.isbn ?? i.title)} target="_blank" rel="noopener">
-                          <Icon name="link" /><span>{STORE_NAME[target]}에서 찾기</span>
+                      {buy && (
+                        <a className="blink" href={buy.href} target="_blank" rel="noopener">
+                          <Icon name="link" /><span>{STORE_NAME[target]}{buy.kind === "product" ? " 상품 페이지" : "에서 찾기"}</span>
                         </a>
                       )}
                     </span>

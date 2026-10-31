@@ -4,10 +4,10 @@ import { Icon } from "@/components/icon";
 import { Receipts } from "@/components/receipts";
 import { RoundPicker } from "@/components/round-picker";
 import { requireAdmin } from "@/lib/auth";
-import { STORE_NAME, storeSearchUrl, type Store } from "@/lib/books/parse-store-url";
+import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { bundlesForCycle, findByKey, listCycles, openCycles, readingCycle, unassignedRequests, type BundleView } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
-import { CancelItem, CartPanel, DeliverButton, RemoveItem, ResendButton, RevertButton } from "./bundle-controls";
+import { CancelItem, CartPanel, DeliverButton, OpenAllLinks, RemoveItem, ResendButton, RevertButton } from "./bundle-controls";
 import { UnassignedPanel } from "./unassigned-panel";
 
 export const metadata: Metadata = { title: "주문·배송" };
@@ -63,6 +63,9 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
   const idx = ORDER[b.status];
   const diff = b.paid_amount != null ? b.paid_amount - b.request_total : null;
   const base = { bundleId: b.id, cycleId, round, label, names, count: active.length };
+  const buyStore = b.store === "other" ? null : b.store;
+  const cartLinks = b.status === "cart" && buyStore ? active.map((i) => buyLink(i, buyStore)) : [];
+  const searches = cartLinks.filter((l) => l.kind === "search").length;
 
   return (
     <article className="card" aria-label={`${label} 묶음`}>
@@ -70,33 +73,42 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
         <h3>{label}</h3>
         <StatusBadge status={b.status} />
       </div>
+      {cartLinks.length > 0 && (
+        <OpenAllLinks
+          links={cartLinks.map((l) => l.href)}
+          hint={`책 ${cartLinks.length}권 링크를 새 탭으로 열어요. 탭마다 장바구니만 누르면 돼요.${searches ? ` ${searches}권은 ${STORE_NAME[b.store]} 검색 결과로 열려요.` : ""}`}
+        />
+      )}
       <div className="bitems">
-        {b.items.map((i) => (
-          <div key={i.id} className={`bitem${i.status === "cancelled" ? " is-cancelled" : ""}`}>
-            <span className="t">
-              {i.title} <span className="t-cap">· {i.member_name}</span>
-              {i.store !== b.store && <> <span className="xstore">{STORE_NAME[i.store]} 요청 → {STORE_NAME[b.store]} 구매</span></>}
-            </span>
-            <span className="num tnum">{won(i.price)}</span>
-            <span>
-              {b.status === "cart" && <RemoveItem requestId={i.id} title={i.title} />}
-              {b.status === "ordered" && i.status !== "cancelled" && <CancelItem requestId={i.id} title={i.title} />}
-              {i.status === "cancelled" && <span className="badge b-off">품절 취소</span>}
-            </span>
-            <span className="blinks">
-              {i.url && (
-                <a className="blink" href={i.url} target="_blank" rel="noopener" aria-label={`${i.title} ${STORE_NAME[i.store]} 상품 페이지 열기`}>
-                  <Icon name="link" /><span>{shortUrl(i.url)}</span>
-                </a>
-              )}
-              {i.store !== b.store && b.store !== "other" && (
-                <a className="blink" href={storeSearchUrl(b.store, i.isbn ?? i.title)} target="_blank" rel="noopener">
-                  <Icon name="link" /><span>{STORE_NAME[b.store]}에서 찾기</span>
-                </a>
-              )}
-            </span>
-          </div>
-        ))}
+        {b.items.map((i) => {
+          const buy = buyStore && i.store !== buyStore ? buyLink(i, buyStore) : null;
+          return (
+            <div key={i.id} className={`bitem${i.status === "cancelled" ? " is-cancelled" : ""}`}>
+              <span className="t">
+                {i.title} <span className="t-cap">· {i.member_name}</span>
+                {i.store !== b.store && <> <span className="xstore">{STORE_NAME[i.store]} 요청 → {STORE_NAME[b.store]} 구매</span></>}
+              </span>
+              <span className="num tnum">{won(i.price)}</span>
+              <span>
+                {b.status === "cart" && <RemoveItem requestId={i.id} title={i.title} />}
+                {b.status === "ordered" && i.status !== "cancelled" && <CancelItem requestId={i.id} title={i.title} />}
+                {i.status === "cancelled" && <span className="badge b-off">품절 취소</span>}
+              </span>
+              <span className="blinks">
+                {i.url && (
+                  <a className="blink" href={i.url} target="_blank" rel="noopener" aria-label={`${i.title} ${STORE_NAME[i.store]} 상품 페이지 열기`}>
+                    <Icon name="link" /><span>{shortUrl(i.url)}</span>
+                  </a>
+                )}
+                {buy && (
+                  <a className="blink" href={buy.href} target="_blank" rel="noopener">
+                    <Icon name="link" /><span>{STORE_NAME[b.store]}{buy.kind === "product" ? " 상품 페이지" : "에서 찾기"}</span>
+                  </a>
+                )}
+              </span>
+            </div>
+          );
+        })}
       </div>
       <p className="t-cap tnum">
         {active.length}권 · {new Set(names).size}명 · 요청액 {won(b.request_total)}원

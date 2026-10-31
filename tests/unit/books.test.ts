@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { extractKyobo, extractYes24, normalizeIsbn } from "@/lib/books/extract";
-import { parseStoreUrl } from "@/lib/books/parse-store-url";
+import { buyLink, parseStoreUrl } from "@/lib/books/parse-store-url";
 
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/${name}`, import.meta.url), "utf8");
 
@@ -29,6 +29,43 @@ describe("parseStoreUrl", () => {
     ["-", "INVALID_URL"],
   ])("%s → %s", (input, error) => {
     expect(parseStoreUrl(input)).toEqual({ ok: false, error });
+  });
+});
+
+describe("buyLink", () => {
+  const yes24Req = { store: "yes24" as const, url: "https://www.yes24.com/product/goods/184342535", isbn: "9791124255131", title: "폰더 씨의 위대한 하루" };
+  const kyoboReq = { store: "kyobo" as const, url: "https://product.kyobobook.co.kr/detail/S000220209296", isbn: "9791193229484", title: "AI 에이전트 실행 세계 1" };
+
+  it("요청한 서점에서 사면 요청 링크 그대로", () => {
+    expect(buyLink(yes24Req, "yes24")).toEqual({ href: yes24Req.url, kind: "product" });
+    expect(buyLink(kyoboReq, "kyobo")).toEqual({ href: kyoboReq.url, kind: "product" });
+  });
+
+  it("yes24 요청을 교보에서 사면 ISBN으로 교보 상품 페이지", () => {
+    expect(buyLink(yes24Req, "kyobo")).toEqual({
+      href: "https://www.kyobobook.co.kr/product/detailViewKor.laf?barcode=9791124255131", kind: "product",
+    });
+  });
+
+  it("교보 요청을 yes24에서 사면 ISBN 검색", () => {
+    expect(buyLink(kyoboReq, "yes24")).toEqual({
+      href: "https://www.yes24.com/Product/Search?domain=BOOK&query=9791193229484", kind: "search",
+    });
+  });
+
+  it("ISBN이 없으면 제목으로 검색", () => {
+    expect(buyLink({ ...yes24Req, isbn: null }, "kyobo")).toEqual({
+      href: `https://search.kyobobook.co.kr/search?keyword=${encodeURIComponent("폰더 씨의 위대한 하루")}`, kind: "search",
+    });
+  });
+
+  it("같은 서점이어도 링크가 없으면: 교보는 ISBN 상품 페이지, yes24는 검색 (시트에서 옮긴 요청 등)", () => {
+    expect(buyLink({ ...kyoboReq, url: null }, "kyobo")).toEqual({
+      href: "https://www.kyobobook.co.kr/product/detailViewKor.laf?barcode=9791193229484", kind: "product",
+    });
+    expect(buyLink({ ...yes24Req, url: null }, "yes24")).toEqual({
+      href: "https://www.yes24.com/Product/Search?domain=BOOK&query=9791124255131", kind: "search",
+    });
   });
 });
 
