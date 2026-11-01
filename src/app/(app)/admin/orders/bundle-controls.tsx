@@ -146,6 +146,14 @@ export function CartPanel({ base, books, requestTotal, receipts }: {
               value={paid ? won(Number(paid)) : ""} onChange={(e) => setPaid(e.target.value.replace(/[^\d]/g, "").slice(0, 8))} />
             <span>원</span>
           </div>
+          {paid ? (
+            <span className="hint" role="status">
+              {Number(paid) === requestTotal ? "요청액과 같아요"
+                : `요청액보다 ${won(Math.abs(Number(paid) - requestTotal))}원 ${Number(paid) > requestTotal ? "많아요" : "적어요"}`}
+            </span>
+          ) : requestTotal > 0 && (
+            <button className="link" type="button" style={{ justifySelf: "start" }} onClick={() => setPaid(String(requestTotal))}>요청액 그대로 입력</button>
+          )}
         </div>
       </div>
       {missing && <p className="msg msg-err" role="alert"><Icon name="alertc" />주문일·도착 예정일·실결제액을 입력해 주세요.</p>}
