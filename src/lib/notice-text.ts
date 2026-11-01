@@ -32,7 +32,7 @@ export function orderThreadText(books: { name: string; title: string }[]): strin
 export function deliveryNoticeText({ round, label, names, count }: Base): string {
   return [
     `[${round}] ${label} 주문 책이 도착했어요.`,
-    `${new Set(names).size}명 책 ${count}권을 라운지 책장에서 찾아가 주세요. 누구 책인지는 스레드에서 확인해 주세요 👇`,
+    `${new Set(names).size}명 책 ${count}권을 6층 총무 자리 옆에서 찾아가 주세요. 누구 책인지는 스레드에서 확인해 주세요 👇`,
   ].join("\n");
 }
 
