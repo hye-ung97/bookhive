@@ -4,7 +4,7 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
 import { SlackPreview } from "@/components/slack-preview";
 import { kstToday, won } from "@/lib/format";
-import { deliveryNoticeText, ORDER_THREAD_BUTTON, orderNoticeText, orderThreadText } from "@/lib/notice-text";
+import { deliveryNoticeText, deliveryThreadText, ORDER_THREAD_BUTTON, orderNoticeText, orderThreadText } from "@/lib/notice-text";
 import type { ReceiptView } from "@/lib/receipts";
 import {
   cancelBundleItem, dissolveBundle, markDelivered, markOrdered, removeFromBundle, resendNotice, revertBundle, type ActionState,
@@ -97,6 +97,25 @@ export function OpenAllLinks({ links, hint }: { links: string[]; hint: string })
 
 type NoticeBase = { bundleId: string; cycleId: string; round: string; label: string; names: string[]; count: number };
 
+/** 공지 스레드에 함께 보낼 파일 고르기 (묶음의 영수증·주문 내역·배송 사진 중에서) */
+function AttachPicker({ receipts, attached, setAttached, empty }: {
+  receipts: ReceiptView[]; attached: Set<string>; setAttached: (update: (prev: Set<string>) => Set<string>) => void; empty: string;
+}) {
+  if (!receipts.length) return <p className="note note-warn"><Icon name="alert" />{empty}</p>;
+  return (
+    <fieldset className="att-list">
+      <legend className="label">함께 보낼 파일</legend>
+      {receipts.map((r) => (
+        <label key={r.id} className="att-item">
+          <input type="checkbox" name="receiptIds" value={r.id} checked={attached.has(r.id)}
+            onChange={(e) => setAttached((prev) => { const next = new Set(prev); if (e.target.checked) next.add(r.id); else next.delete(r.id); return next; })} />
+          <span>{r.file_name}</span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 /**
  * 장바구니 단계: 주문일·도착 예정일·실결제액 입력 → 확인창에서 Slack 주문완료 공지 미리보기 후 처리.
  * books: 스레드 미리보기용 책 목록 (실제 공지의 목록은 서버가 묶음 데이터로 다시 만든다)
@@ -173,20 +192,8 @@ export function CartPanel({ base, books, requestTotal, receipts }: {
           <h2 id={`od-t-${base.bundleId}`}>{base.label}를 주문완료로 처리할까요?</h2>
           <p className="muted">요청자 {new Set(base.names).size}명의 상태가 &quot;주문완료&quot;로 바뀌고, 동아리 채널에 도착 예정일을 공지해요. 스레드에는 요청자 멘션과 책 목록, 주문 이미지가 달려요.</p>
           <SlackPreview text={message} thread={{ text: orderThreadText(books), button: ORDER_THREAD_BUTTON, files: skip ? [] : receipts.filter((r) => attached.has(r.id)) }} />
-          {receipts.length ? (
-            <fieldset className="att-list">
-              <legend className="label">함께 보낼 파일</legend>
-              {receipts.map((r) => (
-                <label key={r.id} className="att-item">
-                  <input type="checkbox" name="receiptIds" value={r.id} checked={attached.has(r.id)}
-                    onChange={(e) => setAttached((prev) => { const next = new Set(prev); if (e.target.checked) next.add(r.id); else next.delete(r.id); return next; })} />
-                  <span>{r.file_name}</span>
-                </label>
-              ))}
-            </fieldset>
-          ) : (
-            <p className="note note-warn"><Icon name="alert" />첨부할 주문 이미지가 없어요. 주문 내역 캡처를 &quot;영수증·주문 내역&quot;에 먼저 올리면 함께 보낼 수 있어요.</p>
-          )}
+          <AttachPicker receipts={receipts} attached={attached} setAttached={setAttached}
+            empty={'첨부할 주문 이미지가 없어요. 주문 내역 캡처를 "영수증·주문 내역"에 먼저 올리면 함께 보낼 수 있어요.'} />
           <div className="field">
             <label className="label" htmlFor={`om-${base.bundleId}`}>문구 수정</label>
             <textarea className="textarea" id={`om-${base.bundleId}`} name="message" value={message} onChange={(e) => setMessage(e.target.value)} />
@@ -225,10 +232,16 @@ function DissolveButton({ bundleId, label, count }: { bundleId: string; label: s
   );
 }
 
-/** 주문완료 단계: 확인창에서 Slack 배송완료 공지 미리보기 후 처리 */
-export function DeliverButton({ base }: { base: NoticeBase }) {
+/**
+ * 주문완료 단계: 확인창에서 Slack 배송완료 공지 미리보기 후 처리. 스레드에 요청자 멘션과 책 목록, 고른 사진이 달린다.
+ * orderSentAt: 주문 공지를 보낸 시각. 그 뒤에 올린 파일(배송 사진)을 처음부터 골라 둔다
+ */
+export function DeliverButton({ base, books, receipts, orderSentAt }: {
+  base: NoticeBase; books: { name: string; title: string }[]; receipts: ReceiptView[]; orderSentAt: string | null;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [message, setMessage] = useState("");
+  const [attached, setAttached] = useState<Set<string>>(new Set());
   const [skip, setSkip] = useState(false);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await markDelivered(prev, fd);
@@ -237,15 +250,21 @@ export function DeliverButton({ base }: { base: NoticeBase }) {
   }, null);
   return (
     <>
-      <button className="btn btn-primary" type="button" onClick={() => { setMessage(deliveryNoticeText(base)); dialog.current?.showModal(); }}>
+      <button className="btn btn-primary" type="button" onClick={() => {
+        setMessage(deliveryNoticeText(base));
+        setAttached(new Set(orderSentAt ? receipts.filter((r) => new Date(r.created_at) > new Date(orderSentAt)).map((r) => r.id) : []));
+        dialog.current?.showModal();
+      }}>
         <Icon name="pkg" />배송완료 처리 · Slack 공지
       </button>
       <Result state={state} />
       <dialog ref={dialog} className="dlg" aria-labelledby={`dl-${base.bundleId}`}>
         <form action={action} className="dlg-body">
           <h2 id={`dl-${base.bundleId}`}>{base.label} 묶음을 배송완료로 처리할까요?</h2>
-          <p className="muted">책 {base.count}권 · 요청자 {new Set(base.names).size}명의 상태가 &quot;배송완료&quot;로 바뀌고 동아리 채널에 공지돼요.</p>
-          <SlackPreview text={message} />
+          <p className="muted">책 {base.count}권 · 요청자 {new Set(base.names).size}명의 상태가 &quot;배송완료&quot;로 바뀌고 동아리 채널에 공지돼요. 스레드에는 요청자 멘션과 책 목록, 배송 사진이 달려요.</p>
+          <SlackPreview text={message} thread={{ text: deliveryThreadText(books), files: skip ? [] : receipts.filter((r) => attached.has(r.id)) }} />
+          <AttachPicker receipts={receipts} attached={attached} setAttached={setAttached}
+            empty={'첨부할 사진이 없어요. 배송 사진을 위 "영수증·주문 내역·배송 사진"에 먼저 올리면 함께 보낼 수 있어요.'} />
           <div className="field">
             <label className="label" htmlFor={`dm-${base.bundleId}`}>문구 수정</label>
             <textarea className="textarea" id={`dm-${base.bundleId}`} name="message" value={message} onChange={(e) => setMessage(e.target.value)} />

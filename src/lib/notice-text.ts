@@ -5,8 +5,6 @@ import { md, won } from "./format";
 /** round: 회차 이름(12월 회차), label: 묶음 이름(yes24 1차), names: 요청자(중복 허용), count: 책 권수 */
 type Base = { round: string; label: string; names: string[]; count: number };
 
-const mention = (names: string[]) => [...new Set(names)].map((n) => `@${n}`).join(" ");
-
 /** 채널 메시지에는 멘션 없이 인원·권수만. 누구 책인지는 스레드(orderThreadText)에서 멘션한다 (둘 다 하면 알림이 두 번 감) */
 export function orderNoticeText({ round, label, names, count, eta }: Base & { eta: string | null }): string {
   return [
@@ -20,14 +18,26 @@ export function orderNoticeText({ round, label, names, count, eta }: Base & { et
 
 export const ORDER_THREAD_BUTTON = "▶ 내 구매 요청 보기";
 
-/** 주문완료 스레드 답글: 한 줄에 책 한 권. 이름·제목 가나다순이라 같은 사람 책끼리 붙고, 미리보기와 보낸 공지의 순서가 같다 */
-export function orderThreadText(books: { name: string; title: string }[]): string {
+/** 스레드의 책 목록: 한 줄에 책 한 권. 이름·제목 가나다순이라 같은 사람 책끼리 붙고, 미리보기와 보낸 공지의 순서가 같다 */
+function bookLines(books: { name: string; title: string }[]): string[] {
   const sorted = [...books].sort((a, b) => a.name.localeCompare(b.name, "ko") || a.title.localeCompare(b.title, "ko"));
-  return [`📦 이번에 주문한 책 · ${books.length}권`, ...sorted.map((b, i) => `${i + 1}. @${b.name} · ${b.title}`)].join("\n");
+  return sorted.map((b, i) => `${i + 1}. @${b.name} · ${b.title}`);
 }
 
+export function orderThreadText(books: { name: string; title: string }[]): string {
+  return [`📦 이번에 주문한 책 · ${books.length}권`, ...bookLines(books)].join("\n");
+}
+
+/** 배송완료도 주문완료처럼 채널 메시지에는 인원·권수만, 누구 책인지는 스레드(deliveryThreadText)에서 멘션한다 */
 export function deliveryNoticeText({ round, label, names, count }: Base): string {
-  return `[${round}] ${label} 주문 책 ${count}권이 도착했어요.\n${mention(names)} 님은 라운지 책장에서 찾아가 주세요.`;
+  return [
+    `[${round}] ${label} 주문 책이 도착했어요.`,
+    `${new Set(names).size}명 책 ${count}권을 라운지 책장에서 찾아가 주세요. 누구 책인지는 스레드에서 확인해 주세요 👇`,
+  ].join("\n");
+}
+
+export function deliveryThreadText(books: { name: string; title: string }[]): string {
+  return [`🚚 *배송완료* (${books.length}건)`, ...bookLines(books)].join("\n");
 }
 
 // ───────── 총무 DM: 멤버가 책을 요청하거나 일지를 처음 쓸 때 (시트 시절 Slack 워크플로 알림 대신) ─────────

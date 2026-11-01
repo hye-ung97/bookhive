@@ -63,6 +63,7 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
   const idx = ORDER[b.status];
   const diff = b.paid_amount != null ? b.paid_amount - b.request_total : null;
   const base = { bundleId: b.id, cycleId, round, label, names, count: active.length };
+  const books = active.map((i) => ({ name: i.member_name, title: i.title }));
   const buyStore = b.store === "other" ? null : b.store;
   const cartLinks = b.status === "cart" && buyStore ? active.map((i) => buyLink(i, buyStore)) : [];
   const searches = cartLinks.filter((l) => l.kind === "search").length;
@@ -126,7 +127,7 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
       {b.status === "cart" ? (
         <>
           <Receipts owner={{ kind: "bundle", id: b.id, cycleKey }} receipts={b.receipts} label="영수증·주문 내역" />
-          <CartPanel base={base} books={active.map((i) => ({ name: i.member_name, title: i.title }))} requestTotal={b.request_total} receipts={b.receipts} />
+          <CartPanel base={base} books={books} requestTotal={b.request_total} receipts={b.receipts} />
         </>
       ) : (
         <>
@@ -139,7 +140,7 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
           <Receipts
             owner={{ kind: "bundle", id: b.id, cycleKey }}
             receipts={b.receipts}
-            label="영수증·주문 내역"
+            label="영수증·주문 내역·배송 사진"
             warnIfEmpty
             lastDeleteWarning="삭제하면 이 묶음에 영수증이 하나도 남지 않아요."
           />
@@ -147,7 +148,10 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
           <NoticeLine b={b} kind="delivery_done" cycleId={cycleId} />
           <div className="row-gap" style={{ justifyContent: "space-between" }}>
             <RevertButton bundleId={b.id} to={b.status === "delivered" ? "주문완료" : "장바구니"} />
-            {b.status === "ordered" && <DeliverButton base={base} />}
+            {b.status === "ordered" && (
+              <DeliverButton base={base} books={books} receipts={b.receipts}
+                orderSentAt={b.notices.find((n) => n.kind === "order_done")?.sent_at ?? null} />
+            )}
           </div>
         </>
       )}

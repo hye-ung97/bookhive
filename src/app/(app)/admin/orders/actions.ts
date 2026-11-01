@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { toUserMessage } from "@/lib/errors";
 import { roundKey } from "@/lib/format";
-import { ORDER_THREAD_BUTTON, orderThreadText, slackEscape } from "@/lib/notice-text";
+import { deliveryThreadText, ORDER_THREAD_BUTTON, orderThreadText, slackEscape } from "@/lib/notice-text";
 import { channelTextOf, sendBundleNotice, type NoticeResult, type NoticeThread } from "@/lib/notify";
 import { removeReceiptFiles } from "@/lib/receipts";
 import { siteUrl } from "@/lib/reminders";
@@ -30,14 +30,18 @@ function noticeMessage(base: string, notice: NoticeResult | null): ActionState {
   }
 }
 
-/** 주문완료 스레드: 묶음에 남은 책(품절 취소 제외)과 요청자 멘션, 내 구매 요청으로 가는 버튼. 관리자가 고치는 문구가 아니라 묶음 데이터로 만든다 */
-async function orderThread(bundleId: string, cycleId: string): Promise<NoticeThread> {
+/**
+ * 공지 스레드: 묶음에 남은 책(품절 취소 제외)과 요청자 멘션. 관리자가 고치는 문구가 아니라 묶음 데이터로 만든다.
+ * 주문완료에는 내 구매 요청으로 가는 버튼도 단다
+ */
+async function bundleThread(kind: "order_done" | "delivery_done", bundleId: string, cycleId: string): Promise<NoticeThread> {
   const supabase = await createClient();
   const [{ data: items }, { data: cycle }] = await Promise.all([
     supabase.from("v_requests").select("member_name, title, status").eq("bundle_id", bundleId),
     supabase.from("cycles").select("month").eq("id", cycleId).single(),
   ]);
   const books = (items ?? []).filter((i) => i.status !== "cancelled").map((i) => ({ name: i.member_name as string, title: slackEscape(i.title) }));
+  if (kind === "delivery_done") return { text: deliveryThreadText(books), fallback: `도착한 책 ${books.length}권` };
   return {
     text: orderThreadText(books),
     fallback: `이번에 주문한 책 ${books.length}권`,
@@ -92,7 +96,7 @@ export async function markOrdered(_prev: ActionState, formData: FormData): Promi
         bundleId,
         cycleId,
         text: text(formData, "message"),
-        thread: await orderThread(bundleId, cycleId),
+        thread: await bundleThread("order_done", bundleId, cycleId),
         receiptIds: formData.getAll("receiptIds").map(String),
       });
   return noticeMessage("주문완료로 처리했어요", notice);
@@ -104,13 +108,24 @@ export async function markDelivered(_prev: ActionState, formData: FormData): Pro
   const bundleId = text(formData, "bundleId");
   const { error } = await supabase.rpc("mark_bundle_delivered", { p_bundle_id: bundleId, p_delivered_at: null });
   if (error) return { ok: false, message: toUserMessage(error) };
+  const cycleId = text(formData, "cycleId");
   const notice = formData.get("skip")
     ? null
-    : await sendBundleNotice({ kind: "delivery_done", bundleId, cycleId: text(formData, "cycleId"), text: text(formData, "message") });
+    : await sendBundleNotice({
+        kind: "delivery_done",
+        bundleId,
+        cycleId,
+        text: text(formData, "message"),
+        thread: await bundleThread("delivery_done", bundleId, cycleId),
+        receiptIds: formData.getAll("receiptIds").map(String),
+      });
   return noticeMessage("배송완료로 처리했어요", notice);
 }
 
-/** 실패했거나 Slack 미설정으로 기록만 남은 공지를 다시 보낸다 */
+/**
+ * 실패했거나 Slack 미설정으로 기록만 남은 공지를 다시 보낸다.
+ * 처음에 고른 파일은 기록에 없어서, 주문완료는 묶음의 파일 전부, 배송완료는 주문 공지 뒤에 올린 파일(배송 사진)을 단다
+ */
 export async function resendNotice(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const supabase = await createClient();
@@ -118,12 +133,17 @@ export async function resendNotice(_prev: ActionState, formData: FormData): Prom
   const bundleId = text(formData, "bundleId");
   const cycleId = text(formData, "cycleId");
   const { data: log } = await supabase.from("notification_logs").select("message").eq("dedupe_key", `${kind}:${bundleId}`).maybeSingle();
+  const { data: orderLog } = kind === "delivery_done"
+    ? await supabase.from("notification_logs").select("sent_at").eq("dedupe_key", `order_done:${bundleId}`).maybeSingle()
+    : { data: null };
   const { data: receipts } = kind === "order_done"
     ? await supabase.from("receipts").select("id").eq("bundle_id", bundleId)
-    : { data: [] as { id: string }[] };
+    : orderLog?.sent_at
+      ? await supabase.from("receipts").select("id").eq("bundle_id", bundleId).gt("created_at", orderLog.sent_at)
+      : { data: [] as { id: string }[] };
   const notice = await sendBundleNotice({
     kind, bundleId, cycleId, text: channelTextOf(log?.message ?? ""),
-    thread: kind === "order_done" ? await orderThread(bundleId, cycleId) : undefined,
+    thread: await bundleThread(kind, bundleId, cycleId),
     receiptIds: (receipts ?? []).map((r) => r.id),
   });
   return noticeMessage("공지를 다시 보냈어요", notice);
