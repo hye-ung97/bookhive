@@ -4,7 +4,7 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
 import { SlackPreview } from "@/components/slack-preview";
 import { kstToday, won } from "@/lib/format";
-import { deliveryNoticeText, orderNoticeText } from "@/lib/notice-text";
+import { deliveryNoticeText, ORDER_THREAD_BUTTON, orderNoticeText, orderThreadText } from "@/lib/notice-text";
 import type { ReceiptView } from "@/lib/receipts";
 import {
   cancelBundleItem, dissolveBundle, markDelivered, markOrdered, removeFromBundle, resendNotice, revertBundle, type ActionState,
@@ -97,8 +97,13 @@ export function OpenAllLinks({ links, hint }: { links: string[]; hint: string })
 
 type NoticeBase = { bundleId: string; cycleId: string; round: string; label: string; names: string[]; count: number };
 
-/** 장바구니 단계: 주문일·도착 예정일·실결제액 입력 → 확인창에서 Slack 주문완료 공지 미리보기 후 처리 */
-export function CartPanel({ base, requestTotal, receipts }: { base: NoticeBase; requestTotal: number; receipts: ReceiptView[] }) {
+/**
+ * 장바구니 단계: 주문일·도착 예정일·실결제액 입력 → 확인창에서 Slack 주문완료 공지 미리보기 후 처리.
+ * books: 스레드 미리보기용 책 목록 (실제 공지의 목록은 서버가 묶음 데이터로 다시 만든다)
+ */
+export function CartPanel({ base, books, requestTotal, receipts }: {
+  base: NoticeBase; books: { name: string; title: string }[]; requestTotal: number; receipts: ReceiptView[];
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [orderedAt, setOrderedAt] = useState(kstToday());
   const [eta, setEta] = useState("");
@@ -158,8 +163,8 @@ export function CartPanel({ base, requestTotal, receipts }: { base: NoticeBase; 
           <input type="hidden" name="bundleId" value={base.bundleId} />
           <input type="hidden" name="cycleId" value={base.cycleId} />
           <h2 id={`od-t-${base.bundleId}`}>{base.label}를 주문완료로 처리할까요?</h2>
-          <p className="muted">요청자 {new Set(base.names).size}명의 상태가 &quot;주문완료&quot;로 바뀌고, 동아리 채널에 도착 예정일과 주문 이미지를 함께 공지해요.</p>
-          <SlackPreview text={message} files={skip ? [] : receipts.filter((r) => attached.has(r.id))} />
+          <p className="muted">요청자 {new Set(base.names).size}명의 상태가 &quot;주문완료&quot;로 바뀌고, 동아리 채널에 도착 예정일을 공지해요. 스레드에는 요청자 멘션과 책 목록, 주문 이미지가 달려요.</p>
+          <SlackPreview text={message} thread={{ text: orderThreadText(books), button: ORDER_THREAD_BUTTON, files: skip ? [] : receipts.filter((r) => attached.has(r.id)) }} />
           {receipts.length ? (
             <fieldset className="att-list">
               <legend className="label">함께 보낼 파일</legend>

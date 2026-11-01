@@ -7,14 +7,23 @@ type Base = { round: string; label: string; names: string[]; count: number };
 
 const mention = (names: string[]) => [...new Set(names)].map((n) => `@${n}`).join(" ");
 
+/** 채널 메시지에는 멘션 없이 인원·권수만. 누구 책인지는 스레드(orderThreadText)에서 멘션한다 (둘 다 하면 알림이 두 번 감) */
 export function orderNoticeText({ round, label, names, count, eta }: Base & { eta: string | null }): string {
   return [
     `[${round}] ${label} 주문을 완료했어요.`,
     eta ? `도착 예정: ${md(eta)}` : null,
-    `${mention(names)} 님 책 ${count}권이 곧 도착해요.`,
+    `${new Set(names).size}명 책 ${count}권이 곧 도착해요. 누구 책인지는 스레드에서 확인해 주세요 👇`,
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+export const ORDER_THREAD_BUTTON = "▶ 내 구매 요청 보기";
+
+/** 주문완료 스레드 답글: 한 줄에 책 한 권. 이름·제목 가나다순이라 같은 사람 책끼리 붙고, 미리보기와 보낸 공지의 순서가 같다 */
+export function orderThreadText(books: { name: string; title: string }[]): string {
+  const sorted = [...books].sort((a, b) => a.name.localeCompare(b.name, "ko") || a.title.localeCompare(b.title, "ko"));
+  return [`📦 이번에 주문한 책 · ${books.length}권`, ...sorted.map((b, i) => `${i + 1}. @${b.name} · ${b.title}`)].join("\n");
 }
 
 export function deliveryNoticeText({ round, label, names, count }: Base): string {

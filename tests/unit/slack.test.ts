@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { postMessage, postWithFiles, slackConfig } from "@/lib/slack";
+import { postFiles, postMessage, slackConfig } from "@/lib/slack";
 
 type Call = { url: string; method?: string; headers?: Record<string, string>; body?: unknown };
 
@@ -53,14 +53,14 @@ describe("Slack 클라이언트", () => {
     expect(form(calls[0].body)).toEqual({ channel: "U999", text: "새 요청" });
   });
 
-  it("이미지 공지: 업로드 주소 받기 → 바이트 올리기 → 채널에 공유하며 본문 붙이기", async () => {
+  it("이미지 첨부: 업로드 주소 받기 → 바이트 올리기 → 채널 메시지의 스레드에 공유", async () => {
     const calls = mockFetch([
       { json: { ok: true, upload_url: "https://files.slack.com/upload/v1/abc", file_id: "F1" } },
       { json: {} },
       { json: { ok: true, files: [{ id: "F1" }] } },
     ]);
     const bytes = new TextEncoder().encode("jpeg-bytes").buffer;
-    await postWithFiles("[12월 회차] 주문 완료 <@U1>", [{ name: "주문내역.jpg", bytes }]);
+    await postFiles([{ name: "주문내역.jpg", bytes }], { threadTs: "1700.1" });
 
     expect(calls.map((c) => c.url)).toEqual([
       "https://slack.com/api/files.getUploadURLExternal",
@@ -73,7 +73,7 @@ describe("Slack 클라이언트", () => {
     const complete = form(calls[2].body);
     expect(JSON.parse(complete.files)).toEqual([{ id: "F1", title: "주문내역.jpg" }]);
     expect(complete.channel_id).toBe("C123");
-    expect(complete.initial_comment).toBe("[12월 회차] 주문 완료 <@U1>");
+    expect(complete.thread_ts).toBe("1700.1");
   });
 
   it("Slack 오류와 429는 예외로 (공지 기록에 실패로 남기기 위해)", async () => {

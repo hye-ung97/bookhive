@@ -126,7 +126,7 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
       {b.status === "cart" ? (
         <>
           <Receipts owner={{ kind: "bundle", id: b.id, cycleKey }} receipts={b.receipts} label="영수증·주문 내역" />
-          <CartPanel base={base} requestTotal={b.request_total} receipts={b.receipts} />
+          <CartPanel base={base} books={active.map((i) => ({ name: i.member_name, title: i.title }))} requestTotal={b.request_total} receipts={b.receipts} />
         </>
       ) : (
         <>

@@ -1,11 +1,14 @@
 import "server-only";
 import { createAdminClient } from "./supabase/admin";
-import { lookupUserIdByEmail, postMessage, postWithFiles, slackConfig } from "./slack";
+import { lookupUserIdByEmail, postFiles, postMessage, slackConfig } from "./slack";
 
 export type NoticeKind = "order_done" | "delivery_done" | "request_reminder" | "journal_reminder" | "new_request" | "new_journal";
 export type NoticeResult = { status: "sent" | "skipped" | "failed" | "already"; error?: string };
 /** 채널 메시지에 이어 다는 스레드 답글: 본문(멘션 포함)과 사이트로 가는 버튼 */
 export type NoticeThread = { text: string; fallback: string; button?: { text: string; url: string } };
+
+/** 공지 기록(message)은 "채널 문구\n└ 스레드 본문". 다시 보낼 때 채널 문구만 꺼낸다 (스레드는 새로 만든다) */
+export const channelTextOf = (message: string) => message.split("\n└ ")[0];
 
 /** "@이름"을 Slack 멘션(<@U…>)으로. Slack ID가 없으면 이메일로 찾아 저장하고, 못 찾으면 이름만 남긴다 */
 async function toSlackText(text: string): Promise<string> {
@@ -101,28 +104,29 @@ export async function sendNotice(opts: {
     let ts: string | null = null;
     if (opts.to === "treasurer") {
       for (const id of await treasurerSlackIds()) ts = await postMessage(text, { channel: id });
-    } else if (receipts?.length) {
+    } else {
+      // 이미지는 먼저 받아 둔다: 채널 메시지를 보낸 뒤에 실패하면 [공지 다시 보내기]로 채널 메시지가 두 번 나간다
       const files = await Promise.all(
-        receipts.map(async (r) => {
+        (receipts ?? []).map(async (r) => {
           const { data, error } = await db.storage.from("receipts").download(r.storage_path);
           if (error || !data) throw new Error(`receipt_download_failed ${r.file_name}`);
           return { name: r.file_name, bytes: await data.arrayBuffer() };
         }),
       );
-      await postWithFiles(text, files);
-    } else {
       ts = await postMessage(text);
-    }
-    if (opts.thread && ts) {
-      const body = await toSlackText(opts.thread.text);
-      const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: body } }];
-      if (opts.thread.button) {
-        blocks.push({
-          type: "actions",
-          elements: [{ type: "button", text: { type: "plain_text", text: opts.thread.button.text, emoji: true }, url: opts.thread.button.url, style: "primary" }],
-        });
+      if (opts.thread && ts) {
+        const body = await toSlackText(opts.thread.text);
+        const blocks: unknown[] = [{ type: "section", text: { type: "mrkdwn", text: body } }];
+        if (opts.thread.button) {
+          blocks.push({
+            type: "actions",
+            elements: [{ type: "button", text: { type: "plain_text", text: opts.thread.button.text, emoji: true }, url: opts.thread.button.url, style: "primary" }],
+          });
+        }
+        await postMessage(opts.thread.fallback, { threadTs: ts, blocks });
       }
-      await postMessage(opts.thread.fallback, { threadTs: ts, blocks });
+      // 주문 이미지는 스레드 답글로 (채널 메시지에 붙이면 스레드를 달 수 없다: postFiles 참고)
+      if (files.length && ts) await postFiles(files, { threadTs: ts });
     }
     await db.from("notification_logs").update({
       status: "sent", message: logText, attachments: receipts?.length ?? 0, attempts, error: null, slack_ts: ts, sent_at: new Date().toISOString(),
@@ -136,6 +140,8 @@ export async function sendNotice(opts: {
 }
 
 /** 묶음 공지(주문완료·배송완료): 묶음당 종류별로 한 번. 상태를 되돌렸다가 다시 처리해도 다시 나가지 않는다 */
-export function sendBundleNotice(opts: { kind: "order_done" | "delivery_done"; bundleId: string; cycleId: string; text: string; receiptIds?: string[] }) {
+export function sendBundleNotice(opts: {
+  kind: "order_done" | "delivery_done"; bundleId: string; cycleId: string; text: string; thread?: NoticeThread; receiptIds?: string[];
+}) {
   return sendNotice({ ...opts, dedupeKey: `${opts.kind}:${opts.bundleId}`, trigger: "event" });
 }

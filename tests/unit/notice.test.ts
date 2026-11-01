@@ -1,12 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { deliveryNoticeText, journalNoticeText, orderNoticeText, requestNoticeText } from "@/lib/notice-text";
+import { deliveryNoticeText, journalNoticeText, orderNoticeText, orderThreadText, requestNoticeText } from "@/lib/notice-text";
 
 const base = { round: "12월 회차", label: "yes24 1차", names: ["김하늘", "박서준", "김하늘"], count: 3 };
 
 describe("Slack 공지 문구", () => {
-  it("주문완료: 도착 예정일과 요청자 멘션(중복 제거)", () => {
+  it("주문완료: 도착 예정일과 인원(중복 제거)·권수, 멘션은 스레드에만", () => {
     expect(orderNoticeText({ ...base, eta: "2026-12-22" })).toBe(
-      "[12월 회차] yes24 1차 주문을 완료했어요.\n도착 예정: 12/22(화)\n@김하늘 @박서준 님 책 3권이 곧 도착해요.",
+      "[12월 회차] yes24 1차 주문을 완료했어요.\n도착 예정: 12/22(화)\n2명 책 3권이 곧 도착해요. 누구 책인지는 스레드에서 확인해 주세요 👇",
+    );
+  });
+
+  it("주문완료 스레드: 한 줄에 한 권, 이름·제목 가나다순이라 같은 사람 책끼리 붙음", () => {
+    const books = [
+      { name: "박서준", title: "내면 근력" },
+      { name: "김하늘", title: "살아있는 세계사 교과서 2" },
+      { name: "이동해", title: "돈의 심리학" },
+      { name: "김하늘", title: "살아있는 세계사 교과서 1" },
+    ];
+    expect(orderThreadText(books)).toBe(
+      "📦 이번에 주문한 책 · 4권\n" +
+        "1. @김하늘 · 살아있는 세계사 교과서 1\n" +
+        "2. @김하늘 · 살아있는 세계사 교과서 2\n" +
+        "3. @박서준 · 내면 근력\n" +
+        "4. @이동해 · 돈의 심리학",
     );
   });
 

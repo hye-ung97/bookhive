@@ -40,8 +40,11 @@ export async function postMessage(text: string, opts: { channel?: string; thread
   return String(data.ts ?? "");
 }
 
-/** 파일 첨부 공지: 업로드 주소 받기 → 바이트 올리기 → 채널에 공유하며 본문(initial_comment) 붙이기 */
-export async function postWithFiles(text: string, files: { name: string; bytes: ArrayBuffer }[]): Promise<void> {
+/**
+ * 파일 첨부: 업로드 주소 받기 → 바이트 올리기 → 그 메시지(threadTs)의 스레드에 공유.
+ * 업로드 API는 공유된 메시지의 ts를 돌려주지 않아서, 파일을 채널 메시지에 붙이면 그 아래에 스레드를 달 수 없다
+ */
+export async function postFiles(files: { name: string; bytes: ArrayBuffer }[], opts: { threadTs: string }): Promise<void> {
   const ids: { id: string; title: string }[] = [];
   for (const file of files) {
     const target = await call("files.getUploadURLExternal", { filename: file.name, length: String(file.bytes.byteLength) });
@@ -57,7 +60,7 @@ export async function postWithFiles(text: string, files: { name: string; bytes: 
   await call("files.completeUploadExternal", {
     files: JSON.stringify(ids),
     channel_id: slackConfig().channel,
-    initial_comment: text,
+    thread_ts: opts.threadTs,
   });
 }
 
