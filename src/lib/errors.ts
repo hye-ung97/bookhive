@@ -61,6 +61,8 @@ export function toUserMessage(error: DbError): string {
       return "이미 묶음에 담겼거나 취소된 요청이 있어요. 새로고침해 주세요.";
     case "BUNDLE_LOCKED":
       return "주문완료된 묶음은 바꿀 수 없어요. 못 산 책은 '품절 취소'로 처리해 주세요.";
+    case "BUNDLE_NOT_CART":
+      return "장바구니 단계의 묶음에만 담을 수 있어요. 새로고침해 주세요.";
     case "ORDER_FIELDS_REQUIRED":
       return "주문일·도착 예정일·실결제액을 입력해 주세요.";
     case "BUNDLE_EMPTY":

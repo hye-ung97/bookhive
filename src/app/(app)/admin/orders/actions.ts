@@ -57,6 +57,15 @@ export async function putIntoBundles(cycleId: string, requestIds: string[], stor
   return done(`${requestIds.length}권을 장바구니 묶음에 담았어요 · 담긴 요청은 멤버가 수정할 수 없어요`);
 }
 
+/** 고른 장바구니 묶음에 담기 ("담을 곳"에서 묶음 고르기·묶음 카드로 끌어 놓기) */
+export async function addToBundle(bundleId: string, requestIds: string[]): Promise<ActionState> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_to_bundle", { p_bundle_id: bundleId, p_request_ids: requestIds });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(`${requestIds.length}권을 담았어요 · 담긴 요청은 멤버가 수정할 수 없어요`);
+}
+
 export async function removeFromBundle(requestId: string): Promise<ActionState> {
   await requireAdmin();
   const supabase = await createClient();

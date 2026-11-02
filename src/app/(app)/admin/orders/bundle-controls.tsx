@@ -1,14 +1,17 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition, type DragEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icon";
 import { SlackPreview } from "@/components/slack-preview";
 import { kstToday, won } from "@/lib/format";
 import { deliveryNoticeText, deliveryThreadText, ORDER_THREAD_BUTTON, orderNoticeText, orderThreadText } from "@/lib/notice-text";
 import type { ReceiptView } from "@/lib/receipts";
 import {
-  cancelBundleItem, dissolveBundle, markDelivered, markOrdered, removeFromBundle, resendNotice, revertBundle, type ActionState,
+  addToBundle, cancelBundleItem, dissolveBundle, markDelivered, markOrdered, removeFromBundle, resendNotice, revertBundle, type ActionState,
 } from "./actions";
+
+/** 미배정 요청을 끌 때 싣는 데이터 형식 (요청 id 배열 JSON). dataTransfer.types가 소문자로 바뀌어서 소문자로 */
+export const REQUEST_DRAG = "application/x-bookhive-requests";
 
 function Result({ state }: { state: ActionState }) {
   if (!state) return null;
@@ -32,6 +35,44 @@ export function RemoveItem({ requestId, title }: { requestId: string; title: str
       </button>
       {state && !state.ok && <span className="msg msg-err">{state.message}</span>}
     </>
+  );
+}
+
+/** 장바구니 묶음 카드: 미배정 요청을 끌어다 놓으면 이 묶음에 담는다 */
+export function CartDropZone({ bundleId, label, children }: { bundleId: string; label: string; children: ReactNode }) {
+  const [over, setOver] = useState(false);
+  const [pending, start] = useTransition();
+  const [state, setState] = useState<ActionState>(null);
+  const accepts = (e: DragEvent) => e.dataTransfer.types.includes(REQUEST_DRAG);
+  const drop = (e: DragEvent) => {
+    if (!accepts(e)) return;
+    e.preventDefault();
+    setOver(false);
+    let ids: string[];
+    try {
+      ids = JSON.parse(e.dataTransfer.getData(REQUEST_DRAG));
+    } catch {
+      return;
+    }
+    if (!Array.isArray(ids) || !ids.length) return;
+    start(async () => setState(await addToBundle(bundleId, ids)));
+  };
+  const dragOver = (e: DragEvent) => {
+    if (!accepts(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setOver(true);
+  };
+  // 카드 안의 자식 사이를 지날 때도 leave가 나서, 카드 밖으로 나갈 때만 강조를 끈다
+  const dragLeave = (e: DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+  };
+  return (
+    <article className={`card${over ? " is-drop" : ""}`} aria-label={`${label} 묶음`} aria-busy={pending}
+      onDragOver={dragOver} onDragLeave={dragLeave} onDrop={drop}>
+      {children}
+      {pending ? <p className="msg msg-info" role="status"><Icon name="info" />담는 중…</p> : <Result state={state} />}
+    </article>
   );
 }
 

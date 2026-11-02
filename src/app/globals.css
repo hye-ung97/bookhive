@@ -271,6 +271,10 @@ table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; }
 .ochk .t small { display: block; color: var(--fg2); font-size: 12px; }
 .ochk .num { grid-area: p; }
 .ochk .blinks { grid-area: l; }
+.ochk[draggable="true"] { cursor: grab; }
+.card.is-drop { outline: 2px dashed var(--primary); outline-offset: -2px; background: var(--muted); }
+/* 끌어다 놓기는 마우스가 있을 때만 안내 (터치 기기는 체크 후 "묶음에 담기") */
+@media (pointer: coarse) { .dnd-hint { display: none; } }
 .plan-preview { display: grid; gap: 4px; font-size: 13px; padding: 10px 12px; border-radius: var(--r); background: var(--muted); list-style: none; margin: 0; }
 .bundles { display: grid; gap: 16px; }
 .bundle-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }

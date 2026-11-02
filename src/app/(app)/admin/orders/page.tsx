@@ -7,8 +7,8 @@ import { requireAdmin } from "@/lib/auth";
 import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { bundlesForCycle, findByKey, listCycles, openCycles, readingCycle, unassignedRequests, type BundleView } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
-import { CancelItem, CartPanel, DeliverButton, OpenAllLinks, RemoveItem, ResendButton, RevertButton } from "./bundle-controls";
-import { UnassignedPanel } from "./unassigned-panel";
+import { CancelItem, CartDropZone, CartPanel, DeliverButton, OpenAllLinks, RemoveItem, ResendButton, RevertButton } from "./bundle-controls";
+import { UnassignedPanel, type CartBundle } from "./unassigned-panel";
 
 export const metadata: Metadata = { title: "주문·배송" };
 
@@ -68,8 +68,8 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
   const cartLinks = b.status === "cart" && buyStore ? active.map((i) => buyLink(i, buyStore)) : [];
   const searches = cartLinks.filter((l) => l.kind === "search").length;
 
-  return (
-    <article className="card" aria-label={`${label} 묶음`}>
+  const body = (
+    <>
       <div className="bundle-h">
         <h3>{label}</h3>
         <StatusBadge status={b.status} />
@@ -155,8 +155,12 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
           </div>
         </>
       )}
-    </article>
+    </>
   );
+  // 장바구니 묶음만 미배정 요청을 끌어다 놓을 수 있다
+  return b.status === "cart"
+    ? <CartDropZone bundleId={b.id} label={label}>{body}</CartDropZone>
+    : <article className="card" aria-label={`${label} 묶음`}>{body}</article>;
 }
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ round?: string }> }) {
@@ -173,12 +177,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const cycleKey = roundKey(cycle.month);
   const round = roundLabel(cycle.month, today);
   const stores = ["yes24", "kyobo"] as const;
-  const cartLabel = Object.fromEntries(
-    stores.map((s) => {
-      const cart = bundles.filter((b) => b.store === s && b.status === "cart").sort((a, b) => b.seq - a.seq)[0];
-      return [s, cart ? bundleLabel(cart) : null];
-    }),
-  ) as Record<Store, string | null>;
+  const carts: CartBundle[] = stores.flatMap((s) =>
+    bundles
+      .filter((b) => b.store === s && b.status === "cart")
+      .sort((a, b) => a.seq - b.seq)
+      .map((b) => ({ id: b.id, store: s, label: bundleLabel(b), count: b.item_count })),
+  );
   const nextLabel = Object.fromEntries(
     stores.map((s) => [s, `${STORE_NAME[s]} ${bundles.filter((b) => b.store === s).length + 1}차`]),
   ) as Record<Store, string>;
@@ -201,7 +205,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           key={cycle.id}
           cycleId={cycle.id}
           items={unassigned.map((r) => ({ id: r.id, title: r.title, member_name: r.member_name, price: r.price, store: r.store as Store, url: r.url, isbn: r.isbn }))}
-          cartLabel={cartLabel}
+          carts={carts}
           nextLabel={nextLabel}
         />
         <section className="bundles" aria-label="묶음 목록">
