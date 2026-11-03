@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DdayChip } from "@/components/badges";
+import { CycleTag, DdayChip } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
@@ -27,15 +27,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
     return (
       <>
         <div className="page-head"><h1 className="t-title">일지</h1></div>
-        <div className="card">
-          <div className="empty">
-            <Icon name="pen" />
-            <strong>지금 쓸 수 있는 일지가 없어요</strong>
-            <p>책이 도착해 회차가 &quot;읽는 중&quot;이 되면 쓸 수 있어요.</p>
-            <div className="row-gap">
-              <Link className="btn" href="/me">내 기록 보기</Link>
-              <Link className="btn" href="/journals">지난 회차 일지 읽기</Link>
-            </div>
+        <div className="empty">
+          <strong>지금 쓸 수 있는 일지가 없어요</strong>
+          <p>책이 도착해 회차가 &quot;읽는 중&quot;이 되면 쓸 수 있어요.</p>
+          <div className="row-gap j-empty-acts">
+            <Link className="btn" href="/me">내 기록 보기</Link>
+            <Link className="btn" href="/journals">지난 회차 일지 읽기</Link>
           </div>
         </div>
       </>
@@ -54,10 +51,10 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
 
   const head = (
     <div className="page-head">
-      <div className="stack">
-        <h1 className="t-title row-gap"><span className="serif">{label}</span> 일지 <span className="tag">읽는 중</span></h1>
-        <p className="row-gap t-cap">
-          {cycle.journal_deadline ? <>마감 {md(cycle.journal_deadline)} <DdayChip date={cycle.journal_deadline} today={today} /></> : "마감일 미정"} · 회차당 1편 · 공백 포함 500자 이내
+      <div>
+        <h1 className="t-title">{label} 일지 <CycleTag status={cycle.status} /></h1>
+        <p className="page-sub">
+          {cycle.journal_deadline ? <>마감 <b>{md(cycle.journal_deadline)}</b> <DdayChip date={cycle.journal_deadline} today={today} /></> : "마감일 미정"} · 회차당 1편 · 공백 포함 500자 이내
         </p>
       </div>
       <div className="row-gap">
@@ -73,12 +70,9 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
     return (
       <>
         {head}
-        <div className="card">
-          <div className="empty">
-            <Icon name="pen" />
-            <strong>{label}에 신청한 책이 없어 쓸 일지가 없어요</strong>
-            <p>일지는 그 회차에 신청한 책으로만 쓸 수 있어요.</p>
-          </div>
+        <div className="empty">
+          <strong>{label}에 신청한 책이 없어 쓸 일지가 없어요</strong>
+          <p>일지는 그 회차에 신청한 책으로만 쓸 수 있어요.</p>
         </div>
       </>
     );
@@ -93,24 +87,25 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         {head}
         {sp.saved && (
           <p className="note note-ok" role="status">
-            <Icon name="checkc" />일지를 저장했어요.{sp.saved === "late" ? " 마감이 지나 지각으로 표시돼요." : ""}
+            <Icon name="checkc" />
+            <span>일지를 저장했어요.{sp.saved === "late" ? " 마감이 지나 지각으로 표시돼요." : ""}</span>
           </p>
         )}
-        <section className="card" style={{ maxWidth: 680 }} aria-labelledby="jv-h">
+        <section className="jv" aria-labelledby="jv-h">
           <div className="block-head">
             <h2 className="t-heading" id="jv-h">{book?.title ?? journal.legacy_book_title ?? "일지"}</h2>
-            <span className="row-gap">
-              <span className="badge b-del"><Icon name="check" />제출</span>
-              {late && <span className="badge b-warn">지각</span>}
-            </span>
+            <div className="row-gap">
+              <span className="mark ok">제출</span>
+              {late && <span className="mark warn">지각</span>}
+            </div>
           </div>
           <p className="view-body">{journal.body}</p>
-          <p className="t-cap tnum">{countChars(journal.body)}자 · 마지막 수정 {md(savedOn)}</p>
+          <p className="hint">{countChars(journal.body)}자 · 마지막 수정 {md(savedOn)}</p>
           <div className="row-gap">
-            <Link className="btn" href={`/journal?round=${key}&edit=1`}>수정</Link>
+            <Link className="btn btn-sm" href={`/journal?round=${key}&edit=1`}>수정</Link>
             {!deadlinePassed && <DeleteJournal cycleId={cycle.id} round={key} deadline={cycle.journal_deadline} />}
           </div>
-          <p className="t-cap">
+          <p className="hint">
             {deadlinePassed ? "마감이 지나 삭제는 할 수 없고, 수정만 할 수 있어요." : "일지 마감 전까지 수정·삭제할 수 있어요. 마감 후에는 수정만 돼요."}
           </p>
         </section>
@@ -121,8 +116,8 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
   return (
     <>
       {head}
-      {sp.deleted && <p className="note note-ok" role="status"><Icon name="checkc" />일지를 삭제했어요.</p>}
-      {deadlinePassed && <p className="note note-warn"><Icon name="alert" />마감이 지났어요. 지금 내면 지각으로 표시돼요.</p>}
+      {sp.deleted && <p className="note note-ok" role="status"><Icon name="checkc" /><span>일지를 삭제했어요.</span></p>}
+      {deadlinePassed && <p className="note note-warn"><Icon name="alert" /><span>마감이 지났어요. 지금 내면 지각으로 표시돼요.</span></p>}
       <JournalForm
         key={journal?.id ?? "new"}
         cycleId={cycle.id}

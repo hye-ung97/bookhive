@@ -26,14 +26,21 @@ function BookList({ books }: { books: RequestRow[] }) {
   return (
     <ul className="bk-list">
       {books.map((b) => (
-        <li key={b.id} className="bk-item">
+        <li key={b.id}>
           <span className="t">{b.title}</span>
-          <span className="tnum muted">{won(b.price)}원</span>
+          <span className="num">{won(b.price)}원</span>
           <StatusBadge status={b.status} />
         </li>
       ))}
     </ul>
   );
+}
+
+/** 상태 칸: 커피 묶음 · 미요청 · 잔액 있음 */
+function StateMark({ r }: { r: BudgetRow }) {
+  if (r.coffee) return <span className="mark cof">{r.coffee === "used" ? "커피 사용" : "커피 예약"}</span>;
+  if (r.request_count === 0) return <span className="mark warn">미요청</span>;
+  return <span className="t-cap">{r.remaining > 0 ? "잔액 있음" : "—"}</span>;
 }
 
 /** 사람별 예산 표 + 잔액 있는 사람을 골라 커피 예정으로 묶기 */
@@ -55,60 +62,54 @@ export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId:
   const toggle = (id: string, on: boolean) => setSelected((prev) => { const next = new Set(prev); if (on) next.add(id); else next.delete(id); return next; });
   const toggleOpen = (id: string) => setOpen((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
+  const checkbox = (r: BudgetRow) => (
+    <input type="checkbox" aria-label={`${r.name} 선택`} title={eligible(r) ? undefined : why(r)} disabled={!eligible(r)}
+      checked={selected.has(r.member_id)} onChange={(e) => toggle(r.member_id, e.target.checked)} />
+  );
+  // 클릭은 행으로 올라가 펼친다(데스크톱 표). 버튼은 키보드·스크린리더·모바일 목록용
+  const nameToggle = (r: BudgetRow, isOpen: boolean, onClick?: () => void) =>
+    r.books.length > 0 ? (
+      <button className="row-toggle" type="button" aria-expanded={isOpen} onClick={onClick}>
+        <Icon name="chevR" />{r.name}
+      </button>
+    ) : (
+      <span className="row-toggle-pad">{r.name}</span>
+    );
+
   return (
     <>
-      <div className="tbl-wrap">
-        <table className="tbl">
+      <div className="tbl-wrap only-desk">
+        <table className="tbl ppl-tbl">
           <thead>
             <tr>
-              <th style={{ width: 40 }}><span className="sr-only-input">선택</span></th>
+              <th style={{ width: 36 }}><span className="sr-only">선택</span></th>
               <th>이름</th>
-              <th className="num">권수</th>
-              <th className="num">사용(원)</th>
-              <th className="num">커피(원)</th>
-              <th className="num">잔액(원)</th>
-              <th>상태</th>
+              <th className="num" style={{ width: 70 }}>권수</th>
+              <th className="num" style={{ width: 110 }}>사용(원)</th>
+              <th className="num" style={{ width: 110 }}>커피(원)</th>
+              <th className="num" style={{ width: 110 }}>잔액(원)</th>
+              <th style={{ width: 120 }}>상태</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => {
               const canOpen = r.books.length > 0;
               const isOpen = canOpen && open.has(r.member_id);
-              const cls = [selected.has(r.member_id) && "is-sel", canOpen && "is-click", isOpen && "is-open"].filter(Boolean).join(" ");
+              const cls = [canOpen && "is-click", isOpen && "is-open"].filter(Boolean).join(" ");
               return (
                 <Fragment key={r.member_id}>
                   <tr className={cls || undefined} onClick={canOpen ? () => toggleOpen(r.member_id) : undefined}>
                     {/* 체크박스를 누를 때는 펼치지 않는다 */}
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" aria-label={`${r.name} 선택`} title={eligible(r) ? undefined : why(r)} disabled={!eligible(r)}
-                        checked={selected.has(r.member_id)} onChange={(e) => toggle(r.member_id, e.target.checked)} />
-                    </td>
-                    <td>
-                      {canOpen ? (
-                        // 클릭은 행(tr)으로 올라가 펼친다. 버튼은 키보드·스크린리더용
-                        <button className="row-toggle" type="button" aria-expanded={isOpen}>
-                          <Icon name="chevR" />{r.name}
-                        </button>
-                      ) : (
-                        <span className="row-toggle-pad">{r.name}</span>
-                      )}
-                      {r.role_title && <span className="t-cap"> {r.role_title}</span>}
+                    <td onClick={(e) => e.stopPropagation()}>{checkbox(r)}</td>
+                    <td className="strong">
+                      {nameToggle(r, isOpen)}
+                      {r.role_title && <span className="role"> {r.role_title}</span>}
                     </td>
                     <td className="num">{r.request_count}</td>
                     <td className="num">{won(r.used)}</td>
                     <td className="num">{r.reserved ? won(r.reserved) : "—"}</td>
-                    <td className="num">{won(r.remaining)}</td>
-                    <td>
-                      {r.coffee ? (
-                        <span className="badge b-cof"><Icon name="coffee" />{r.coffee === "used" ? "커피 사용" : "커피 예약"}</span>
-                      ) : r.request_count === 0 ? (
-                        <span className="badge b-warn">미요청</span>
-                      ) : r.remaining > 0 ? (
-                        <span className="t-cap">잔액 있음</span>
-                      ) : (
-                        <span className="t-cap">—</span>
-                      )}
-                    </td>
+                    <td className="num strong">{won(r.remaining)}</td>
+                    <td><StateMark r={r} /></td>
                   </tr>
                   {isOpen && (
                     <tr className="tbl-sub">
@@ -120,15 +121,45 @@ export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId:
               );
             })}
             {!rows.length && (
-              <tr><td colSpan={7}><div className="empty"><Icon name="table" /><strong>조건에 맞는 사람이 없어요</strong></div></td></tr>
+              <tr><td colSpan={7}><div className="empty"><strong>조건에 맞는 사람이 없어요</strong></div></td></tr>
             )}
           </tbody>
         </table>
       </div>
+      {/* 모바일: 표 대신 체크 목록. 이름을 누르면 요청한 책이 펼쳐진다 */}
+      <ul className="ppl-rows only-mob">
+        {rows.map((r) => {
+          const isOpen = r.books.length > 0 && open.has(r.member_id);
+          return (
+            <li key={r.member_id}>
+              {checkbox(r)}
+              <span className="t">
+                {nameToggle(r, isOpen, () => toggleOpen(r.member_id))}
+                {r.role_title && <span className="role"> {r.role_title}</span>}
+              </span>
+              <span className="m">
+                {r.request_count}권{r.request_count > 0 && ` · 사용 ${won(r.used)}`}
+                {r.coffee && ` · ${r.coffee === "used" ? "커피 사용" : "커피 예약"} ${won(r.reserved)}`}
+              </span>
+              <span className="r">
+                {r.request_count === 0 ? <span className="mark warn">미요청</span> : <>{won(r.remaining)}<small>잔액</small></>}
+              </span>
+              {isOpen && (
+                <span className="sub">
+                  {r.books.map((b) => (
+                    <span key={b.id}><span>{b.title} · {won(b.price)}원</span><StatusBadge status={b.status} size="sm" /></span>
+                  ))}
+                </span>
+              )}
+            </li>
+          );
+        })}
+        {!rows.length && <li className="empty"><strong>조건에 맞는 사람이 없어요</strong></li>}
+      </ul>
       {picked.length > 0 && (
         <div className="actionbar" role="region" aria-label="선택한 사람">
           <span><b>{picked.length}명</b> 선택 · 잔액 합계 <b>{won(total)}원</b></span>
-          <span className="row-gap">
+          <span className="row-gap ppl-acts">
             <button className="btn btn-ghost" type="button" onClick={() => setSelected(new Set())}>선택 해제</button>
             <button className="btn btn-primary" type="button" onClick={() => dialog.current?.showModal()}><Icon name="coffee" />커피 예정으로 묶기</button>
           </span>
@@ -221,45 +252,38 @@ export function CoffeePlans({ plans, cycleKey }: { plans: CoffeePlanView[]; cycl
   if (!plans.length) {
     return (
       <div className="empty">
-        <Icon name="coffee" />
         <strong>아직 커피 묶음이 없어요</strong>
         <p>위 표에서 잔액이 있는 사람을 골라 묶어 보세요.</p>
       </div>
     );
   }
   return (
-    <div>
+    <ul className="plans">
       {plans.map((p) => (
-        <div key={p.id} className="plan">
-          <div className="stack" style={{ gap: 4 }}>
+        <li key={p.id} className="plan">
+          <div className="plan-main">
+            <span className="plan-top">
+              <b className="t">{p.title}</b>
+              {p.status === "used" ? <span className="mark ok">사용완료</span> : <span className="mark cof">커피 예정</span>}
+            </span>
+            <span className="m">
+              {p.members.length}명 · 예약 {won(p.total)}원{p.status === "used" && p.spent_amount != null ? ` · 실결제 ${won(p.spent_amount)}원` : ""}
+            </span>
+            <span className="m">{p.members.map((m) => `${m.name} ${won(m.amount)}`).join(" · ")}{p.memo ? ` · ${p.memo}` : ""}</span>
+          </div>
+          {p.status === "planned" && (
             <div className="row-gap">
-              {p.status === "used" ? (
-                <span className="badge b-del"><Icon name="check" />사용완료</span>
-              ) : (
-                <span className="badge b-cof"><Icon name="coffee" />커피 예정</span>
-              )}
-              <b>{p.title}</b>
-              <span className="tnum">
-                {p.members.length}명 · 예약 {won(p.total)}원{p.status === "used" && p.spent_amount != null ? ` · 실결제 ${won(p.spent_amount)}원` : ""}
-              </span>
+              <CancelButton plan={p} />
+              <UsedButton plan={p} />
             </div>
-            <span className="who-list">{p.members.map((m) => `${m.name} ${won(m.amount)}`).join(" · ")}{p.memo ? ` · ${p.memo}` : ""}</span>
-          </div>
-          <div className="row-gap">
-            {p.status === "planned" && (
-              <>
-                <CancelButton plan={p} />
-                <UsedButton plan={p} />
-              </>
-            )}
-          </div>
+          )}
           {p.status === "used" && (
             <div className="plan-rc">
               <Receipts owner={{ kind: "coffee", id: p.id, cycleKey }} receipts={p.receipts} warnIfEmpty lastDeleteWarning="삭제하면 이 커피 묶음에 영수증이 하나도 남지 않아요." />
             </div>
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

@@ -42,7 +42,7 @@ export function DocLinks({ cycleId, title, plan, report, overdue }: {
   const urls = { plan, report };
 
   return (
-    <section className="card" aria-labelledby="doc-h">
+    <section className="docs-sec" aria-labelledby="doc-h">
       <div className="block-head">
         <h2 className="t-heading" id="doc-h">{title}</h2>
         {!editing && (
@@ -53,7 +53,7 @@ export function DocLinks({ cycleId, title, plan, report, overdue }: {
       </div>
 
       {editing ? (
-        <form action={action} className="stack" style={{ gap: 12 }}>
+        <form action={action} className="form docs-form">
           <input type="hidden" name="cycleId" value={cycleId} />
           <div className="form-grid">
             {DOCS.map((d) => (
@@ -78,18 +78,22 @@ export function DocLinks({ cycleId, title, plan, report, overdue }: {
           <div className="docs">
             {DOCS.map((d) => {
               const url = urls[d.key];
-              return url ? (
-                <a key={d.key} className="doc" href={url} target="_blank" rel="noopener noreferrer" aria-label={`${d.label} 새 탭에서 열기`}>
-                  <span className="doc-ic"><Icon name="file" /></span>
-                  <span className="rc-txt"><b>{d.label}</b><span className="t-cap">{sourceOf(url)}</span></span>
-                  <Icon name="link" />
-                </a>
-              ) : (
-                <div key={d.key} className={`doc is-empty${overdue.includes(d.key) ? " is-due" : ""}`}>
-                  <span className="doc-ic"><Icon name="file" /></span>
-                  <span className="rc-txt">
+              if (url) {
+                return (
+                  <a key={d.key} className="doc" href={url} target="_blank" rel="noopener noreferrer" aria-label={`${d.label} 새 탭에서 열기`}>
+                    <span className="doc-txt"><b>{d.label}</b><span className="doc-sub">{sourceOf(url)}</span></span>
+                    <Icon name="link" />
+                  </a>
+                );
+              }
+              const due = overdue.includes(d.key);
+              return (
+                <div key={d.key} className={`doc is-empty${due ? " is-due" : ""}`}>
+                  <span className="doc-txt">
                     <b>{d.label}</b>
-                    <span className="t-cap">{overdue.includes(d.key) ? "낼 때가 됐는데 링크가 비어 있어요" : "아직 링크가 없어요"}</span>
+                    {due
+                      ? <span className="mark warn">낼 때가 됐는데 링크가 비어 있어요</span>
+                      : <span className="doc-sub">아직 링크가 없어요</span>}
                   </span>
                 </div>
               );

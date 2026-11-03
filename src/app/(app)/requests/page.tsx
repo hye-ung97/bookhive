@@ -15,22 +15,22 @@ export const metadata: Metadata = { title: "구매 요청" };
 function MyRequestItem({ r, editable }: { r: RequestRow; editable: boolean }) {
   const otherStore = r.purchase_store && r.purchase_store !== r.store;
   return (
-    <li className="req-item">
-      <span className="ttl">{r.title}</span>
-      <span className="num">{won(r.price)}원</span>
-      <div className="sub">
+    <li>
+      <span className="t">{r.title}</span>
+      <span className="p">{won(r.price)}원</span>
+      <span className="m">
         <StatusBadge status={r.status} />
         <span>{STORE_NAME[r.store]}</span>
         {otherStore && <span>{STORE_NAME[r.purchase_store!]}에서 구매</span>}
         {r.status === "ordered" && r.expected_arrival && <span>도착 예정 {md(r.expected_arrival)}</span>}
         {r.status === "cart" && <span>장바구니에 담겨 바꿀 수 없어요 · 총무에게 문의</span>}
-        {!r.verified && r.status === "requested" && <span className="badge b-warn">도서 확인 안 됨</span>}
-      </div>
+        {!r.verified && r.status === "requested" && <span className="mark warn">도서 확인 안 됨</span>}
+      </span>
       {editable && (
-        <div className="acts">
+        <span className="acts">
           <Link className="btn btn-sm" href={`/requests?edit=${r.id}`}>수정</Link>
           <DeleteRequest id={r.id} title={r.title} price={r.price} />
-        </div>
+        </span>
       )}
     </li>
   );
@@ -69,12 +69,9 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     return (
       <>
         <div className="page-head"><h1 className="t-title">책 요청</h1></div>
-        <div className="card">
-          <div className="empty">
-            <Icon name="book" />
-            <strong>지금 요청을 받는 회차가 없어요</strong>
-            <p>총무가 다음 회차를 열면 알려 드려요.</p>
-          </div>
+        <div className="empty">
+          <strong>지금 요청을 받는 회차가 없어요</strong>
+          <p>총무가 다음 회차를 열면 알려 드려요.</p>
         </div>
       </>
     );
@@ -84,17 +81,17 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <div className="page-head">
-        <div className="stack">
+        <div>
           <h1 className="t-title">책 요청</h1>
           {open.length === 1 && first.request_deadline && (
-            <p className="row-gap t-cap">
-              {roundLabel(first.month, today)} 요청 마감 {md(first.request_deadline)}
+            <p className="page-sub">
+              {roundLabel(first.month, today)} 요청 마감 <b>{md(first.request_deadline)}</b>
               <DdayChip date={first.request_deadline} today={today} />
             </p>
           )}
         </div>
       </div>
-      <p className="note note-info">
+      <p className="note">
         <Icon name="info" />
         <span>
           {reading ? `지금 읽는 ${roundLabel(reading.month, today)} 책이 아니라, ` : ""}
@@ -102,17 +99,20 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         </span>
       </p>
       {sp.saved === "edit" && (
-        <p className="note note-ok" role="status"><Icon name="checkc" />요청을 수정했어요.</p>
+        <p className="note note-ok" role="status"><Icon name="checkc" /><span>요청을 수정했어요.</span></p>
       )}
 
       <div className="split">
         <RequestForm key={editing?.id ?? "new"} cycles={formCycles} initialCycleKey={sp.cycle} editing={editing} />
-        <div className="stack" style={{ gap: 16 }}>
+        <div className="rq-mine">
           {open.map((c, i) => {
             const b = budgets.get(c.id);
             return (
-              <section key={c.id} className="card" aria-labelledby={`mine-${c.id}`}>
-                <h2 className="t-heading" id={`mine-${c.id}`}>내 {roundLabel(c.month, today)} 요청 · {mine[i].length}권</h2>
+              <section key={c.id} className="split-col" aria-labelledby={`mine-${c.id}`}>
+                <div className="block-head">
+                  <h2 className="t-heading" id={`mine-${c.id}`}>내 {roundLabel(c.month, today)} 요청 · {mine[i].length}권</h2>
+                  {mine[i].length > 0 && <span>요청 → 장바구니 → 주문 → 배송</span>}
+                </div>
                 {mine[i].length ? (
                   <ul className="req-list">
                     {mine[i].map((r) => (
@@ -121,9 +121,8 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                   </ul>
                 ) : (
                   <div className="empty">
-                    <Icon name="book" />
                     <strong>아직 요청한 책이 없어요</strong>
-                    <p>왼쪽에서 첫 책을 요청해 보세요.</p>
+                    <p><span className="rq-left">왼쪽</span><span className="rq-up">위</span>에서 첫 책을 요청해 보세요.</p>
                   </div>
                 )}
                 <div className="sumline">

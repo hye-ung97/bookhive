@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icon";
 import type { CycleStatus } from "@/lib/types";
 import { createCycle, sendReminderNow, setCycleStatus, updateDeadlines, type ActionState } from "./actions";
@@ -14,8 +14,8 @@ export function SendReminderNow({ cycleId, count, alreadyToday }: { cycleId: str
     return result;
   }, null);
   return (
-    <div className="stack" style={{ gap: 8, justifyItems: "end" }}>
-      <button className="btn btn-primary" type="button" onClick={() => dialog.current?.showModal()}>
+    <div className="row-gap">
+      <button className="btn btn-sm" type="button" onClick={() => dialog.current?.showModal()}>
         <Icon name="hash" />지금 보내기
       </button>
       <Result state={state} />
@@ -46,11 +46,12 @@ function Result({ state }: { state: ActionState }) {
 
 type Transition = { to: CycleStatus; button: string; title: string; effect: string; warnings: string[]; primary: boolean };
 
-/** 단계 넘기기·되돌리기. 누르면 확인창(<dialog>)에서 효과와 남은 일을 보여주고 확정 */
+/** 단계 넘기기·되돌리기. 누르면 확인창(<dialog>)에서 효과와 남은 일을 보여주고 확정. 다음 단계 버튼은 오른쪽 끝 */
 export function StatusControl({ cycleId, transitions }: { cycleId: string; transitions: Transition[] }) {
+  const ordered = [...transitions].sort((a, b) => Number(a.primary) - Number(b.primary));
   return (
-    <div className="row-gap">
-      {transitions.map((t) => (
+    <div className="row-gap set-steps">
+      {ordered.map((t) => (
         <TransitionButton key={t.to} cycleId={cycleId} t={t} />
       ))}
     </div>
@@ -67,8 +68,9 @@ function TransitionButton({ cycleId, t }: { cycleId: string; t: Transition }) {
 
   return (
     <>
-      <button className={`btn btn-sm ${t.primary ? "btn-primary" : "btn-ghost"}`} type="button" onClick={() => dialog.current?.showModal()}>
+      <button className={`btn ${t.primary ? "btn-primary" : "btn-ghost"}`} type="button" onClick={() => dialog.current?.showModal()}>
         {t.button}
+        {t.primary && <Icon name="arrowR" />}
       </button>
       <dialog ref={dialog} className="dlg" aria-labelledby={`dlg-${t.to}`}>
         <form action={action} className="dlg-body">
@@ -102,12 +104,19 @@ function TransitionButton({ cycleId, t }: { cycleId: string; t: Transition }) {
   );
 }
 
-export function DeadlinesForm({ cycleId, request, journal, disabled }: { cycleId: string; request: string | null; journal: string | null; disabled: boolean }) {
+/** 마감일 두 칸 + children(1인 한도·참가자 같은 고정 값)을 한 줄 4칸으로 */
+export function DeadlinesForm({ cycleId, request, journal, disabled, children }: {
+  cycleId: string;
+  request: string | null;
+  journal: string | null;
+  disabled: boolean;
+  children?: ReactNode;
+}) {
   const [state, action, pending] = useActionState<ActionState, FormData>(updateDeadlines, null);
   return (
-    <form action={action} className="stack" style={{ gap: 12 }}>
+    <form action={action} className="block">
       <input type="hidden" name="cycleId" value={cycleId} />
-      <div className="form-grid">
+      <div className="set-kv">
         <div className="field">
           <label className="label" htmlFor="d-req">구매 요청 마감일</label>
           <input className="input" id="d-req" name="requestDeadline" type="date" defaultValue={request ?? ""} disabled={disabled} />
@@ -116,11 +125,12 @@ export function DeadlinesForm({ cycleId, request, journal, disabled }: { cycleId
           <label className="label" htmlFor="d-jrn">일지 마감일</label>
           <input className="input" id="d-jrn" name="journalDeadline" type="date" defaultValue={journal ?? ""} disabled={disabled} />
         </div>
+        {children}
       </div>
       {!disabled && (
-        <div className="row-gap" style={{ justifyContent: "space-between" }}>
-          <Result state={state} />
+        <div className="row-gap set-save">
           <button className="btn" type="submit" disabled={pending}>{pending ? "저장하는 중…" : "마감일 저장"}</button>
+          <Result state={state} />
         </div>
       )}
     </form>
@@ -144,8 +154,8 @@ export function CreateCycleForm({ suggestedMonth, memberCount }: { suggestedMont
   const [requestDeadline, setRequestDeadline] = useState<string | null>(null); // 직접 고치기 전엔 달에 맞춰 따라감
   const [journalDeadline, setJournalDeadline] = useState<string | null>(null);
   return (
-    <form action={action} className="stack" style={{ gap: 12 }}>
-      <div className="form-grid">
+    <form action={action} className="block">
+      <div className="set-new">
         <div className="field">
           <label className="label" htmlFor="nc-month">회차 (읽는 달)</label>
           <input className="input" id="nc-month" name="month" type="month" value={month} onChange={(e) => setMonth(e.target.value)} required />
@@ -159,16 +169,16 @@ export function CreateCycleForm({ suggestedMonth, memberCount }: { suggestedMont
           <input className="input" id="nc-jrn" name="journalDeadline" type="date" value={journalDeadline ?? defaultJournalDeadline(month)} onChange={(e) => setJournalDeadline(e.target.value)} />
         </div>
       </div>
-      <p className="note note-info">
+      <p className="note">
         <Icon name="info" />
         <span>만들면 바로 요청을 받기 시작해요. 활동 멤버 {memberCount}명 전원이 참가자로 들어가고, 1인 한도는 30,000원이에요.</span>
       </p>
-      <div className="row-gap" style={{ justifyContent: "space-between" }}>
-        <Result state={state} />
+      <div className="row-gap set-save">
         <button className="btn btn-primary" type="submit" disabled={pending}>
           <Icon name="plus" />
           {pending ? "만드는 중…" : "회차 만들기"}
         </button>
+        <Result state={state} />
       </div>
     </form>
   );

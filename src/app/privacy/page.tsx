@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Icon } from "@/components/icon";
 
 export const metadata: Metadata = { title: "개인정보처리방침" };
 
 // 로그인 없이 열리는 공개 페이지 (Google 로그인 동의 화면의 개인정보처리방침 링크)
 export default function PrivacyPage() {
   return (
-    <div className="login">
-      <div className="login-logo">
-        <Icon name="bookmark" />
-        <span className="serif">시끌북적</span>
-        <span className="t-cap">사내 독서 동아리</span>
-      </div>
-      <article className="login-card policy">
-        <h1 className="t-heading">개인정보처리방침</h1>
-        <p className="muted">시끌북적은 동아리 멤버만 쓰는 운영 사이트예요. 운영에 필요한 정보만 받고, 다른 목적으로 쓰지 않아요.</p>
+    <div className="solo">
+      <article className="solo-in policy">
+        <header className="solo-top">
+          <b>시끌북적</b>
+          <span>사내 독서 동아리</span>
+        </header>
+        <div className="solo-head">
+          <h1 className="t-title">개인정보처리방침</h1>
+          <p className="page-sub">시끌북적은 동아리 멤버만 쓰는 운영 사이트예요. 운영에 필요한 정보만 받고, 다른 목적으로 쓰지 않아요.</p>
+        </div>
 
         <section>
           <h2>받는 정보</h2>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           <p>동아리 총무에게 Slack으로 연락해 주세요.</p>
         </section>
 
-        <Link className="t-cap" href="/login">로그인으로 돌아가기</Link>
+        <Link className="link" href="/login">로그인으로 돌아가기</Link>
       </article>
     </div>
   );

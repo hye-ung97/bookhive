@@ -24,23 +24,21 @@ export default async function MePage() {
   return (
     <>
       <div className="page-head">
-        <div className="stack">
+        <div>
           <h1 className="t-title">내 기록</h1>
-          <p className="t-cap">회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p>
+          <p className="page-sub">회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p>
         </div>
       </div>
       {/* 모바일 하단 탭에는 벌점이 없어 여기서 들어간다 */}
-      <Link className="pen-me" href="/penalties">
-        <span className="pen-label">내 벌점</span>
-        <span className="go">전체 보기<Icon name="chevR" /></span>
-        <span className="full row-gap" style={{ gap: 12 }}>
-          <PenaltyPips total={penaltyTotal} size="md" />
-          <span className="pen-score md">{penaltyTotal}<small> / {PENALTY_OUT}점</small></span>
-        </span>
-        <span className="full t-cap">{penaltyStanding(penaltyTotal).message}</span>
+      <Link className="pen-strip" href="/penalties">
+        <span className="lbl">내 벌점</span>
+        <PenaltyPips total={penaltyTotal} />
+        <span className="score">{penaltyTotal}<small> / {PENALTY_OUT}점</small></span>
+        <span className="pen-msg">{penaltyStanding(penaltyTotal).message}</span>
+        <span className="link go">전체 보기</span>
       </Link>
       {!mine.length ? (
-        <div className="card"><div className="empty"><Icon name="history" /><strong>아직 기록이 없어요</strong></div></div>
+        <div className="empty"><strong>아직 기록이 없어요</strong></div>
       ) : (
         <div className="tl">
           {mine.map((c) => {
@@ -50,66 +48,87 @@ export default async function MePage() {
             const cf = coffee.filter((x) => x.cycle_id === c.id);
             const book = j ? rs.find((r) => r.id === j.purchase_request_id)?.title ?? j.legacy_book_title : null;
             const total = b?.budget ?? c.budget_per_person;
+            const label = roundLabel(c.month, today);
             return (
-              <section key={c.id} className={`tl-sec${c.status === "closed" ? " done" : ""}`} aria-label={roundLabel(c.month, today)}>
-                <div className="tl-head">
-                  <div className="row-gap">
-                    <span className="serif">{roundLabel(c.month, today)}</span>
-                    <CycleTag status={c.status} />
-                    {c.budget_note && <span className="t-cap">한도 {won(total)}원 · {c.budget_note}</span>}
-                  </div>
-                  {b && <span className="t-cap tnum">사용 {won(b.used)}{b.reserved ? ` · 커피 ${won(b.reserved)}` : ""} · 남음 {won(b.remaining)}</span>}
+              <section key={c.id} className={`tl-sec${c.status === "closed" ? " done" : ""}`} aria-label={label}>
+                {/* 데스크톱: 왼쪽 칸에 회차 이름 · 모바일: 굵은 줄 구역 머리 */}
+                <div className="tl-side">
+                  <h2 className="tl-round">{label}</h2>
+                  <CycleTag status={c.status} />
                 </div>
-                {b && <BudgetGauge budget={total} used={b.used} reserved={b.reserved} />}
-                <ul className="tl-list">
-                  {rs.map((r) => (
-                    <li key={r.id} className="tl-row">
-                      <span className="tl-kind">요청</span>
-                      <span className="tl-main">
-                        <span className="t">{r.title}</span>
-                        <span className="m">
-                          {STORE_NAME[r.store]} · {won(r.price)}원
-                          {r.purchase_store && r.purchase_store !== r.store ? ` · ${STORE_NAME[r.purchase_store]}에서 구매` : ""}
-                          {r.status === "ordered" && r.expected_arrival ? ` · 도착 예정 ${md(r.expected_arrival)}` : ""}
-                        </span>
+                <div className="tl-body">
+                  <div className="tl-money">
+                    <span>한도 <b>{won(total)}원</b>{c.budget_note && ` · ${c.budget_note}`}</span>
+                    {b && (
+                      <span>
+                        사용 <b>{won(b.used)}</b>
+                        {b.reserved ? <> · 커피 <b>{won(b.reserved)}</b></> : null}
+                        {" "}· 남음 <b>{won(b.remaining)}</b>
                       </span>
-                      <StatusBadge status={r.status} />
-                    </li>
-                  ))}
-                  <li className={`tl-row${j ? " tl-jr-row" : ""}`}>
-                    <span className="tl-kind">일지</span>
-                    <span className="tl-main">
+                    )}
+                  </div>
+                  {b && <BudgetGauge budget={total} used={b.used} reserved={b.reserved} />}
+                  <ul className="tl-rows">
+                    {rs.map((r) => (
+                      <li key={r.id}>
+                        <span className="k">요청</span>
+                        <span className="tl-main">
+                          <span className="t">{r.title}</span>
+                          <span className="m">
+                            {STORE_NAME[r.store]} · {won(r.price)}원
+                            {r.purchase_store && r.purchase_store !== r.store ? ` · ${STORE_NAME[r.purchase_store]}에서 구매` : ""}
+                            {r.status === "ordered" && r.expected_arrival ? ` · 도착 예정 ${md(r.expected_arrival)}` : ""}
+                          </span>
+                        </span>
+                        <StatusBadge status={r.status} />
+                      </li>
+                    ))}
+                    <li className={j ? "tl-jr-row" : undefined}>
+                      <span className="k">일지</span>
                       {j ? (
-                        // 닫혀 있을 땐 두 줄 미리보기, 펼치면 전문 (지난 회차 일지는 여기서만 다시 볼 수 있다)
-                        <details className="tl-jr">
+                        // 닫혀 있을 땐 한 줄 미리보기, 펼치면 전문 (지난 회차 일지는 여기서만 다시 볼 수 있다)
+                        <details className="tl-main tl-jr">
                           <summary>
-                            <span className="t">{book}</span>
+                            <span className="t">{book}<Icon name="chevD" className="tl-jr-chev" /></span>
                             <span className="tl-jr-pre" aria-hidden="true">{j.body}</span>
                           </summary>
                           <p className="tl-jr-body">{j.body}</p>
                         </details>
                       ) : c.status === "reading" ? (
-                        <>
-                          <span className="badge b-req"><Icon name="circle" />미작성</span>
-                          {c.journal_deadline && <span className="m">마감 {md(c.journal_deadline)}</span>}
-                          <Link className="link" href="/journal">일지 쓰기</Link>
-                        </>
+                        <span className="tl-main">
+                          <span className="t">미작성</span>
+                          <span className="m">
+                            {c.journal_deadline && <>마감 {md(c.journal_deadline)} · </>}
+                            <Link className="link" href="/journal">일지 쓰기</Link>
+                          </span>
+                        </span>
                       ) : c.status === "requesting" ? (
-                        <span className="m">책이 도착해 회차가 &quot;읽는 중&quot;이 되면 쓸 수 있어요</span>
+                        <span className="tl-main">
+                          <span className="t">아직 쓸 수 없어요</span>
+                          <span className="m">책이 도착해 회차가 &quot;읽는 중&quot;이 되면 쓸 수 있어요</span>
+                        </span>
                       ) : (
-                        <span className="m">제출하지 않았어요</span>
+                        <span className="tl-main"><span className="m">제출하지 않았어요</span></span>
                       )}
-                    </span>
-                    {j ? <span className="badge b-del"><Icon name="check" />제출 {md(kstToday(new Date(j.updated_at)))}</span> : <span />}
-                  </li>
-                  {cf.map((x) => (
-                    <li key={x.title} className="tl-row">
-                      <span className="tl-kind">잔액</span>
-                      <span className="tl-main"><span className="t">{won(x.amount)}원</span><span className="m">{x.title}</span></span>
-                      <span className="badge b-cof"><Icon name="coffee" />{x.status === "used" ? "커피 사용" : "커피 예약"}</span>
+                      {j ? (
+                        <span className="mark ok">제출 {md(kstToday(new Date(j.updated_at)))}</span>
+                      ) : c.status === "reading" ? (
+                        <span className="mark no">미작성</span>
+                      ) : c.status === "closed" ? (
+                        <span className="mark off">미작성</span>
+                      ) : (
+                        <span />
+                      )}
                     </li>
-                  ))}
-                </ul>
+                    {cf.map((x) => (
+                      <li key={x.title}>
+                        <span className="k">잔액</span>
+                        <span className="tl-main"><span className="t">{won(x.amount)}원</span><span className="m">{x.title}</span></span>
+                        <span className="mark cof">{x.status === "used" ? "커피 사용" : "커피 예약"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </section>
             );
           })}

@@ -3,41 +3,46 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Icon, type IconName } from "./icon";
 
-type NavItem = { href: string; label: string; short?: string; icon: IconName; noTab?: boolean };
+type NavItem = { href: string; label: string; short?: string; noTab?: boolean };
 
 const MEMBER_NAV: NavItem[] = [
-  { href: "/", label: "홈", icon: "home" },
-  { href: "/requests", label: "구매 요청", icon: "book" },
-  { href: "/journal", label: "일지 쓰기", short: "일지", icon: "pen" },
-  { href: "/me", label: "내 기록", icon: "history" },
-  // 모바일 하단 탭은 자리가 모자라 넣지 않는다. 내 기록 맨 위 카드에서 들어간다
-  { href: "/penalties", label: "벌점", icon: "flag", noTab: true },
+  { href: "/", label: "홈" },
+  { href: "/requests", label: "구매 요청" },
+  { href: "/journal", label: "일지 쓰기", short: "일지" },
+  { href: "/me", label: "내 기록" },
+  // 모바일 하단 탭은 자리가 모자라 넣지 않는다. 내 기록 맨 위 벌점 줄에서 들어간다
+  { href: "/penalties", label: "벌점", noTab: true },
 ];
-const ADMIN_NAV: NavItem[] = [
-  { href: "/admin/rounds", label: "회차 현황", icon: "table" },
-  { href: "/admin/orders", label: "주문·배송", icon: "truck" },
-  { href: "/admin/members", label: "멤버", icon: "users" },
-  { href: "/admin/settings", label: "설정", icon: "bell" },
+export const ADMIN_NAV: NavItem[] = [
+  { href: "/admin/rounds", label: "회차 현황", short: "회차" },
+  { href: "/admin/orders", label: "주문·배송" },
+  { href: "/admin/members", label: "멤버" },
+  { href: "/admin/settings", label: "설정" },
 ];
 
-const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+export const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
-/** 데스크톱 사이드바(1024px 미만은 아이콘 레일) + 모바일 상단 바·하단 탭 */
+/** 데스크톱 왼쪽 목차 + 모바일 위 막대·하단 글자 탭. 지금 화면은 검게 뒤집는다 */
 export function AppShell({ me, children }: { me: { name: string; isAdmin: boolean; roleTitle: string | null }; children: ReactNode }) {
   const pathname = usePathname();
+  // 모두의 일지는 메뉴에 따로 없고 일지 쓰기에서 들어가므로 일지 쓰기에 불을 켠다
+  const navActive = (href: string) => isActive(pathname, href) || (href === "/journal" && isActive(pathname, "/journals"));
   const link = (item: NavItem) => (
-    <Link key={item.href} className="nav" href={item.href} aria-current={isActive(pathname, item.href) ? "page" : undefined} title={item.label}>
-      <Icon name={item.icon} />
-      <span className="lbl">{item.label}</span>
+    <Link key={item.href} className="nav" href={item.href} aria-current={navActive(item.href) ? "page" : undefined}>
+      {item.label}
     </Link>
   );
-  const tabs: NavItem[] = [...MEMBER_NAV.filter((t) => !t.noTab), ...(me.isAdmin ? [{ href: "/admin/rounds", label: "운영", icon: "grid" as const }] : [])];
+  const tabs: NavItem[] = [...MEMBER_NAV.filter((t) => !t.noTab), ...(me.isAdmin ? [{ href: "/admin/rounds", label: "운영" }] : [])];
   // 탭에 없는 화면은 들어오는 탭에 불을 켠다 (운영 화면 → 운영, 벌점 → 내 기록)
   const tabActive = (href: string) =>
-    href.startsWith("/admin") ? isActive(pathname, "/admin") : isActive(pathname, href) || (href === "/me" && isActive(pathname, "/penalties"));
+    href.startsWith("/admin") ? isActive(pathname, "/admin") : navActive(href) || (href === "/me" && isActive(pathname, "/penalties"));
   const initial = me.name.slice(-2, -1) || me.name[0];
+  const signout = (
+    <form className="signout" action="/auth/signout" method="post">
+      <button type="submit">로그아웃</button>
+    </form>
+  );
 
   return (
     <div className="app-frame">
@@ -45,8 +50,8 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
         <aside className="side" aria-label="사이드바">
           <div className="side-inner">
             <Link className="logo" href="/">
-              <Icon name="bookmark" />
-              <span className="logo-txt serif">시끌북적</span>
+              <b>시끌북적</b>
+              <span>독서 동아리</span>
             </Link>
             <nav className="navlist" aria-label="메뉴">
               {MEMBER_NAV.map(link)}
@@ -58,42 +63,45 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
               )}
             </nav>
             <div className="who">
-              <span className="avatar" aria-hidden="true">{initial}</span>
-              <div className="who-txt">
-                <b>{me.name}</b>
-                <span>{me.roleTitle ?? (me.isAdmin ? "관리자" : "멤버")}</span>
-              </div>
-              <form action="/auth/signout" method="post">
-                <button className="icon-btn" type="submit" aria-label="로그아웃" title="로그아웃">
-                  <Icon name="logout" />
-                </button>
-              </form>
+              <b>{me.name}</b>
+              {me.roleTitle ?? (me.isAdmin ? "관리자" : "멤버")}
+              <br />
+              {signout}
             </div>
           </div>
         </aside>
         <div className="maincol">
           <header className="appbar">
-            <Link className="logo" href="/">
-              <Icon name="bookmark" />
-              <span className="logo-txt serif">시끌북적</span>
-            </Link>
-            <form action="/auth/signout" method="post">
-              <button className="icon-btn" type="submit" aria-label="로그아웃">
-                <Icon name="logout" />
-              </button>
-            </form>
+            <Link className="logo" href="/">시끌북적</Link>
+            <div className="appbar-right">
+              {signout}
+              <span className="mono" aria-hidden="true">{initial}</span>
+            </div>
           </header>
           <main>{children}</main>
         </div>
         <nav className="tabs" aria-label="하단 메뉴">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} aria-current={tabActive(t.href) ? "page" : undefined}>
-              <Icon name={t.icon} />
-              <span>{t.short ?? t.label}</span>
+              {t.short ?? t.label}
             </Link>
           ))}
         </nav>
       </div>
     </div>
+  );
+}
+
+/** 모바일 운영 화면 위 운영 메뉴 4칸 (데스크톱은 왼쪽 목차에 있어 CSS로 숨긴다) */
+export function AdminNav() {
+  const pathname = usePathname();
+  return (
+    <nav className="anav" aria-label="운영 메뉴">
+      {ADMIN_NAV.map((item) => (
+        <Link key={item.href} href={item.href} aria-current={isActive(pathname, item.href) ? "page" : undefined}>
+          {item.short ?? item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

@@ -26,9 +26,10 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
   const cycle = findByKey(cycles, sp.round) ?? readingCycle(cycles) ?? openCycles(cycles)[0] ?? cycles[0];
   if (!cycle) {
     return (
-      <div className="card">
-        <div className="empty"><Icon name="table" /><strong>아직 회차가 없어요</strong><p>설정에서 첫 회차를 만들어 주세요.</p></div>
-      </div>
+      <>
+        <div className="page-head"><h1 className="t-title">회차 현황</h1></div>
+        <div className="empty"><strong>아직 회차가 없어요</strong><p>설정에서 첫 회차를 만들어 주세요.</p></div>
+      </>
     );
   }
 
@@ -47,12 +48,22 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
   const requested = rows.filter((r) => r.request_count > 0).length;
   const key = roundKey(cycle.month);
 
+  const filters = (
+    <div className="seg" role="group" aria-label="필터">
+      {FILTERS.map(([v, l]) => (
+        <Link key={v} href={`/admin/rounds?round=${key}${v === "all" ? "" : `&filter=${v}`}`} aria-current={filter === v} scroll={false}>
+          {l}
+        </Link>
+      ))}
+    </div>
+  );
+
   return (
     <>
       <div className="page-head">
-        <div className="stack">
+        <div>
           <h1 className="t-title">회차 현황</h1>
-          <p className="t-cap">
+          <p className="page-sub">
             1인 한도 {won(cycle.budget_per_person)}원{cycle.budget_note ? ` (${cycle.budget_note})` : ""} · 참가 {rows.length}명 · 회비 {won(fee)}원
           </p>
         </div>
@@ -63,10 +74,10 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
       </div>
 
       <div className="tiles">
-        <div className="tile"><span>요청한 사람</span><b>{requested} / {rows.length}명</b></div>
-        <div className="tile"><span>도서 사용</span><b>{won(used)}원</b></div>
-        <div className="tile"><span>커피 (예약·사용)</span><b>{won(reserved)}원</b></div>
-        <div className="tile"><span>남은 예산</span><b>{won(fee - used - reserved)}원</b></div>
+        <div className="tile"><span>요청한 사람</span><b>{requested}<small>/ {rows.length}명</small></b></div>
+        <div className="tile"><span>도서 사용</span><b>{won(used)}<small>원</small></b></div>
+        <div className="tile"><span>커피 (예약·사용)</span><b>{won(reserved)}<small>원</small></b></div>
+        <div className="tile"><span>남은 예산</span><b>{won(fee - used - reserved)}<small>원</small></b></div>
       </div>
 
       <DocLinks key={cycle.id} cycleId={cycle.id} title={`회사 제출 문서 · ${roundLabel(cycle.month, today)}`}
@@ -74,26 +85,23 @@ export default async function RoundsPage({ searchParams }: { searchParams: Promi
 
       {cycle.status === "requesting" && (
         <p className="note note-warn">
-          <Icon name="alert" />요청 중인 회차예요. 커피 예정으로 묶은 잔액은 그 사람이 책 요청에 쓸 수 없게 돼요.
+          <Icon name="alert" /><span>요청 중인 회차예요. 커피 예정으로 묶은 잔액은 그 사람이 책 요청에 쓸 수 없게 돼요.</span>
         </p>
       )}
 
-      <section className="block" aria-labelledby="ppl-h">
+      <section className="block ppl" aria-labelledby="ppl-h">
         <div className="block-head">
           <h2 className="t-heading" id="ppl-h">사람별 예산</h2>
-          <div className="seg" role="group" aria-label="필터">
-            {FILTERS.map(([v, l]) => (
-              <Link key={v} href={`/admin/rounds?round=${key}${v === "all" ? "" : `&filter=${v}`}`} aria-current={filter === v} scroll={false}>
-                {l}
-              </Link>
-            ))}
-          </div>
+          <div className="only-desk">{filters}</div>
         </div>
+        <div className="only-mob">{filters}</div>
         <BudgetTable key={cycle.id} cycleId={cycle.id} rows={shown} canPlan={cycle.status !== "closed"} defaultTitle={`${md(today)} 커피`} />
       </section>
 
-      <section className="card" aria-labelledby="cof-h">
-        <h2 className="t-heading" id="cof-h">커피 묶음 · {roundLabel(cycle.month, today)}</h2>
+      <section className="block" style={{ gap: 0 }} aria-labelledby="cof-h">
+        <div className="block-head">
+          <h2 className="t-heading" id="cof-h">커피 묶음 · {roundLabel(cycle.month, today)}</h2>
+        </div>
         <CoffeePlans plans={plans} cycleKey={key} />
       </section>
     </>

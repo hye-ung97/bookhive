@@ -68,10 +68,14 @@ export function CartDropZone({ bundleId, label, children }: { bundleId: string; 
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
   };
   return (
-    <article className={`card${over ? " is-drop" : ""}`} aria-label={`${label} 묶음`} aria-busy={pending}
+    <article className={`bundle${over ? " is-drop" : ""}`} aria-label={`${label} 묶음`} aria-busy={pending}
       onDragOver={dragOver} onDragLeave={dragLeave} onDrop={drop}>
       {children}
-      {pending ? <p className="msg msg-info" role="status"><Icon name="info" />담는 중…</p> : <Result state={state} />}
+      {(pending || state) && (
+        <div className="bundle-msg">
+          {pending ? <p className="msg msg-info" role="status"><Icon name="info" />담는 중…</p> : <Result state={state} />}
+        </div>
+      )}
     </article>
   );
 }
@@ -90,7 +94,7 @@ export function CancelItem({ requestId, title }: { requestId: string; title: str
     );
   }
   return (
-    <span className="row-gap" role="group" aria-label={`${title} 품절 취소 확인`}>
+    <span className="row-gap bk-confirm" role="group" aria-label={`${title} 품절 취소 확인`}>
       <span className="t-cap">금액이 멤버 잔액으로 돌아가요</span>
       <button className="btn btn-sm btn-danger" type="button" disabled={pending}
         onClick={() => start(async () => { setState(await cancelBundleItem(requestId)); setConfirming(false); })}>
@@ -119,8 +123,8 @@ export function OpenAllLinks({ links, hint }: { links: string[]; hint: string })
   return (
     <div className="stack" style={{ gap: 8 }}>
       <div className="openall">
-        <span className="row-gap" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}><Icon name="info" />{hint}</span>
         <button className="btn btn-sm btn-primary" type="button" onClick={open}><Icon name="link" />링크 모두 열기 · {links.length}</button>
+        <span className="hint">{hint}</span>
       </div>
       {result && (result.blocked ? (
         <p className="note note-warn" role="alert">
@@ -189,8 +193,8 @@ export function CartPanel({ base, books, requestTotal, receipts }: {
   const formId = `order-${base.bundleId}`;
 
   return (
-    <div className="stack" style={{ gap: 12 }}>
-      <div className="bform">
+    <div className="stack" style={{ gap: 14 }}>
+      <div className="order-form">
         <div className="field">
           <label className="label" htmlFor={`od-${base.bundleId}`}>주문일</label>
           <input className="input" id={`od-${base.bundleId}`} form={formId} name="orderedAt" type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} />
@@ -217,9 +221,9 @@ export function CartPanel({ base, books, requestTotal, receipts }: {
         </div>
       </div>
       {missing && <p className="msg msg-err" role="alert"><Icon name="alertc" />주문일·도착 예정일·실결제액을 입력해 주세요.</p>}
-      <div className="row-gap" style={{ justifyContent: "space-between" }}>
-        <span className="t-cap">장바구니에 담긴 요청은 멤버가 수정·삭제할 수 없어요.</span>
-        <span className="row-gap">
+      <div className="bundle-foot">
+        <span className="hint">장바구니에 담긴 요청은 멤버가 수정·삭제할 수 없어요.</span>
+        <span className="row-gap bundle-acts">
           <DissolveButton bundleId={base.bundleId} label={base.label} count={base.count} />
           <button className="btn btn-primary" type="button" onClick={open}><Icon name="hash" />주문완료 처리 · Slack 공지</button>
         </span>
@@ -239,7 +243,7 @@ export function CartPanel({ base, books, requestTotal, receipts }: {
             <label className="label" htmlFor={`om-${base.bundleId}`}>문구 수정</label>
             <textarea className="textarea" id={`om-${base.bundleId}`} name="message" value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
-          <label className="radio"><input type="checkbox" name="skip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Slack 공지 없이 처리만</label>
+          <label className="att-item"><input type="checkbox" name="skip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Slack 공지 없이 처리만</label>
           <Result state={state} />
           <div className="dlg-acts">
             <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.close()}>취소</button>
@@ -310,7 +314,7 @@ export function DeliverButton({ base, books, receipts, orderSentAt }: {
             <label className="label" htmlFor={`dm-${base.bundleId}`}>문구 수정</label>
             <textarea className="textarea" id={`dm-${base.bundleId}`} name="message" value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
-          <label className="radio"><input type="checkbox" name="skip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Slack 공지 없이 처리만</label>
+          <label className="att-item"><input type="checkbox" name="skip" checked={skip} onChange={(e) => setSkip(e.target.checked)} />Slack 공지 없이 처리만</label>
           <input type="hidden" name="bundleId" value={base.bundleId} />
           <input type="hidden" name="cycleId" value={base.cycleId} />
           <Result state={state} />

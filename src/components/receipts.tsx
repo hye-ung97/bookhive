@@ -131,31 +131,29 @@ export function Receipts({
   return (
     <div className="stack" style={{ gap: 8 }}>
       <div
-        className={`receipts${dragging ? " is-drag" : ""}`}
+        className={`rc${dragging ? " is-drag" : ""}`}
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDragging(true); } }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
         onDrop={onDrop}
       >
-        <span className="t-cap">{label}</span>
-        {warnIfEmpty && !receipts.length && !pending.length && <span className="badge b-warn">영수증 없음</span>}
+        <span className="rc-label">{label}</span>
+        {warnIfEmpty && !receipts.length && !pending.length && <span className="mark no">영수증 없음</span>}
         {receipts.map((r) => {
           const pdf = r.mime === "application/pdf";
           const link = /^https?:\/\//.test(r.external_ref ?? "") ? r.external_ref! : null;
           return (
-            <div key={r.id} className="rcpt">
+            <div key={r.id} className="rc-file">
               <a className="rc-open" href={link ?? `/admin/receipts/${r.id}`} target="_blank" rel="noopener noreferrer" aria-label={`영수증 ${r.file_name} 새 탭에서 보기`}>
                 {link ? (
-                  <span className="rc-ic"><Icon name="link" /></span>
+                  <Icon name="link" />
                 ) : r.thumb_url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- 1시간짜리 signed URL이라 next/image 최적화 대상이 아님
                   <img src={r.thumb_url} alt="" />
                 ) : (
-                  <span className={`rc-ic${pdf ? " pdf" : ""}`}>{pdf ? "PDF" : <Icon name="receipt" />}</span>
+                  <Icon name={pdf ? "file" : "receipt"} />
                 )}
-                <span className="rc-txt">
-                  <span className="rc-name">{r.file_name}</span>
-                  <span className="rc-meta">{r.size_bytes ? fmtSize(r.size_bytes) : link ? (/drive\.google|docs\.google/.test(link) ? "Google Drive" : "링크") : "시트 기록"}</span>
-                </span>
+                <span className="rc-name">{r.file_name}</span>
+                <small>{r.size_bytes ? fmtSize(r.size_bytes) : link ? (/drive\.google|docs\.google/.test(link) ? "Google Drive" : "링크") : "시트 기록"}</small>
               </a>
               <button className="rc-x" type="button" aria-label={`영수증 ${r.file_name} 삭제`} title="삭제" onClick={() => setConfirmId(r.id)}>
                 <Icon name="x" />
@@ -164,18 +162,16 @@ export function Receipts({
           );
         })}
         {pending.map((p) => (
-          <div key={p.key} className="rcpt is-busy" aria-busy="true">
-            <span className="rc-ic"><Icon name="receipt" /></span>
-            <span className="rc-txt">
-              <span className="rc-name">{p.name}</span>
-              <span className="rc-meta">{p.label}</span>
-            </span>
+          <div key={p.key} className="rc-file is-busy" aria-busy="true">
+            <Icon name="receipt" />
+            <span className="rc-name">{p.name}</span>
+            <small>{p.label}</small>
           </div>
         ))}
-        <label className="btn btn-sm rc-add" htmlFor={inputId}>
+        <label className="rc-add" htmlFor={inputId}>
           <Icon name="plus" />이미지·PDF
         </label>
-        <button className="btn btn-sm rc-add" type="button" aria-expanded={linkOpen} onClick={() => setLinkOpen((v) => !v)}>
+        <button className="rc-add" type="button" aria-expanded={linkOpen} onClick={() => setLinkOpen((v) => !v)}>
           <Icon name="link" />링크
         </button>
         <input
@@ -192,7 +188,7 @@ export function Receipts({
           <input className="input" type="url" required placeholder="https://drive.google.com/file/d/…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} aria-label="영수증 링크" />
           <input className="input" placeholder="이름 (선택)" value={linkName} onChange={(e) => setLinkName(e.target.value)} aria-label="영수증 이름" maxLength={200} />
           <button className="btn btn-sm btn-primary" type="submit">붙이기</button>
-          <span className="t-cap">Google Drive에 올린 영수증은 동아리 운영진이 볼 수 있게 공유 설정을 확인해 주세요.</span>
+          <span className="hint">Google Drive에 올린 영수증은 동아리 운영진이 볼 수 있게 공유 설정을 확인해 주세요.</span>
         </form>
       )}
       {confirming && (

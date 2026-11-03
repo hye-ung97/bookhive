@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
 import { PENALTY_OUT } from "@/lib/penalties";
 import { addPenalty, deletePenalty, type ActionState } from "./actions";
@@ -36,7 +36,7 @@ export function AddPenaltyButton({ members, today }: { members: PenaltyMember[];
   const after = target ? target.total + points : 0;
   return (
     <>
-      <button className="btn btn-primary" type="button" onClick={() => dialog.current?.showModal()}>
+      <button className="btn btn-primary pen-add" type="button" onClick={() => dialog.current?.showModal()}>
         <Icon name="plus" />
         벌점 추가
       </button>
@@ -94,6 +94,8 @@ export function AddPenaltyButton({ members, today }: { members: PenaltyMember[];
 /** 운영진: 잘못 넣은 벌점 지우기. 지우면 누적이 몇 점이 되는지 보여 주고 확인받는다 */
 export function DeletePenaltyButton({ item }: { item: PenaltyItem }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  // 데스크톱 표와 모바일 목록에 한 번씩 그려지므로 제목 id는 그릴 때마다 따로 만든다
+  const headingId = useId();
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await deletePenalty(prev, fd);
     if (result?.ok) dialog.current?.close();
@@ -104,9 +106,9 @@ export function DeletePenaltyButton({ item }: { item: PenaltyItem }) {
       <button className="btn btn-sm btn-ghost" type="button" aria-label={`${item.when} ${item.name} 벌점 지우기`} onClick={() => dialog.current?.showModal()}>
         지우기
       </button>
-      <dialog ref={dialog} className="dlg" aria-labelledby={`pen-del-${item.id}`}>
+      <dialog ref={dialog} className="dlg" aria-labelledby={headingId}>
         <form action={action} className="dlg-body">
-          <h2 id={`pen-del-${item.id}`}>이 벌점을 지울까요?</h2>
+          <h2 id={headingId}>이 벌점을 지울까요?</h2>
           <p className="fixed-val tnum">{item.when} · {item.name} · +{item.points}점 · {item.reason}</p>
           <p className="muted">지우면 {item.name} 님의 누적 벌점이 {item.total}점 → {item.after}점이 돼요. 잘못 넣은 기록을 지울 때 써요.</p>
           <input type="hidden" name="id" value={item.id} />

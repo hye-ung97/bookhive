@@ -32,12 +32,9 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
     return (
       <>
         <div className="page-head"><h1 className="t-title">모두의 일지</h1></div>
-        <div className="card">
-          <div className="empty">
-            <Icon name="users" />
-            <strong>아직 일지를 쓴 회차가 없어요</strong>
-            <p>책이 도착해 회차가 &quot;읽는 중&quot;이 되면 일지가 올라와요.</p>
-          </div>
+        <div className="empty">
+          <strong>아직 일지를 쓴 회차가 없어요</strong>
+          <p>책이 도착해 회차가 &quot;읽는 중&quot;이 되면 일지가 올라와요.</p>
         </div>
       </>
     );
@@ -53,16 +50,16 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <div className="page-head">
-        <div className="stack">
-          <h1 className="t-title row-gap"><span className="serif">{label}</span> 모두의 일지 <CycleTag status={cycle.status} /></h1>
-          <p className="t-cap tnum">{journals.length}편 · 동아리 멤버 모두가 읽을 수 있어요</p>
+        <div>
+          <h1 className="t-title">{label} 모두의 일지 <CycleTag status={cycle.status} /></h1>
+          <p className="page-sub">{journals.length}편 · 동아리 멤버 모두가 읽을 수 있어요</p>
         </div>
         {rounds.length > 1 && (
           <RoundPicker rounds={rounds.map((c) => ({ key: roundKey(c.month), label: roundLabel(c.month, today) }))} current={key} />
         )}
       </div>
       {cycle.status === "reading" && !wrote && (
-        <p className="note note-info">
+        <p className="note">
           <Icon name="pen" />
           <span>아직 이 회차 일지를 쓰지 않았어요. <Link className="link" href={`/journal?round=${key}`}>일지 쓰기</Link></span>
         </p>
@@ -73,37 +70,35 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
             <Icon name="file" />CSV 내려받기
           </a>
           {sheetEnabled() && <UploadJournals key={key} round={key} />}
+          <span className="hint">운영진에게만 보여요</span>
         </div>
       )}
       {pending.length > 0 && (
-        <div className="row-gap" role="group" aria-label="일지를 안 쓴 사람">
+        <div className="chips" role="group" aria-label="일지를 안 쓴 사람">
           {/* 회차를 마감하면 더 쓸 수 없으니 "아직"을 뗀다 */}
-          <span className="t-cap tnum">{cycle.status === "closed" ? "" : "아직 "}안 쓴 사람 {pending.length}명</span>
+          <span className="chips-label">{cycle.status === "closed" ? "" : "아직 "}안 쓴 사람 {pending.length}명</span>
           {pending.map((p) => (
-            <span key={p.member_id} className="badge b-off">{p.name}{p.member_id === me.id ? " (나)" : ""}</span>
+            <span key={p.member_id} className={`chip${p.member_id === me.id ? " me" : ""}`}>{p.name}{p.member_id === me.id ? " (나)" : ""}</span>
           ))}
         </div>
       )}
       {journals.length ? (
-        <div className="jr-list">
+        <div className="jr-grid">
           {journals.map((j) => (
-            <article key={j.id} className="card" aria-labelledby={`jr-${j.id}`}>
-              <div className="block-head">
-                <h2 className="t-heading" id={`jr-${j.id}`}>{j.book ?? "일지"}</h2>
-                <span className="t-cap tnum">
+            <article key={j.id} className="jr" aria-labelledby={`jr-${j.id}`}>
+              <div className="jr-head">
+                <h2 id={`jr-${j.id}`}>{j.book ?? "일지"}</h2>
+                <span>
                   {j.name}{j.member_id === me.id ? " (나)" : ""} · {md(kstToday(new Date(j.updated_at)))}
                 </span>
               </div>
-              <p className="view-body">{j.body}</p>
+              <p>{j.body}</p>
             </article>
           ))}
         </div>
       ) : (
-        <div className="card">
-          <div className="empty">
-            <Icon name="users" />
-            <strong>{label}에 올라온 일지가 아직 없어요</strong>
-          </div>
+        <div className="empty">
+          <strong>{label}에 올라온 일지가 아직 없어요</strong>
         </div>
       )}
     </>

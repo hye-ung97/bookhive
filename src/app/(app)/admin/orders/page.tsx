@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CYCLE_STATUS_LABEL, StatusBadge } from "@/components/badges";
+import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { Receipts } from "@/components/receipts";
 import { RoundPicker } from "@/components/round-picker";
@@ -36,20 +36,35 @@ function NoticeLine({ b, kind, cycleId }: { b: BundleView; kind: "order_done" | 
   );
 }
 
+/** 묶음 단계 정거장: 지난 단계는 검은 점, 지금 단계는 빨간 고리. 배송완료면 셋 다 지난 단계 */
+function Stops({ status }: { status: BundleView["status"] }) {
+  const idx = ORDER[status];
+  return (
+    <ol className="stops" aria-label="진행 단계">
+      {STEPS.map((s, n) => {
+        const done = n < idx || status === "delivered";
+        const now = !done && n === idx;
+        return <li key={s} className={done ? "done" : now ? "now" : undefined} aria-current={now ? "step" : undefined}>{s}</li>;
+      })}
+    </ol>
+  );
+}
+
 /** 시트에서 옮긴 지출: 어떤 요청이 들어갔는지 모르므로 결제액과 영수증만 보여 준다 */
 function LegacyBundleCard({ b, cycleKey }: { b: BundleView; cycleKey: string }) {
   const label = bundleLabel(b);
   return (
-    <article className="card" aria-label={`${label} 묶음`}>
-      <div className="bundle-h">
-        <h3>{label}</h3>
-        <span className="badge b-off">시트 기록</span>
+    <article className="bundle past" aria-label={`${label} 묶음`}>
+      <div className="bundle-head">
+        <h3>{label}<small>시트 기록</small></h3>
+        <span className="bundle-meta">
+          주문 {b.ordered_at ? md(b.ordered_at) : "-"} · 결제 {won(b.paid_amount ?? 0)}원{b.note ? ` · ${b.note}` : ""}
+        </span>
       </div>
-      <p className="diff">
-        주문 {b.ordered_at ? md(b.ordered_at) : "-"} · 결제 {won(b.paid_amount ?? 0)}원{b.note ? ` · ${b.note}` : ""}
-      </p>
-      <p className="t-cap">시트에서 옮긴 지출이라 어떤 요청이 들어갔는지는 연결돼 있지 않아요.</p>
-      <Receipts owner={{ kind: "bundle", id: b.id, cycleKey }} receipts={b.receipts} label="영수증·주문 내역" />
+      <div className="bundle-body">
+        <p className="hint">시트에서 옮긴 지출이라 어떤 요청이 들어갔는지는 연결돼 있지 않아요.</p>
+        <Receipts owner={{ kind: "bundle", id: b.id, cycleKey }} receipts={b.receipts} label="영수증·주문 내역" />
+      </div>
     </article>
   );
 }
@@ -60,7 +75,6 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
   const active = b.items.filter((i) => i.status !== "cancelled");
   const names = active.map((i) => i.member_name);
   const cross = active.filter((i) => i.store !== b.store).length;
-  const idx = ORDER[b.status];
   const diff = b.paid_amount != null ? b.paid_amount - b.request_total : null;
   const base = { bundleId: b.id, cycleId, round, label, names, count: active.length };
   const books = active.map((i) => ({ name: i.member_name, title: i.title }));
@@ -68,75 +82,75 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
   const cartLinks = b.status === "cart" && buyStore ? active.map((i) => buyLink(i, buyStore)) : [];
   const searches = cartLinks.filter((l) => l.kind === "search").length;
 
+  const head = (
+    <div className="bundle-head">
+      <h3>{label}</h3>
+      <span className="bundle-meta">{active.length}권 · {new Set(names).size}명 · 요청액 {won(b.request_total)}원</span>
+      <Stops status={b.status} />
+    </div>
+  );
   const body = (
-    <>
-      <div className="bundle-h">
-        <h3>{label}</h3>
-        <StatusBadge status={b.status} />
-      </div>
-      {cartLinks.length > 0 && (
-        <OpenAllLinks
-          links={cartLinks.map((l) => l.href)}
-          hint={`책 ${cartLinks.length}권 링크를 새 탭으로 열어요. 탭마다 장바구니만 누르면 돼요.${searches ? ` ${searches}권은 ${STORE_NAME[b.store]} 검색 결과로 열려요.` : ""}`}
-        />
-      )}
-      <div className="bitems">
+    <div className="bundle-body">
+      <ul className="bk-rows">
         {b.items.map((i) => {
           const buy = buyStore && i.store !== buyStore ? buyLink(i, buyStore) : null;
+          const cancelled = i.status === "cancelled";
           return (
-            <div key={i.id} className={`bitem${i.status === "cancelled" ? " is-cancelled" : ""}`}>
+            <li key={i.id} className={cancelled ? "is-cancelled" : undefined}>
               <span className="t">
-                {i.title} <span className="t-cap">· {i.member_name}</span>
-                {i.store !== b.store && <> <span className="xstore">{STORE_NAME[i.store]} 요청 → {STORE_NAME[b.store]} 구매</span></>}
+                <span className="tt">{i.title}</span>
+                {i.store !== b.store && (
+                  <span className="x">
+                    <span className="xstore">{STORE_NAME[i.store]} 요청 → {STORE_NAME[b.store]} 구매</span>
+                    {buy && (
+                      <a className="link" href={buy.href} target="_blank" rel="noopener">
+                        {STORE_NAME[b.store]}{buy.kind === "product" ? " 상품 페이지" : "에서 찾기"}
+                      </a>
+                    )}
+                  </span>
+                )}
               </span>
-              <span className="num tnum">{won(i.price)}</span>
-              <span>
-                {b.status === "cart" && <RemoveItem requestId={i.id} title={i.title} />}
-                {b.status === "ordered" && i.status !== "cancelled" && <CancelItem requestId={i.id} title={i.title} />}
-                {i.status === "cancelled" && <span className="badge b-off">품절 취소</span>}
-              </span>
-              <span className="blinks">
+              <span className="bk-who">{i.member_name}</span>
+              <span className="lnk">
                 {i.url && (
-                  <a className="blink" href={i.url} target="_blank" rel="noopener" aria-label={`${i.title} ${STORE_NAME[i.store]} 상품 페이지 열기`}>
-                    <Icon name="link" /><span>{shortUrl(i.url)}</span>
-                  </a>
-                )}
-                {buy && (
-                  <a className="blink" href={buy.href} target="_blank" rel="noopener">
-                    <Icon name="link" /><span>{STORE_NAME[b.store]}{buy.kind === "product" ? " 상품 페이지" : "에서 찾기"}</span>
+                  <a className="link" href={i.url} target="_blank" rel="noopener" title={shortUrl(i.url)} aria-label={`${i.title} ${STORE_NAME[i.store]} 상품 페이지 열기`}>
+                    상품 페이지
                   </a>
                 )}
               </span>
-            </div>
+              <span className="num">{won(i.price)}원</span>
+              <span className="acts">
+                {b.status === "cart" && <RemoveItem requestId={i.id} title={i.title} />}
+                {b.status === "ordered" && !cancelled && <CancelItem requestId={i.id} title={i.title} />}
+                {cancelled && <span className="mark off">품절 취소</span>}
+              </span>
+            </li>
           );
         })}
-      </div>
-      <p className="t-cap tnum">
-        {active.length}권 · {new Set(names).size}명 · 요청액 {won(b.request_total)}원
-        {cross > 0 && ` · 다른 서점 요청 ${cross}권 포함 (한도는 요청 금액 기준, 가격 차이는 결제액 차액으로 남아요)`}
-      </p>
-      <div className="steps" aria-label="진행 단계">
-        {STEPS.map((s, n) => (
-          <span key={s} className="row-gap" style={{ gap: 8, flex: n ? 1 : "none" }}>
-            {n > 0 && <i className={`step-line${n <= idx ? " done" : ""}`} />}
-            <span className={`step${n <= idx ? " done" : ""}`}><i className="dot" /><span>{s}</span></span>
-          </span>
-        ))}
-      </div>
+      </ul>
+      {cross > 0 && <p className="hint">다른 서점 요청 {cross}권 포함 (한도는 요청 금액 기준, 가격 차이는 결제액 차액으로 남아요)</p>}
 
       {b.status === "cart" ? (
         <>
+          {cartLinks.length > 0 && (
+            <OpenAllLinks
+              links={cartLinks.map((l) => l.href)}
+              hint={`책 ${cartLinks.length}권 링크를 새 탭으로 열어요. 탭마다 장바구니만 누르면 돼요.${searches ? ` ${searches}권은 ${STORE_NAME[b.store]} 검색 결과로 열려요.` : ""}`}
+            />
+          )}
           <Receipts owner={{ kind: "bundle", id: b.id, cycleKey }} receipts={b.receipts} label="영수증·주문 내역" />
           <CartPanel base={base} books={books} requestTotal={b.request_total} receipts={b.receipts} />
         </>
       ) : (
         <>
-          <p className="diff">
+          <p className="bundle-meta">
             주문 {b.ordered_at ? md(b.ordered_at) : "-"}
             {b.expected_arrival && ` · 도착 예정 ${md(b.expected_arrival)}`}
-            {b.delivered_at && ` · 배송완료 ${md(b.delivered_at)}`} · 요청액 {won(b.request_total)}원 · 결제 {won(b.paid_amount ?? 0)}원
+            {b.delivered_at && ` · 배송완료 ${md(b.delivered_at)}`} · 요청액 {won(b.request_total)}원 · 결제 <b>{won(b.paid_amount ?? 0)}원</b>
             {diff !== null && ` · 차액 ${diff > 0 ? "+" : ""}${won(diff)}원`}
           </p>
+          <NoticeLine b={b} kind="order_done" cycleId={cycleId} />
+          <NoticeLine b={b} kind="delivery_done" cycleId={cycleId} />
           <Receipts
             owner={{ kind: "bundle", id: b.id, cycleKey }}
             receipts={b.receipts}
@@ -144,9 +158,7 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
             warnIfEmpty
             lastDeleteWarning="삭제하면 이 묶음에 영수증이 하나도 남지 않아요."
           />
-          <NoticeLine b={b} kind="order_done" cycleId={cycleId} />
-          <NoticeLine b={b} kind="delivery_done" cycleId={cycleId} />
-          <div className="row-gap" style={{ justifyContent: "space-between" }}>
+          <div className="bundle-foot">
             <RevertButton bundleId={b.id} to={b.status === "delivered" ? "주문완료" : "장바구니"} />
             {b.status === "ordered" && (
               <DeliverButton base={base} books={books} receipts={b.receipts}
@@ -155,12 +167,12 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
           </div>
         </>
       )}
-    </>
+    </div>
   );
   // 장바구니 묶음만 미배정 요청을 끌어다 놓을 수 있다
   return b.status === "cart"
-    ? <CartDropZone bundleId={b.id} label={label}>{body}</CartDropZone>
-    : <article className="card" aria-label={`${label} 묶음`}>{body}</article>;
+    ? <CartDropZone bundleId={b.id} label={label}>{head}{body}</CartDropZone>
+    : <article className={`bundle${b.status === "delivered" ? " past" : ""}`} aria-label={`${label} 묶음`}>{head}{body}</article>;
 }
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ round?: string }> }) {
@@ -170,7 +182,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const cycles = await listCycles();
   const cycle = findByKey(cycles, sp.round) ?? openCycles(cycles)[0] ?? readingCycle(cycles) ?? cycles[0];
   if (!cycle) {
-    return <div className="card"><div className="empty"><Icon name="truck" /><strong>아직 회차가 없어요</strong></div></div>;
+    return (
+      <>
+        <div className="page-head"><h1 className="t-title">주문·배송</h1></div>
+        <div className="empty"><strong>아직 회차가 없어요</strong></div>
+      </>
+    );
   }
 
   const [unassigned, bundles] = await Promise.all([unassignedRequests(cycle.id), bundlesForCycle(cycle.id)]);
@@ -191,9 +208,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <div className="page-head">
-        <div className="stack">
+        <div>
           <h1 className="t-title">주문·배송</h1>
-          <p className="t-cap">요청을 구매처별 묶음으로 담고, 주문·배송 상태와 영수증을 관리해요.</p>
+          <p className="page-sub">요청을 구매처별 묶음으로 담고, 주문·배송 상태와 영수증을 관리해요.</p>
         </div>
         <RoundPicker
           rounds={cycles.map((c) => ({ key: roundKey(c.month), label: `${roundLabel(c.month, today)} · ${CYCLE_STATUS_LABEL[c.status]}` }))}
@@ -212,9 +229,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           {sorted.length ? (
             sorted.map((b) => <BundleCard key={b.id} b={b} cycleId={cycle.id} cycleKey={cycleKey} round={round} />)
           ) : (
-            <div className="card">
-              <div className="empty"><Icon name="truck" /><strong>아직 묶음이 없어요</strong><p>왼쪽에서 요청을 골라 묶음에 담아 보세요.</p></div>
-            </div>
+            <div className="empty"><strong>아직 묶음이 없어요</strong><p>왼쪽에서 요청을 골라 묶음에 담아 보세요.</p></div>
           )}
         </section>
       </div>

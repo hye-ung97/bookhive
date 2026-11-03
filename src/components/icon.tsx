@@ -86,6 +86,7 @@ const PATHS = {
   ),
   chevL: <path d="m15 18-6-6 6-6" />,
   chevR: <path d="m9 18 6-6-6-6" />,
+  chevD: <path d="m6 9 6 6 6-6" />,
   plus: <path d="M12 5v14M5 12h14" />,
   link: (
     <>

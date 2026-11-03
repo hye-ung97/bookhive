@@ -38,7 +38,7 @@ export function JournalForm({
   const [state, action, pending] = useActionState<ActionState, FormData>(saveJournal, null);
 
   const n = countChars(body);
-  const counterClass = n > JOURNAL_MAX ? "count red" : n >= 450 ? "count amber" : "count";
+  const counterClass = n > JOURNAL_MAX ? "j-count over" : n >= 450 ? "j-count near" : "j-count";
 
   async function makeDraft() {
     inflight.current?.abort();
@@ -84,7 +84,7 @@ export function JournalForm({
 
   return (
     <div className="split split-j">
-      <form action={action} className="card" aria-label="일지 작성">
+      <form action={action} className="form" aria-label="일지 작성">
         <input type="hidden" name="cycleId" value={cycleId} />
         <input type="hidden" name="round" value={round} />
         <input type="hidden" name="aiAssisted" value={aiUsed ? "1" : "0"} />
@@ -124,8 +124,13 @@ export function JournalForm({
           />
         </div>
         <div className="j-foot">
-          <span id="j-count" className={counterClass} aria-live="polite">
-            {n > JOURNAL_MAX ? `${n} / ${JOURNAL_MAX}자 · ${n - JOURNAL_MAX}자 줄여 주세요` : `${n} / ${JOURNAL_MAX}자`}
+          <span className={counterClass}>
+            <span id="j-count" className="j-num" aria-live="polite">
+              {n > JOURNAL_MAX ? `${n} / ${JOURNAL_MAX}자 · ${n - JOURNAL_MAX}자 줄여 주세요` : `${n} / ${JOURNAL_MAX}자`}
+            </span>
+            <span className="j-bar" aria-hidden="true">
+              <span style={{ width: `${Math.min(100, (n / JOURNAL_MAX) * 100)}%` }} />
+            </span>
           </span>
           <span className="row-gap">
             {initial && <Link className="btn btn-ghost" href={`/journal?round=${round}`}>취소</Link>}
@@ -140,57 +145,61 @@ export function JournalForm({
             <button className="link" type="button" onClick={() => { setBody(undo); setUndo(null); }}>되돌리기</button>
           </p>
         )}
-        {state && !state.ok && <p className="note note-danger" role="alert"><Icon name="alertc" />{state.message}</p>}
+        {state && !state.ok && <p className="note note-danger" role="alert"><Icon name="alertc" /><span>{state.message}</span></p>}
       </form>
 
-      <aside className="ai" aria-label="AI 초안">
+      <aside className="ai-panel" aria-label="AI 초안">
         <div className="ai-head">
           <h2><Icon name="spark" />AI 초안</h2>
-          <span className="badge b-off tnum">오늘 남은 횟수 {aiLeft}/10</span>
+          <span>오늘 남은 횟수 {aiLeft}/10</span>
         </div>
-        <p className="note note-warn"><Icon name="alert" />무료 AI라 입력 내용이 학습에 쓰일 수 있어요. 개인정보·회사 정보는 넣지 마세요.</p>
-        {ai === "idle" && (
-          <>
-            <p className="muted">고른 책의 소개글과 메모를 바탕으로 350~450자 초안을 만들어요. 결과를 확인한 뒤 본문에 넣을 수 있어요.</p>
-            <div className="ai-acts">
-              <button className="btn btn-sm btn-primary" type="button" onClick={makeDraft} disabled={!aiLeft || !bookId}><Icon name="spark" />초안 만들기</button>
-            </div>
-          </>
-        )}
-        {ai === "loading" && (
-          <>
-            <div className="ai-out" aria-busy="true"><div className="skel" style={{ width: "92%" }} /><div className="skel" /><div className="skel" style={{ width: "76%" }} /></div>
-            <div className="ai-acts"><button className="btn btn-sm btn-ghost" type="button" onClick={() => { inflight.current?.abort(); setAi("idle"); }}>취소</button></div>
-          </>
-        )}
-        {ai === "result" && (
-          <>
-            <p className="t-cap tnum">결과 · {countChars(draft)}자 · 책 소개와 내 메모를 바탕으로 만들었어요</p>
-            <div className="ai-out">{draft}</div>
-            <p className="t-cap">AI 초안이에요. 내 말로 다듬어 주세요.</p>
-            <div className="ai-acts">
-              <button className="btn btn-sm" type="button" onClick={makeDraft} disabled={!aiLeft}>다시 만들기 · 1회 차감</button>
-              <button className="btn btn-sm btn-primary" type="button" onClick={insertDraft}>본문에 넣기</button>
-            </div>
-          </>
-        )}
-        {(ai === "failed" || ai === "quota" || ai === "noprovider") && (
-          <>
-            <p className={`note ${ai === "failed" ? "note-danger" : "note-info"}`}>
-              <Icon name={ai === "failed" ? "alertc" : "info"} />
-              {ai === "failed" && "지금은 초안을 만들 수 없어요. 횟수는 차감하지 않았어요."}
-              {ai === "quota" && "오늘은 다 썼어요. 내일 다시 10회 쓸 수 있어요."}
-              {ai === "noprovider" && "AI 키가 아직 설정되지 않았어요."}{" "}
-              프롬프트를 복사해서 다른 AI 도구에 붙여넣을 수 있어요.
-            </p>
-            <div className="ai-acts">
-              <button className="btn btn-sm" type="button" onClick={copyPrompt} disabled={!prompt}><Icon name="copy" />프롬프트 복사</button>
-              {ai === "failed" && <button className="btn btn-sm btn-primary" type="button" onClick={makeDraft}>다시 시도</button>}
-            </div>
-            {copied === "ok" && <p className="msg msg-ok"><Icon name="checkc" />복사했어요. 다른 AI 도구에 붙여넣어 주세요.</p>}
-            {copied === "manual" && <textarea className="textarea" readOnly value={prompt} aria-label="프롬프트" onFocus={(e) => e.currentTarget.select()} />}
-          </>
-        )}
+        <div className="ai-body">
+          <p className="note note-warn"><Icon name="alert" /><span>무료 AI라 입력 내용이 학습에 쓰일 수 있어요. 개인정보·회사 정보는 넣지 마세요.</span></p>
+          {ai === "idle" && (
+            <>
+              <p className="ai-txt">고른 책의 소개글과 메모를 바탕으로 350~450자 초안을 만들어요. 결과를 확인한 뒤 본문에 넣을 수 있어요.</p>
+              <div className="row-gap">
+                <button className="btn btn-sm btn-primary" type="button" onClick={makeDraft} disabled={!aiLeft || !bookId}><Icon name="spark" />초안 만들기</button>
+              </div>
+            </>
+          )}
+          {ai === "loading" && (
+            <>
+              <div className="ai-out" aria-busy="true"><div className="skel" style={{ width: "92%" }} /><div className="skel" /><div className="skel" style={{ width: "76%" }} /></div>
+              <div className="row-gap"><button className="btn btn-sm btn-ghost" type="button" onClick={() => { inflight.current?.abort(); setAi("idle"); }}>취소</button></div>
+            </>
+          )}
+          {ai === "result" && (
+            <>
+              <p className="hint">결과 · {countChars(draft)}자 · 책 소개와 내 메모를 바탕으로 만들었어요</p>
+              <div className="ai-out">{draft}</div>
+              <p className="hint">AI 초안이에요. 내 말로 다듬어 주세요.</p>
+              <div className="row-gap">
+                <button className="btn btn-sm" type="button" onClick={makeDraft} disabled={!aiLeft}>다시 만들기 · 1회 차감</button>
+                <button className="btn btn-sm btn-primary" type="button" onClick={insertDraft}>본문에 넣기</button>
+              </div>
+            </>
+          )}
+          {(ai === "failed" || ai === "quota" || ai === "noprovider") && (
+            <>
+              <p className={`note${ai === "failed" ? " note-danger" : ""}`}>
+                <Icon name={ai === "failed" ? "alertc" : "info"} />
+                <span>
+                  {ai === "failed" && "지금은 초안을 만들 수 없어요. 횟수는 차감하지 않았어요."}
+                  {ai === "quota" && "오늘은 다 썼어요. 내일 다시 10회 쓸 수 있어요."}
+                  {ai === "noprovider" && "AI 키가 아직 설정되지 않았어요."}{" "}
+                  프롬프트를 복사해서 다른 AI 도구에 붙여넣을 수 있어요.
+                </span>
+              </p>
+              <div className="row-gap">
+                <button className="btn btn-sm" type="button" onClick={copyPrompt} disabled={!prompt}><Icon name="copy" />프롬프트 복사</button>
+                {ai === "failed" && <button className="btn btn-sm btn-primary" type="button" onClick={makeDraft}>다시 시도</button>}
+              </div>
+              {copied === "ok" && <p className="msg msg-ok"><Icon name="checkc" />복사했어요. 다른 AI 도구에 붙여넣어 주세요.</p>}
+              {copied === "manual" && <textarea className="textarea" readOnly value={prompt} aria-label="프롬프트" onFocus={(e) => e.currentTarget.select()} />}
+            </>
+          )}
+        </div>
       </aside>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CycleTag } from "@/components/badges";
+import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { requireAdmin } from "@/lib/auth";
 import { activeMemberCount, cycleBudgets, cycleWarnings, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
@@ -43,8 +43,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const cycle = findByKey(cycles, sp.round) ?? openCycles(cycles)[0] ?? readingCycle(cycles) ?? cycles[0];
 
   const create = (
-    <section className="card" aria-labelledby="new-h">
-      <h2 className="t-heading" id="new-h">새 회차 만들기</h2>
+    <section className="block set-create" id="new-cycle" aria-labelledby="new-h">
+      <div className="block-head">
+        <h2 className="t-heading" id="new-h">새 회차 만들기</h2>
+      </div>
       <CreateCycleForm suggestedMonth={nextMonth(cycles, today)} memberCount={memberCount} />
     </section>
   );
@@ -52,7 +54,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   if (!cycle) {
     return (
       <>
-        <div className="page-head"><h1 className="t-title">설정</h1></div>
+        <div className="page-head">
+          <h1 className="t-title">설정</h1>
+        </div>
         {create}
       </>
     );
@@ -75,6 +79,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const label = roundLabel(cycle.month, today);
   const fee = participants.reduce((a, p) => a + p.budget, 0);
   const i = PHASES.findIndex(([s]) => s === cycle.status);
+  const current = (c: Cycle) => (c.id === cycle.id ? ("page" as const) : undefined);
 
   const closeWarnings = [
     warn.plannedCoffee && `사용완료 처리 안 된 커피 예정 ${warn.plannedCoffee}건`,
@@ -99,51 +104,71 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         effect: "일지 작성과 수정이 다시 열려요.", warnings: [] },
     ],
   }[cycle.status];
+  // 다음 단계로 넘기기 전에 남은 일은 버튼 왼쪽에 빨간 줄로 (확인창에도 그대로 나온다)
+  const nextWarnings = transitions.find((t) => t.primary)?.warnings ?? [];
 
   return (
     <>
       <div className="page-head">
-        <div className="stack">
+        <div>
           <h1 className="t-title">설정</h1>
-          <p className="t-cap">요청 마감·회차 마감은 직접 눌러요. 마감일은 D-day 표시와 알림 기준일이에요.</p>
+          <p className="page-sub">요청 마감·회차 마감은 직접 눌러요. 마감일은 D-day 표시와 알림 기준일이에요.</p>
         </div>
       </div>
       {sp.created && <p className="note note-ok" role="status"><Icon name="checkc" />{label}를 만들었어요. 지금부터 요청을 받아요.</p>}
 
-      <div className="alerts-grid">
+      {/* 좁은 화면: 회차 목록을 가로 칸으로 */}
+      <nav className="m-cyc" aria-label="회차 목록">
+        {cycles.map((c) => (
+          <Link key={c.id} href={`/admin/settings?round=${roundKey(c.month)}`} aria-current={current(c)}>
+            {roundLabel(c.month, today).replace(/ 회차$/, "")}
+            <small>{CYCLE_STATUS_LABEL[c.status]}</small>
+          </Link>
+        ))}
+        <a href="#new-cycle">+ 새 회차</a>
+      </nav>
+
+      <div className="set-grid">
         <nav className="cyc-list" aria-label="회차 목록">
           {cycles.map((c) => (
-            <Link key={c.id} className="cyc-item" href={`/admin/settings?round=${roundKey(c.month)}`} aria-current={c.id === cycle.id}>
-              <span className="serif">{roundLabel(c.month, today)}</span>
-              <CycleTag status={c.status} />
+            <Link key={c.id} className="cyc-item" href={`/admin/settings?round=${roundKey(c.month)}`} aria-current={current(c)}>
+              {roundLabel(c.month, today)}
+              <small>{CYCLE_STATUS_LABEL[c.status]}</small>
             </Link>
           ))}
+          <a className="cyc-item cyc-new" href="#new-cycle"><Icon name="plus" />새 회차 만들기</a>
         </nav>
 
-        <div className="stack" style={{ gap: 16 }}>
-          <section className="card" aria-labelledby="cs-h">
-            <h2 className="t-heading" id="cs-h">{label} 설정</h2>
-            <div className="phase" aria-label="회차 단계">
-              {PHASES.map(([s, l], n) => (
-                <span key={s} className="row-gap" style={{ gap: 6 }}>
-                  {n > 0 && <span className="ph-arrow" aria-hidden="true"><Icon name="chevR" /></span>}
-                  <span className={`ph${n === i ? " now" : n < i ? " done" : ""}`} aria-current={n === i ? "step" : undefined}>
-                    {n + 1}. {l}
-                  </span>
-                </span>
-              ))}
+        <div className="set-main">
+          <section className="block" aria-labelledby="cs-h">
+            <div className="block-head">
+              <h2 className="t-heading" id="cs-h">{label} 설정</h2>
             </div>
-            <p className="muted">{NOW[cycle.status]}</p>
-            <StatusControl key={cycle.id + cycle.status} cycleId={cycle.id} transitions={transitions} />
-            <hr className="sep" />
+            <ol className="phase" aria-label="회차 단계">
+              {PHASES.map(([s, l], n) => (
+                <li key={s} className={n === i ? "now" : undefined} aria-current={n === i ? "step" : undefined}>
+                  <b>{n + 1} · {l}</b>
+                  {NOW[s]}
+                </li>
+              ))}
+            </ol>
+            <div className="set-next">
+              {nextWarnings.length > 0 && (
+                <div className="set-warn">
+                  {nextWarnings.map((w) => (
+                    <p key={w} className="msg msg-err"><Icon name="alert" />{w}</p>
+                  ))}
+                </div>
+              )}
+              <StatusControl key={cycle.id + cycle.status} cycleId={cycle.id} transitions={transitions} />
+            </div>
             <DeadlinesForm
               key={cycle.id}
               cycleId={cycle.id}
               request={cycle.request_deadline}
               journal={cycle.journal_deadline}
               disabled={cycle.status === "closed"}
-            />
-            <div className="form-grid">
+            >
               <div className="field">
                 <span className="label">1인 한도</span>
                 <div className="fixed-val tnum">{won(cycle.budget_per_person)}원 · {cycle.budget_note ?? "고정"}</div>
@@ -152,11 +177,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <span className="label">참가자</span>
                 <div className="fixed-val tnum">{participants.length}명 · 회비 {won(fee)}원</div>
               </div>
-            </div>
+            </DeadlinesForm>
           </section>
-          <section className="card" aria-labelledby="nt-h">
-            <h2 className="t-heading row-gap" id="nt-h"><Icon name="bell" />Slack 알림</h2>
-            <p className="note note-info">
+
+          <section className="block" aria-labelledby="nt-h">
+            <div className="block-head">
+              <h2 className="t-heading" id="nt-h">Slack 알림</h2>
+              <span>평일 오전 9시대 · 동아리 채널</span>
+            </div>
+            {slackConfig().dryRun && (
+              <p className="note note-warn"><Icon name="alert" />Slack이 아직 연결되지 않아 실제로 보내지 않고 기록만 남겨요.</p>
+            )}
+            <p className="note">
               <Icon name="info" />
               <span>
                 마감일부터 제출할 때까지 <b>평일 오전 9시대</b>, 동아리 채널에 미제출자를 멘션해요. 채널에는 제목, 스레드에는 멘션과 사이트 바로가기 버튼이 붙고,
@@ -164,31 +196,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 주문완료·배송완료 공지는 주문·배송 화면에서 처리할 때 함께 보내요.
               </span>
             </p>
-            <p className="note note-info">
-              <Icon name="info" />
-              <span>
-                멤버가 책을 요청하거나 일지를 처음 쓰면 <b>총무</b>에게 Slack DM을 보내요(받는 사람: {treasurers?.length ? treasurers.map((t) => t.name).join(", ") : "없음"}).
-                멤버 화면에서 운영진 직함에 &quot;총무&quot;가 들어간 사람이 받아요.
-              </span>
-            </p>
-            {failedDms && failedDms.length > 0 && (
-              <p className="note note-warn"><Icon name="alert" />이 회차 총무 알림 {failedDms.length}건을 보내지 못했어요: {failedDms[0].error}</p>
-            )}
-            {slackConfig().dryRun && (
-              <p className="note note-warn"><Icon name="alert" />Slack이 아직 연결되지 않아 실제로 보내지 않고 기록만 남겨요.</p>
-            )}
             {cycle.status === "closed" ? (
               <p className="muted">마감된 회차라 알림이 없어요.</p>
             ) : (
               <>
                 <ReminderBlock kind="request_reminder" cycle={cycle} reminder={requestReminder} today={today} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("request_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
-                <hr className="sep" />
                 <ReminderBlock kind="journal_reminder" cycle={cycle} reminder={journalReminder} today={today} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("journal_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
               </>
             )}
+            <p className="hint">
+              멤버가 책을 요청하거나 일지를 처음 쓰면 <b>총무</b>에게 Slack DM을 보내요(받는 사람: {treasurers?.length ? treasurers.map((t) => t.name).join(", ") : "없음"}).
+              멤버 화면에서 운영진 직함에 &quot;총무&quot;가 들어간 사람이 받아요.
+            </p>
+            {failedDms && failedDms.length > 0 && (
+              <p className="note note-warn"><Icon name="alert" />이 회차 총무 알림 {failedDms.length}건을 보내지 못했어요: {failedDms[0].error}</p>
+            )}
             {logs.length > 0 && (
               <div className="tbl-wrap">
-                <table className="tbl">
+                <table className="tbl" aria-label="알림 기록">
                   <thead>
                     <tr><th>일시</th><th>종류</th><th>방식</th><th>결과</th></tr>
                   </thead>
@@ -199,7 +224,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                         <td>{NOTICE_KIND[l.kind] ?? l.kind}</td>
                         <td>{l.trigger === "cron" ? "자동" : l.trigger === "manual" ? "수동" : "처리 시"}</td>
                         <td>
-                          <span className={`badge ${l.status === "sent" ? "b-del" : l.status === "failed" ? "b-warn" : "b-off"}`}>
+                          <span className={`mark ${l.status === "sent" ? "ok" : l.status === "failed" ? "warn" : "off"}`}>
                             {l.status === "sent" ? "보냄" : l.status === "failed" ? "실패" : l.status === "skipped" ? "기록만" : "대기"}
                           </span>
                         </td>
@@ -210,6 +235,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               </div>
             )}
           </section>
+
           {create}
         </div>
       </div>
@@ -233,17 +259,21 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
   // 요청을 마감한 뒤의 구매 요청 알림은 끝난 것
   if (isRequest && !active) {
     return (
-      <div className="block-head">
-        <b>{name}</b>
-        <span className="t-cap">요청을 마감해서 더 보내지 않아요</span>
+      <div className="remind">
+        <div className="remind-head">
+          <b>{name}</b>
+          <span>요청을 마감해서 더 보내지 않아요</span>
+        </div>
       </div>
     );
   }
   if (!deadline || !reminder) {
     return (
-      <div className="block-head">
-        <b>{name}</b>
-        <span className="t-cap">{isRequest ? "구매 요청" : "일지"} 마감일을 정하면 그날부터 알림이 나가요</span>
+      <div className="remind">
+        <div className="remind-head">
+          <b>{name}</b>
+          <span>{isRequest ? "구매 요청" : "일지"} 마감일을 정하면 그날부터 알림이 나가요</span>
+        </div>
       </div>
     );
   }
@@ -257,50 +287,61 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
   const previewDay = active ? today : deadline > today ? deadline : today;
   const message = buildReminderMessage(reminder, previewDay);
 
+  const skipped = reminder.skipped.length > 0 && (
+    <div className="chips">
+      <span className="chips-label">알림에서 뺀 사람</span>
+      {reminder.skipped.map((t) => (
+        <form key={t.memberId} action={toggleReminderSkip} className="chip">
+          <span className="muted">{t.name}</span>
+          <input type="hidden" name="cycleId" value={cycle.id} />
+          <input type="hidden" name="memberId" value={t.memberId} />
+          <input type="hidden" name="skip" value="0" />
+          <button className="badge-x badge-undo" type="submit" aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
+        </form>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="stack" style={{ gap: 10 }}>
-      <div className="block-head">
+    <div className="remind">
+      <div className="remind-head">
         <b>{name} · 미제출 {reminder.targets.length}명</b>
-        <span className="t-cap">{schedule}</span>
+        <span>{schedule}</span>
       </div>
       {reminder.targets.length ? (
-        <>
-          <div className="row-gap">
-            {reminder.targets.map((t) => (
-              <form key={t.memberId} action={toggleReminderSkip} className={`badge ${t.slackConnected ? "b-off" : "b-warn"}`}>
-                {t.name}{t.slackConnected ? "" : " · Slack 미연결"}
-                <input type="hidden" name="cycleId" value={cycle.id} />
-                <input type="hidden" name="memberId" value={t.memberId} />
-                <input type="hidden" name="skip" value="1" />
-                <button className="badge-x" type="submit" aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
-                  <Icon name="x" />
-                </button>
-              </form>
-            ))}
+        <div className="remind-body">
+          <div>
+            <div className="chips">
+              {reminder.targets.map((t) => (
+                <form key={t.memberId} action={toggleReminderSkip} className="chip">
+                  <span>{t.name}{!t.slackConnected && <span className="muted"> · Slack 미연결</span>}</span>
+                  <input type="hidden" name="cycleId" value={cycle.id} />
+                  <input type="hidden" name="memberId" value={t.memberId} />
+                  <input type="hidden" name="skip" value="1" />
+                  <button className="badge-x" type="submit" aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
+                    <Icon name="x" />
+                  </button>
+                </form>
+              ))}
+            </div>
+            <p className="hint">지금 기준 대상이에요. {isRequest ? "요청하면" : "일지를 쓰면"} 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
+            {reminder.targets.some((t) => !t.slackConnected) && (
+              <p className="hint">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
+            )}
+            {skipped}
           </div>
-          {!active && <p className="t-cap">지금 기준 대상이에요. 일지를 쓰면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>}
-          {reminder.targets.some((t) => !t.slackConnected) && (
-            <p className="t-cap">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
-          )}
-          <p className="t-cap">{active ? "지금 보내면 나가는 메시지" : `${md(previewDay)} 첫 알림 미리보기`}</p>
-          <SlackPreview text={message.title} thread={{ text: message.text, button: message.button?.text }} />
-          {active && <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={alreadyToday} />}
-        </>
+          <div>
+            <p className="hint">{active ? "지금 보내면 나가는 메시지" : `${md(previewDay)} 첫 알림 미리보기`}</p>
+            <SlackPreview text={message.title} thread={{ text: message.text, button: message.button?.text }} />
+            {active && <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={alreadyToday} />}
+          </div>
+        </div>
       ) : (
-        <p className="note note-ok"><Icon name="checkc" />{isRequest ? "모두 요청했어요." : "모두 제출했어요."}</p>
-      )}
-      {reminder.skipped.length > 0 && (
-        <div className="row-gap">
-          <span className="t-cap">알림에서 뺀 사람</span>
-          {reminder.skipped.map((t) => (
-            <form key={t.memberId} action={toggleReminderSkip} className="badge b-off">
-              {t.name}
-              <input type="hidden" name="cycleId" value={cycle.id} />
-              <input type="hidden" name="memberId" value={t.memberId} />
-              <input type="hidden" name="skip" value="0" />
-              <button className="badge-x badge-undo" type="submit" aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
-            </form>
-          ))}
+        <div className="remind-body is-one">
+          <div>
+            <p className="note note-ok"><Icon name="checkc" />{isRequest ? "모두 요청했어요." : "모두 제출했어요."}</p>
+            {skipped}
+          </div>
         </div>
       )}
     </div>
