@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { ReadingRoom } from "./reading-room";
 
 type NavItem = { href: string; label: string; short?: string; noTab?: boolean };
 
@@ -107,6 +108,7 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
           ))}
         </nav>
       </div>
+      <ReadingRoom />
     </div>
   );
 }

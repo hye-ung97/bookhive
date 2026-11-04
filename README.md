@@ -12,7 +12,7 @@
 
 ```bash
 npm install
-npm run db:start            # 로컬 Supabase (DB·인증·메일함). 처음엔 이미지 받느라 몇 분 걸림
+npm run db:start            # 로컬 Supabase (DB·인증·메일함·Realtime). 처음엔 이미지 받느라 몇 분 걸림
 cp .env.example .env.local  # npx supabase status 의 PUBLISHABLE_KEY, SECRET_KEY를 채우고 NEXT_PUBLIC_DEV_EMAIL_LOGIN=true
 npm run db:reset            # 마이그레이션 + 예시 데이터(supabase/seed.sql)
 npm run dev                 # http://localhost:3000
@@ -51,6 +51,14 @@ AI 키: `GEMINI_API_KEY`(https://aistudio.google.com/apikey), `GROQ_API_KEY`(htt
 크론: `CRON_SECRET`을 Vercel 환경변수에 넣으면 Vercel이 `Authorization: Bearer <값>`으로 부른다. 로컬 확인은 `curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/daily`.
 
 Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:write`, `users:read`, `users:read.email`), `SLACK_CHANNEL_ID`를 넣고 `SLACK_DRY_RUN=false`. 봇을 공지 채널에 초대해야 한다. 값이 없으면 실제로 보내지 않고 "기록만 남김"으로 처리되며, 나중에 [공지 다시 보내기]로 보낼 수 있다.
+
+## 같이 읽는 중
+
+- 로그인 후 모든 화면에서, 지금 이 탭을 보고 있는 멤버 수만큼 본문 오른쪽 빈칸 바닥 선반에 동물이 앉아 책을 읽는다. 이름은 안 나오고 숫자(`같이 읽는 중 7명`)와 내 캐릭터 위 `나` 딱지만 보인다
+- Supabase Realtime Presence 비공개 채널 `reading-room`. `realtime.messages` RLS(`can_join_reading_room`)가 활동 멤버만 들여보낸다. presence에는 브라우저마다 만든 무작위 키와 동물 번호만 싣는다(멤버 id 없음). 같은 브라우저의 탭 여러 개는 한 마리
+- 동물은 들어올 때 아무도 안 쓰는 것 중 무작위(25마리, `src/components/readers/`). 다른 탭으로 가면 일어나고 돌아오면 다시 앉는다. 모바일(768px 미만)은 연결하지 않는다
+- 빈칸이 두 마리 폭보다 좁으면(화면 폭 약 1600px 미만) 숨긴다. 숨겨져도 접속 수에는 잡힌다. 계산은 `src/lib/reading-room.ts`, 시안은 Doan 캔버스 `reading-room-drafts`
+- 로컬 확인: `npm run db:start`가 Realtime도 띄운다. 이미 Realtime 없이 띄워 두었다면 `npx supabase stop` 후 다시 `npm run db:start`(데이터는 남는다)
 
 ## 모두의 일지 시트 연결
 
@@ -93,8 +101,8 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 
 ```bash
 npm run typecheck && npm run lint
-npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)·벌점 누적
-npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점 (140개)
+npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)·벌점 누적·같이 읽는 중 자리 계산
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한 (171개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 

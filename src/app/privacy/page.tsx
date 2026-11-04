@@ -25,13 +25,14 @@ export default function PrivacyPage() {
             <li>독서 일지 (동아리 멤버 모두가 읽을 수 있음)와 AI 초안을 만들 때 적은 메모 (메모는 저장하지 않음)</li>
             <li>영수증·주문 내역 이미지 (운영진만 열람)</li>
             <li>Slack 계정 ID (마감 알림·배송 공지에서 멘션)</li>
+            <li>지금 사이트를 보고 있는지: 화면 구석 &lsquo;같이 읽는 중&rsquo; 동물 수로만 보여 줘요. 이름은 나누지 않고 저장하지도 않아요</li>
           </ul>
         </section>
 
         <section>
           <h2>함께 쓰는 서비스</h2>
           <ul>
-            <li>Supabase(서울 리전): 로그인과 데이터 저장</li>
+            <li>Supabase(서울 리전): 로그인, 데이터 저장, 같이 읽는 중 접속 상태 나누기</li>
             <li>Vercel: 사이트 실행</li>
             <li>Slack: 동아리 채널 공지</li>
             <li>Google 스프레드시트: 운영진이 [시트에 올리기]를 누르면 회차의 일지(이름·책·본문)를 동아리 시트에 복사</li>

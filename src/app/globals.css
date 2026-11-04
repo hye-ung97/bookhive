@@ -969,7 +969,39 @@ html:has(> body > .login), body:has(> .login) { height: 100%; }
   .order-form > .field:last-child { grid-column: 1 / -1; }
   .un-form .btn-primary { height: 52px; font-size: 16px; }
 }
+/* ───────── 같이 읽는 중: 본문 오른쪽 빈칸 바닥에 지금 보고 있는 멤버 수만큼 동물이 앉는다 ───────── */
+/* 한 칸 56 × 선반 66. 맨 아래는 굵은 검은 선반, 위 선반은 얇은 회색 줄(맨 윗줄 위에는 긋지 않는다). 클릭은 그대로 아래로 지나간다 */
+.rr { position: fixed; right: 24px; bottom: 24px; z-index: 3; pointer-events: none; user-select: none; }
+.rr-t { margin-bottom: 4px; font: 600 12px/16px var(--font-sans); color: var(--ink2); }
+.rr-t b { margin-left: 4px; font: 800 15px/20px var(--font-sans); color: var(--ink); }
+.rr-seats {
+  display: flex; flex-wrap: wrap-reverse; align-items: flex-end; column-gap: 4px; border-bottom: 2px solid var(--ink);
+  background: repeating-linear-gradient(to top, transparent 0 65px, var(--rule) 65px 66px) left bottom / 100% calc(100% - 1px) no-repeat;
+}
+.rr-seat { display: flex; flex: none; align-items: flex-end; justify-content: center; width: 56px; height: 66px; transform-origin: 50% 100%; animation: rr-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.rr-seat.out { animation: rr-leave 240ms ease-in both; }
+.rr-pal { position: relative; display: block; transform-origin: 50% 100%; animation: rr-sway 3.6s ease-in-out var(--ds, 0s) infinite alternate; }
+.rr-pal img { display: block; transform-origin: 50% 100%; animation: rr-breathe 2.6s ease-in-out var(--db, 0s) infinite; }
+/* 내 캐릭터 위 작은 '나' 딱지 (지금 화면을 검게 뒤집는 것과 같은 방식) */
+.rr-seat.me .rr-pal::before { content: "나"; position: absolute; top: -12px; left: 50%; z-index: 1; transform: translateX(-50%); padding: 0 4px; background: var(--ink); color: var(--on); font: 700 10px/14px var(--font-sans); }
+.rr-more { display: grid; place-items: center; flex: none; width: 56px; height: 24px; margin-bottom: 6px; border: 1px solid var(--ink); font: 700 12px/1 var(--font-sans); }
+@keyframes rr-enter { from { opacity: 0; transform: translateY(12px) scale(0.6); } to { opacity: 1; transform: none; } }
+@keyframes rr-leave { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(4px) scale(0.85); } }
+@keyframes rr-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@keyframes rr-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.035); } }
+@keyframes rr-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rr-fade-out { from { opacity: 1; } to { opacity: 0; } }
+/* 어두운 화면에서는 검은 테두리가 묻히지 않게 몸 색으로 빛을 번지게 한다 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .rr-seat { filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 1px var(--glow)); }
+}
+:root[data-theme="dark"] .rr-seat { filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 1px var(--glow)); }
+
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
   .skel { animation: none; }
+  /* 같이 읽는 중: 멈춘 그림. 앉고 일어날 때 흐려지기만 */
+  .rr-pal, .rr-pal img { animation: none; }
+  .rr-seat { animation: rr-fade 200ms ease-out both; }
+  .rr-seat.out { animation: rr-fade-out 200ms ease-in both; }
 }
