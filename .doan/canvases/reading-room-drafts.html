@@ -250,7 +250,7 @@ code { padding: 1px 5px; border-radius: 4px; background: #f1efea; font: 600 0.95
       <div>
         <h3>규칙</h3>
         <ul class="items" data-doan-id="rules">
-          <li><b>누가 세지나</b><span>로그인한 멤버 중 <b>지금 이 탭을 보고 있는</b> 사람. 다른 탭·창으로 가면 일어나고, 돌아오면 다시 앉아요.</span><span class="pri must">필수</span></li>
+          <li><b>누가 세지나</b><span>로그인한 멤버 중 <b>사이트를 열어 둔</b> 사람. 다른 탭·창에 5분 넘게 있으면 일어나고, 돌아오면 다시 앉아요. 잠깐 바꾸는 건 그대로 앉아 있어요.</span><span class="pri must">필수</span></li>
           <li><b>한 사람 한 마리</b><span>같은 브라우저의 탭 여러 개는 캐릭터 하나예요. 브라우저마다 만든 무작위 키로 묶어서 멤버 id는 보내지 않아요.</span><span class="pri must">필수</span></li>
           <li><b>익명</b><span>이름·말풍선·마우스 올림 정보 없음. 숫자만 보여요. 내 캐릭터 위에만 작은 <code>나</code> 딱지.</span><span class="pri must">요청</span></li>
           <li><b>데스크톱만</b><span>768px 미만(하단 탭이 있는 모바일 화면)에서는 그리지도, 연결하지도 않아요.</span><span class="pri must">요청</span></li>
@@ -478,7 +478,7 @@ code { padding: 1px 5px; border-radius: 4px; background: #f1efea; font: 600 0.95
     <div class="st-sec">
       <h3><span>·</span>세 자리 공통</h3>
       <ul class="st-common" data-doan-id="st-common">
-        <li><b>다른 탭을 보면</b>그 사람의 캐릭터가 일어나 나가요(240ms). 돌아오면 다시 앉아요. 내 화면의 움직임도 멈춰서 배터리를 아껴요.</li>
+        <li><b>다른 탭·창에 5분 넘게 있으면</b>그 사람의 캐릭터가 일어나 나가요(240ms). 돌아오면 다시 앉아요. 잠깐 바꾸는 건 신호를 보내지 않아요 (Realtime이 브라우저 하나의 신호를 30초에 5번 안팎만 받아서).</li>
         <li><b>연결이 끊기면</b>오류 문구 없이 자리째 사라져요. 다시 연결되면 처음부터 다시 앉아요. 놀이 요소라 실패를 알릴 필요가 없어요.</li>
         <li><b>모바일 (768px 미만)</b>그리지 않아요. 연결도 열지 않아 다른 사람 숫자에도 안 잡혀요.</li>
         <li><b>화면 읽기 프로그램</b>캐릭터 묶음 전체를 "지금 7명이 같이 보고 있어요" 한 줄로 읽어요. 한 마리씩은 읽지 않아요.</li>

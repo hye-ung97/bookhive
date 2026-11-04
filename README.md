@@ -56,7 +56,8 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 
 - 로그인 후 모든 화면에서, 지금 이 탭을 보고 있는 멤버 수만큼 본문 오른쪽 빈칸 바닥 선반에 동물이 앉아 책을 읽는다. 이름은 안 나오고 숫자(`같이 읽는 중 7명`)와 내 캐릭터 위 `나` 딱지만 보인다
 - Supabase Realtime Presence 비공개 채널 `reading-room`. `realtime.messages` RLS(`can_join_reading_room`)가 활동 멤버만 들여보낸다. presence에는 브라우저마다 만든 무작위 키와 동물 번호만 싣는다(멤버 id 없음). 같은 브라우저의 탭 여러 개는 한 마리
-- 동물은 들어올 때 아무도 안 쓰는 것 중 무작위(25마리, `src/components/readers/`). 다른 탭으로 가면 일어나고 돌아오면 다시 앉는다. 모바일(768px 미만)은 연결하지 않는다
+- 동물은 들어올 때 아무도 안 쓰는 것 중 무작위(25마리, `src/components/readers/`). 다른 탭·창에 5분 넘게 있으면 일어나고 돌아오면 다시 앉는다(잠깐 바꾸는 건 그대로). 모바일(768px 미만)은 연결하지 않는다
+- Realtime은 브라우저 하나의 presence 신호를 30초에 5번 안팎만 받고, 넘치면 그 채널을 닫는다. 그래서 같은 신호는 다시 보내지 않고, 탭 전환에는 신호를 보내지 않으며, 서버가 채널을 닫으면 30초 뒤 다시 들어간다
 - 빈칸이 두 마리 폭보다 좁으면(화면 폭 약 1600px 미만) 숨긴다. 숨겨져도 접속 수에는 잡힌다. 계산은 `src/lib/reading-room.ts`, 시안은 Doan 캔버스 `reading-room-drafts`
 - 로컬 확인: `npm run db:start`가 Realtime도 띄운다. 이미 Realtime 없이 띄워 두었다면 `npx supabase stop` 후 다시 `npm run db:start`(데이터는 남는다)
 

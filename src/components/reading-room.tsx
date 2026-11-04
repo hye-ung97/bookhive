@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
   type PresenceState, type ReaderMeta, type Seat,
@@ -13,6 +14,10 @@ import { READERS } from "./readers";
 const TOPIC = "reading-room";
 const DESKTOP = "(min-width: 768px)";
 const LEAVE_MS = 240;
+/** 다른 탭·창에 이만큼 있으면 일어난다. 잠깐 탭을 바꾸는 건 그대로 앉아 있다 */
+const AWAY_MS = 5 * 60_000;
+/** 서버가 채널을 닫으면(presence 신호 한도 초과 등) 한도가 풀린 뒤 다시 들어간다 */
+const RETRY_MS = 30_000;
 
 function subscribeDesktop(cb: () => void) {
   const mq = window.matchMedia(DESKTOP);
@@ -76,6 +81,12 @@ export function ReadingRoom() {
     const at = Date.now();
     let avatar = savedAvatar();
     let cancelled = false;
+    // Realtime은 브라우저 하나의 presence 신호를 30초에 5번 안팎만 받고, 넘치면 채널을 닫는다.
+    // 그래서 이미 보낸 동물은 다시 보내지 않고(sent), 탭 전환은 AWAY_MS가 지나야 일어난다(away)
+    let sent: number | null = null;
+    let away = false;
+    let awayTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
     const commit = (next: Seat[]) => {
@@ -92,10 +103,11 @@ export function ReadingRoom() {
       }
     };
 
-    const channel = supabase.channel(TOPIC, { config: { private: true, presence: { key } } });
-    const state = () => channel.presenceState<ReaderMeta>() as PresenceState;
+    let channel: RealtimeChannel | null = null;
+    const state = () => (channel?.presenceState<ReaderMeta>() ?? {}) as PresenceState;
     const track = () => {
-      if (avatar === null || document.visibilityState !== "visible") return;
+      if (!channel || avatar === null || away || sent === avatar) return;
+      sent = avatar;
       void channel.track({ avatar, at } satisfies ReaderMeta);
     };
     const choose = () => {
@@ -103,39 +115,71 @@ export function ReadingRoom() {
       saveAvatar(avatar);
     };
 
-    channel.on("presence", { event: "sync" }, () => {
-      const s = state();
-      if (avatar !== null && shouldRepick(s, key, avatar, at)) {
-        choose();
-        track();
-      }
-      commit(presenceSeats(s, key));
-    });
+    const join = () => {
+      const ch = supabase.channel(TOPIC, { config: { private: true, presence: { key } } });
+      channel = ch;
+      sent = null;
+      ch.on("presence", { event: "sync" }, () => {
+        if (ch !== channel) return;
+        const s = state();
+        if (avatar !== null && shouldRepick(s, key, avatar, at)) {
+          choose();
+          track();
+        }
+        commit(presenceSeats(s, key));
+      });
+      ch.subscribe((status) => {
+        if (cancelled || ch !== channel) return;
+        if (status === "SUBSCRIBED") {
+          // 새로 들어가면 서버에는 내 자리가 없으니 다시 앉는다
+          sent = null;
+          if (avatar === null || takenAvatars(state(), key).has(avatar)) choose();
+          track();
+          return;
+        }
+        // 연결이 끊기면 알리지 않고 조용히 비운다. 오류·시간 초과는 라이브러리가 다시 들어가 SUBSCRIBED가 오고,
+        // 서버가 닫은 채널(CLOSED)은 스스로 목록에서 빠지므로 한도가 풀린 뒤 새로 만든다
+        commit([]);
+        if (status === "CLOSED" && !retryTimer) {
+          channel = null;
+          retryTimer = setTimeout(() => {
+            retryTimer = undefined;
+            if (!cancelled) join();
+          }, RETRY_MS);
+        }
+      });
+    };
 
-    // 다른 탭·창으로 가면 일어나고, 돌아오면 다시 앉는다
-    const onVisibility = () => (document.visibilityState === "visible" ? track() : void channel.untrack());
+    // 다른 탭·창에 AWAY_MS 넘게 있으면 일어나고, 돌아오면 다시 앉는다. 그 전에 돌아오면 아무것도 보내지 않는다
+    const onVisibility = () => {
+      clearTimeout(awayTimer);
+      if (document.visibilityState === "visible") {
+        away = false;
+        track();
+        return;
+      }
+      awayTimer = setTimeout(() => {
+        away = true;
+        if (channel && sent !== null) void channel.untrack();
+        sent = null;
+      }, AWAY_MS);
+    };
     document.addEventListener("visibilitychange", onVisibility);
+    // 뒤쪽 탭으로 열었으면 열자마자 자리 비움 시계를 건다
+    if (document.visibilityState !== "visible") onVisibility();
 
     void (async () => {
       await supabase.realtime.setAuth();
-      if (cancelled) return;
-      channel.subscribe((status) => {
-        if (cancelled) return;
-        if (status === "SUBSCRIBED") {
-          if (avatar === null || takenAvatars(state(), key).has(avatar)) choose();
-          track();
-        } else {
-          // 연결이 끊기면 알리지 않고 조용히 비운다. 다시 연결되면 SUBSCRIBED로 다시 앉는다
-          commit([]);
-        }
-      });
+      if (!cancelled) join();
     })();
 
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisibility);
+      clearTimeout(awayTimer);
+      clearTimeout(retryTimer);
       for (const t of timers) clearTimeout(t);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
       seatsRef.current = [];
       setSeats([]);
     };
