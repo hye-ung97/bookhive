@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="reading-room-drafts">
+<meta name="doan:width" content="2112">
+<title>같이 읽는 중 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* ───────── 보드 (footer-drafts와 같은 틀) ───────── */
+:root {
+  --board-bg: #e7e5e0;
+  --board-ink: #1c1c1c;
+  --board-ink2: #5d5a55;
+  --board-line: #d2cfc8;
+  --board-paper: #ffffff;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--board-bg); color: var(--board-ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+.board { width: 2112px; padding: 96px; display: flex; flex-direction: column; gap: 120px; }
+ul, ol, dl, figure { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, p, dd { margin: 0; }
+code { padding: 1px 5px; border-radius: 4px; background: #f1efea; font: 600 0.95em/1 var(--sans); color: var(--board-ink); }
+.frame-wrap { display: flex; flex-direction: column; gap: 12px; }
+.frame-cap { font: 600 14px/20px var(--sans); color: var(--board-ink2); }
+.frame-cap span { font-weight: 400; }
+.frame { position: relative; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08); }
+.xl { width: 1920px; }
+
+/* 개요 */
+.brief { width: 1920px; padding: 56px 64px; background: var(--board-paper); border-radius: 16px; }
+.brief-hero { display: grid; grid-template-columns: minmax(0, 1fr) 720px; gap: 48px; align-items: end; }
+.brief h1 { font: 800 48px/56px var(--sans); letter-spacing: -0.02em; }
+.brief-lead { margin-top: 14px; max-width: 72ch; font: 400 18px/30px var(--sans); color: var(--board-ink2); }
+.brief-lead b { color: var(--board-ink); }
+.brief-cast { display: flex; align-items: flex-end; justify-content: flex-end; gap: 6px; padding-bottom: 8px; border-bottom: 2px solid var(--board-ink); }
+.brief-cols { margin-top: 44px; display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 48px; }
+.brief-cols h3 { font: 700 15px/22px var(--sans); margin-bottom: 10px; }
+.brief-cols h3.mt { margin-top: 28px; }
+.brief-cols p { font: 400 14px/23px var(--sans); color: var(--board-ink2); }
+.brief-cols p b { color: var(--board-ink); }
+.items li { display: grid; grid-template-columns: 104px 1fr 44px; gap: 12px; padding: 9px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.items li > b, .items li span b { color: var(--board-ink); }
+.pri { justify-self: end; align-self: start; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--board-line); font: 600 11px/18px var(--sans); white-space: nowrap; }
+.pri.must { background: var(--board-ink); border-color: var(--board-ink); color: var(--board-paper); }
+.pick li { padding: 10px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.pick li b { color: var(--board-ink); }
+.not-code { margin-top: 32px; display: inline-flex; gap: 8px; padding: 8px 14px; border-radius: 8px; background: #fff4d6; font: 500 13px/20px var(--sans); color: #6b4e00; }
+.not-code b { color: #3d2c00; white-space: nowrap; }
+
+/* 채택 표시 */
+.rec { display: inline-flex; align-items: center; margin-left: 12px; padding: 4px 12px; border-radius: 999px; background: var(--board-ink); color: var(--board-paper); font: 700 14px/20px var(--sans); vertical-align: 8px; letter-spacing: 0; }
+
+/* 시안 묶음 머리 */
+.page { display: flex; flex-direction: column; gap: 28px; }
+.page-top { display: grid; grid-template-columns: 96px 560px 1fr; gap: 32px; align-items: end; padding-bottom: 20px; border-bottom: 1px solid var(--board-line); }
+.page-top .no { font: 800 64px/64px var(--sans); letter-spacing: -0.04em; color: var(--board-ink2); }
+.page-top h2 { font: 800 36px/44px var(--sans); letter-spacing: -0.02em; }
+.page-top .route { margin-top: 6px; font: 500 14px/20px var(--sans); color: var(--board-ink2); }
+.page-top .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.page-top .notes b { display: block; margin-bottom: 4px; color: var(--board-ink); }
+
+/* 도감·상태 판 */
+.sheet { width: 1920px; padding: 56px 64px 64px; background: var(--board-paper); border-radius: 16px; display: flex; flex-direction: column; gap: 48px; }
+.sheet-head { display: flex; align-items: baseline; gap: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--board-ink); }
+.sheet-head h2 { font: 800 32px/40px var(--sans); letter-spacing: -0.02em; }
+.sheet-head p { font: 400 15px/22px var(--sans); color: var(--board-ink2); }
+.sheet-row { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 48px; align-items: start; }
+.sheet-sub h3 { font: 700 17px/24px var(--sans); }
+.sheet-sub p { margin-top: 8px; font: 400 14px/23px var(--sans); color: var(--board-ink2); }
+
+.dex { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 24px 12px; }
+.dex figure { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.dex .seat { height: 112px; }
+.dex figcaption { font: 400 12px/16px var(--sans); color: var(--board-ink2); text-align: center; }
+.dex figcaption b { display: block; font: 700 13px/18px var(--sans); color: var(--board-ink); }
+.dex .out .seat { opacity: 0.35; }
+.dex .out figcaption b { text-decoration: line-through; }
+.tag-out { display: inline-block; margin-top: 2px; padding: 0 6px; border-radius: 999px; background: var(--board-ink); color: var(--board-paper); font: 600 10px/16px var(--sans); }
+
+.spec { width: 100%; border-collapse: collapse; font: 400 14px/21px var(--sans); }
+.spec th { padding: 8px 12px 8px 0; text-align: left; font: 600 12px/16px var(--sans); color: var(--board-ink2); border-bottom: 1px solid var(--board-ink); }
+.spec td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--board-line); color: var(--board-ink2); vertical-align: top; }
+.spec td b { color: var(--board-ink); }
+.spec-note { margin-top: 12px; font: 400 13px/21px var(--sans); color: var(--board-ink2); }
+
+.keys { display: flex; flex-wrap: wrap; gap: 32px 56px; }
+.key-grp > p { margin-bottom: 10px; font: 700 13px/18px var(--sans); }
+.key-grp > div { display: flex; gap: 12px; }
+.key { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 132px; padding: 12px 0 10px; border: 1px solid var(--board-line); border-radius: 8px; }
+.key .seat { height: 76px; }
+.key figcaption { font: 400 12px/16px var(--sans); color: var(--board-ink2); text-align: center; }
+.key.replay { cursor: pointer; border-style: dashed; border-color: var(--board-ink2); }
+
+.extras { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 24px; }
+.extras > div { padding: 16px 20px 18px; border-radius: 8px; border: 1px solid var(--board-line); }
+.extras p { margin-bottom: 12px; font: 600 12px/16px var(--sans); color: var(--board-ink2); }
+.extras p b { margin-left: 6px; color: var(--board-ink); font-weight: 800; }
+.extras > div > div { display: flex; align-items: flex-end; gap: 4px; flex-wrap: wrap; }
+.extras > div > span { display: block; margin-top: 10px; font: 400 12px/18px var(--sans); color: var(--board-ink2); }
+.extras .dark { background: #121212; border-color: #121212; }
+.extras .dark p { color: #a3a3a3; }
+.extras .dark p b { color: #ededed; }
+.sizes { display: flex; align-items: flex-end; gap: 28px; }
+.sizes figure { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.sizes figcaption { font: 400 12px/16px var(--sans); color: var(--board-ink2); }
+
+/* ───────── 캐릭터: 한 칸(seat)에 스티커 한 장. 칸 바닥에 붙여 앉힌다 ───────── */
+.seat { position: relative; display: inline-flex; align-items: flex-end; justify-content: center; flex: none; }
+.pal { display: block; transform-origin: 50% 100%; animation: pal-sway 3.6s ease-in-out var(--ds, 0s) infinite alternate; }
+.pal img { display: block; transform-origin: 50% 100%; animation: pal-breathe 2.6s ease-in-out var(--db, 0s) infinite; }
+@keyframes pal-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@keyframes pal-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.035); } }
+/* 내 캐릭터 위 작은 '나' 딱지 (지금 화면을 검게 뒤집는 B 시간표 방식) */
+.seat.me .pal { position: relative; }
+.seat.me .pal::before { content: "나"; position: absolute; left: 50%; top: -12px; z-index: 2; transform: translateX(-50%); padding: 0 4px; background: #111111; color: #ffffff; font: 700 10px/14px var(--sans); }
+.still .pal, .still .pal img, .seat.still .pal, .seat.still .pal img { animation: none; }
+.dark .seat { filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 1px var(--glow)); }
+.dark .seat.me .pal::before { background: #ededed; color: #121212; }
+/* 다시 보기: 마우스를 올리면 앉기·일어나기를 다시 틀어 준다 */
+.replay.enter:hover .seat { animation: pal-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.replay.leave:hover .seat { animation: pal-leave 240ms ease-in both; }
+@keyframes pal-enter { from { opacity: 0; transform: translateY(12px) scale(0.6); } to { opacity: 1; transform: none; } }
+@keyframes pal-leave { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(4px) scale(0.85); } }
+.seat { transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) { .pal, .pal img { animation: none !important; } }
+
+/* ───────── B · 시간표 화면 (footer-drafts와 같은 토큰) ───────── */
+.vb {
+  --b-bg: #ffffff;
+  --b-ink: #111111;
+  --b-ink2: #5c5c5c;
+  --b-rule: #d9d9d9;
+  --b-fill: #f2f2f2;
+  --b-fill2: #e6e6e6;
+  --b-past: #c9c9c9;
+  --b-red: #d0281b;
+  --b-on: #ffffff;
+  background: var(--b-bg); color: var(--b-ink); font-family: var(--sans); font-variant-numeric: tabular-nums;
+}
+.vb a { color: inherit; text-decoration: none; }
+.vb-desk { display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+.vb-xl { height: 1080px; }
+.vb-index { display: flex; flex-direction: column; border-right: 2px solid var(--b-ink); padding: 32px 0 24px; min-height: 0; }
+.vb-logo { padding: 0 24px 28px; }
+.vb-logo b { display: block; font: 800 24px/30px var(--sans); letter-spacing: -0.03em; }
+.vb-logo span { font: 500 12px/16px var(--sans); color: var(--b-ink2); }
+.vb-nav { display: flex; flex-direction: column; }
+.vb-nav a { display: flex; align-items: center; height: 44px; padding: 0 24px; border-top: 1px solid var(--b-rule); font: 600 15px/1 var(--sans); }
+.vb-nav a[aria-current="page"] { background: var(--b-ink); color: var(--b-on); border-top-color: var(--b-ink); }
+.vb-grp { padding: 24px 24px 8px; border-top: 2px solid var(--b-ink); font: 700 12px/16px var(--sans); letter-spacing: 0.04em; color: var(--b-ink2); }
+.vb-who { margin-top: auto; height: 80px; flex: none; padding: 16px 24px 0; border-top: 2px solid var(--b-ink); font: 400 13px/20px var(--sans); color: var(--b-ink2); }
+.vb-who b { display: block; font: 700 15px/22px var(--sans); color: var(--b-ink); }
+.vb-who a { text-decoration: underline; text-underline-offset: 3px; }
+.vb-col { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.vb-main { flex: 1; width: 100%; max-width: 1136px; margin: 0 auto; padding: 36px 48px 56px; display: flex; flex-direction: column; gap: 40px; min-width: 0; }
+.vb-head h1 { font: 800 44px/52px var(--sans); letter-spacing: -0.03em; }
+.vb-head p { margin-top: 10px; font: 500 16px/24px var(--sans); color: var(--b-ink2); }
+.vb-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--b-ink); }
+.vb-sec-head h2 { font: 800 20px/28px var(--sans); letter-spacing: -0.01em; }
+.vb-sec-head p { font: 500 13px/18px var(--sans); color: var(--b-ink2); }
+.vb-table { width: 100%; border-collapse: collapse; }
+.vb-table th { padding: 10px 12px; text-align: left; font: 600 12px/16px var(--sans); color: var(--b-ink2); border-bottom: 1px solid var(--b-ink); }
+.vb-table td { padding: 12px; border-bottom: 1px solid var(--b-rule); font: 400 14px/20px var(--sans); vertical-align: middle; }
+.vb-table td:first-child, .vb-table th:first-child { padding-left: 0; }
+.vb-table td:last-child, .vb-table th:last-child { padding-right: 0; }
+.vb-table .strong { font-weight: 700; }
+.vb-table .muted { color: var(--b-ink2); }
+.vb-table .num { text-align: right; }
+.vb-table tfoot td { border-top: 2px solid var(--b-ink); border-bottom: 0; font-weight: 700; }
+.vb-table .me-row td { background: var(--b-fill); }
+.vb-table .me-row td:first-child { padding-left: 10px; box-shadow: inset 3px 0 0 var(--b-ink); }
+.vb-sub { display: block; margin-top: 2px; font: 400 12px/18px var(--sans); color: var(--b-ink2); }
+.vb-step { display: inline-flex; gap: 6px; }
+.vb-step i { width: 28px; height: 4px; background: var(--b-fill2); }
+.vb-step i.done { background: var(--b-ink); }
+.vb-step i.on { background: var(--b-red); }
+.vb-btn { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 2px solid var(--b-ink); font: 700 13px/1 var(--sans); white-space: nowrap; }
+.fa { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 24px; width: calc(100% - 96px); max-width: 1040px; margin: 0 auto; padding: 18px 0 22px; border-top: 1px solid var(--b-rule); font: 400 12px/18px var(--sans); color: var(--b-ink2); }
+.fa b { font-weight: 700; color: var(--b-ink); }
+.fa-line { display: flex; flex-wrap: wrap; }
+.fa-line > * + *::before { content: "·"; margin: 0 8px; color: var(--b-past); }
+.fa a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--b-past); }
+
+/* ───────── A · 바닥 띠 ───────── */
+.rr-band { position: absolute; left: 232px; right: 0; bottom: 0; height: 76px; background: var(--b-bg); border-top: 2px solid var(--b-ink); }
+.rr-band.st { position: relative; left: auto; right: auto; bottom: auto; }
+.rr-band-in { height: 100%; margin: 0 auto; padding: 0 48px; display: flex; align-items: flex-end; gap: 20px; }
+.rr-count { flex: none; width: 100px; padding-bottom: 12px; font: 600 12px/16px var(--sans); color: var(--b-ink2); }
+.rr-count b { display: block; font: 800 20px/24px var(--sans); color: var(--b-ink); }
+.rr-row { display: flex; align-items: flex-end; padding-bottom: 4px; min-width: 0; }
+
+/* ───────── B · 오른쪽 여백 ───────── */
+.rr-corner-pos { position: absolute; right: 24px; bottom: 24px; }
+.rr-corner-t { margin-bottom: 4px; font: 600 12px/16px var(--sans); color: var(--b-ink2); }
+.rr-corner-t b { margin-left: 4px; font: 800 15px/20px var(--sans); color: var(--b-ink); }
+.rr-shelf { display: flex; align-items: flex-end; gap: 4px; height: 66px; border-bottom: 1px solid var(--b-rule); }
+.rr-shelf:last-child { border-bottom: 2px solid var(--b-ink); }
+
+/* ───────── C · 목차 아래 ───────── */
+.rr-side { margin-top: auto; padding: 0 24px; }
+.rr-side + .vb-who { margin-top: 0; }
+.rr-side-t { display: flex; justify-content: space-between; align-items: baseline; margin: 0 -24px; padding: 20px 24px 6px; border-top: 2px solid var(--b-ink); font: 700 12px/16px var(--sans); letter-spacing: 0.04em; color: var(--b-ink2); }
+.rr-side-t b { font: 800 15px/20px var(--sans); letter-spacing: 0; color: var(--b-ink); }
+.rr-sshelf { display: flex; align-items: flex-end; gap: 2px; height: 52px; }
+.rr-sshelf + .rr-sshelf { border-top: 1px solid var(--b-rule); }
+.rr-more { display: grid; place-items: center; width: 44px; height: 24px; margin-bottom: 6px; border: 1px solid var(--b-ink); font: 700 12px/1 var(--sans); }
+
+/* ───────── 상태 판 ───────── */
+.st-sec { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; padding-top: 24px; border-top: 1px solid var(--board-line); }
+.st-sec > h3 { font: 800 20px/28px var(--sans); }
+.st-sec > h3 span { display: block; font: 800 40px/44px var(--sans); color: var(--board-ink2); }
+.st-sec figcaption { margin-bottom: 8px; font: 600 13px/18px var(--sans); color: var(--board-ink2); }
+.st-a { display: flex; flex-direction: column; gap: 20px; }
+.st-a .rr-band { width: 1200px; border-bottom: 1px dashed var(--board-line); }
+.st-b { display: flex; align-items: flex-start; gap: 40px; }
+.st-box { padding: 16px 20px 20px; border: 1px dashed var(--board-line); background: #ffffff; display: flex; align-items: flex-end; }
+.sch-col { display: flex; flex-direction: column; gap: 14px; }
+.sch { display: flex; align-items: center; gap: 14px; }
+.sch-scr { position: relative; height: 60px; border: 1px solid var(--board-ink); background: #ffffff; flex: none; }
+.sch-scr i { position: absolute; top: 0; bottom: 0; }
+.sch-side { left: 0; border-right: 1px solid var(--board-ink); background: #f2f2f2; }
+.sch-main { background: repeating-linear-gradient(180deg, #d9d9d9 0 1px, transparent 1px 6px); }
+.sch-room { right: 4px; top: auto !important; bottom: 4px; height: 18px; background: #ff9fd0; border: 1px solid var(--board-ink); }
+.sch figcaption { margin: 0; font: 400 13px/18px var(--sans); }
+.sch figcaption b { color: var(--board-ink); }
+.st-c { display: flex; align-items: flex-start; gap: 40px; }
+.frame-mini { width: 234px; display: flex; border: 1px solid var(--board-line); }
+.frame-mini .vb-index { width: 234px; }
+.st-common { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.st-common li { font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.st-common li b { display: block; margin-bottom: 4px; color: var(--board-ink); }
+
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ───────── 개요 ───────── -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 같이 읽는 중">
+    <div class="brief-hero">
+      <div>
+        <h1>같이 읽는 중</h1>
+        <p class="brief-lead">지금 시끌북적을 보고 있는 멤버 수만큼 동물이 나와 책을 읽어요. 이름은 안 나오고, 데스크톱에서만 보여요. 캐릭터는 <b>보내 주신 독서 스티커 시트를 한 마리씩 오려서</b> 그대로 썼고, 앉을 자리를 세 군데로 나눠 그렸어요.</p>
+      </div>
+      <div class="brief-cast" data-doan-id="brief-cast"><span class="seat" style="width:72px;height:80px;--glow:#4898e8;--ds:-3.22s;--db:-0.02s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="59" height="80" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#f8f808;--ds:-3.46s;--db:-2.33s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="79" height="80" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#b0b0b0;--ds:-0.99s;--db:-0.66s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="77" height="79" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#c8c8c8;--ds:-2.95s;--db:-2.14s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="73" height="74" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#f8f828;--ds:-2.28s;--db:-1.12s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="71" height="65" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#f83898;--ds:-0.77s;--db:-1.58s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="64" height="78" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#a8d818;--ds:-0.47s;--db:-2.23s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="79" height="68" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#f8d878;--ds:-3.09s;--db:-2.26s;"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="71" height="71" alt=""></span></span><span class="seat" style="width:72px;height:80px;--glow:#f8b8d8;--ds:-3.15s;--db:-2.15s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="72" height="72" alt=""></span></span></div>
+    </div>
+    <div class="brief-cols">
+      <div>
+        <h3>규칙</h3>
+        <ul class="items" data-doan-id="rules">
+          <li><b>누가 세지나</b><span>로그인한 멤버 중 <b>지금 이 탭을 보고 있는</b> 사람. 다른 탭·창으로 가면 일어나고, 돌아오면 다시 앉아요.</span><span class="pri must">필수</span></li>
+          <li><b>한 사람 한 마리</b><span>같은 브라우저의 탭 여러 개는 캐릭터 하나예요. 브라우저마다 만든 무작위 키로 묶어서 멤버 id는 보내지 않아요.</span><span class="pri must">필수</span></li>
+          <li><b>익명</b><span>이름·말풍선·마우스 올림 정보 없음. 숫자만 보여요. 내 캐릭터 위에만 작은 <code>나</code> 딱지.</span><span class="pri must">요청</span></li>
+          <li><b>데스크톱만</b><span>768px 미만(하단 탭이 있는 모바일 화면)에서는 그리지도, 연결하지도 않아요.</span><span class="pri must">요청</span></li>
+          <li><b>캐릭터 고르기</b><span>들어올 때 <b>지금 아무도 안 쓰는 동물 중 무작위</b>(같은 탭에서는 유지). 25마리라 23명이 다 들어와도 겹치지 않아요. 사람마다 고정하면 '파란 토끼 = 누구'가 금방 드러나 익명이 깨져요.</span><span class="pri">추천</span></li>
+          <li><b>연결이 끊기면</b><span>오류 문구 없이 조용히 사라져요. 다시 연결되면 다시 앉아요.</span><span class="pri">추천</span></li>
+          <li><b>움직임 줄이기</b><span>OS 설정이 켜져 있으면 멈춘 그림. 들어오고 나갈 때 흐려지기만 해요.</span><span class="pri must">필수</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>세 자리</h3>
+        <ul class="pick">
+          <li><b>A · 바닥 띠</b> — 처음 말씀하신 화면 맨 아래. 데스크톱 어느 폭에서나 보이지만 화면 높이를 76px 차지하고, 본문 끝이 가려지지 않게 아래 여백을 76px 더 줘야 해요.</li>
+          <li><b>B · 오른쪽 여백</b> — 말씀하신 큰 화면의 빈 공간. 본문과 겹치는 데가 하나도 없어요. 대신 화면 폭 <b>1600px 이상</b>에서만 자리가 생겨요. 1440~1512 노트북에서는 안 보여요.</li>
+          <li><b>C · 목차 아래</b> — 왼쪽 목차의 메뉴와 이름 칸 사이 빈칸. 데스크톱 어느 폭에서나 보이고 본문과 겹치지 않아요. 화면이 낮으면 한 줄만 앉고 나머지는 <code>+N</code>.</li>
+        </ul>
+        <h3 class="mt">지키는 것</h3>
+        <p>B 시간표 그대로예요. 흰 종이에 검은 잉크, 직각, 굵은 검은 줄로 칸 나누기, 빨강은 마감·할 일에만. 띠·선반·숫자 같은 UI는 이 규칙을 따르고, <b>색은 스티커 그림 안에만</b> 있어요.</p>
+      </div>
+      <div>
+        <h3>정해 주실 것</h3>
+        <ul class="pick">
+          <li><b>자리</b> — A · B · C 중 하나. 또는 'B, 폭이 모자라면 C'처럼 둘을 섞기.</li>
+          <li><b>캐릭터 고르기</b> — 들어올 때마다 무작위 / 사람마다 고정.</li>
+          <li><b>문구</b> — <code>같이 읽는 중 7명</code>, 혼자면 <code>혼자 읽는 중 1명</code>.</li>
+          <li><b>움직임 범위</b> — 스티커가 그림 한 장이라 몸 전체가 흔들리고 들썩이는 것까지만 돼요. 책장 넘김·눈 깜빡임까지 원하면 몸·책·눈을 나눈 그림이 따로 있어야 해요.</li>
+        </ul>
+        <h3 class="mt">그림 원본</h3>
+        <p><code>귀여운 동물 독서 스티커 시트.png</code>(1536×1024)를 이미 투명한 배경 그대로 26장으로 오렸어요 → <code>.doan/assets/reading-room/</code>. 둘이 붙은 주황 쌍둥이는 한 사람이 두 마리로 보여서 뺐어요. 직접 만든 그림이 아니라면 <b>출처와 사용 허락을 먼저 확인</b>해 주세요.</p>
+      </div>
+    </div>
+    <p class="not-code"><b>B로 정함 · 캐릭터는 무작위</b> B는 <code>src/components/reading-room.tsx</code>·<code>globals.css</code>의 <code>.rr</code>에, 채널 권한은 <code>supabase/migrations/20261104000001_reading_room.sql</code>에 들어갔어요. A·C는 처음 시안 그대로 남겨 둔 것이고 코드에 없어요. 사람 수와 멤버 이름은 예시예요.</p>
+  </section>
+
+  <!-- ───────── 캐릭터 ───────── -->
+  <section class="sheet" data-doan-frame="characters" data-doan-title="캐릭터 25마리 · 움직임">
+    <div class="sheet-head"><h2>캐릭터 25마리</h2><p>보내 주신 시트를 한 장씩 오린 그대로 · 지금 움직이는 모습 그대로예요</p></div>
+    <div class="dex" data-doan-id="dex"><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#78b8a8;--ds:-0.91s;--db:-2.46s;"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="136" height="102" alt=""></span></span><figcaption><b>01 날개 토끼</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8f8f8;--ds:-0.38s;--db:-2.15s;"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="79" height="110" alt=""></span></span><figcaption><b>02 하얀 토끼</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8f808;--ds:-1.14s;--db:-2.52s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="110" height="112" alt=""></span></span><figcaption><b>03 노란 사자</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f83808;--ds:-1.39s;--db:-2.59s;"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="86" height="88" alt=""></span></span><figcaption><b>04 빨간 게</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#e8e808;--ds:-1.17s;--db:-0.48s;"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="89" height="96" alt=""></span></span><figcaption><b>05 연두 곰</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#4898e8;--ds:-0.76s;--db:-0.85s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="82" height="112" alt=""></span></span><figcaption><b>06 파란 토끼</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#8848c8;--ds:-0.38s;--db:-0.22s;"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="113" height="112" alt=""></span></span><figcaption><b>07 보라 강아지</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#c87848;--ds:-1.32s;--db:-0.72s;"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="99" height="96" alt=""></span></span><figcaption><b>08 갈색 쥐</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8a8d8;--ds:-1.60s;--db:-1.87s;"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="98" height="112" alt=""></span></span><figcaption><b>09 달팽이 토끼</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f83898;--ds:-0.33s;--db:-0.71s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="88" height="107" alt=""></span></span><figcaption><b>10 분홍 곰</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8d898;--ds:-0.53s;--db:-0.59s;"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="97" height="112" alt=""></span></span><figcaption><b>11 살구 곰</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#b0b0b0;--ds:-2.94s;--db:-2.31s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="106" height="109" alt=""></span></span><figcaption><b>12 검은 고양이</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8b808;--ds:-2.75s;--db:-0.06s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="121" height="100" alt=""></span></span><figcaption><b>13 주황 고양이</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#c8c8c8;--ds:-3.41s;--db:-0.37s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="100" height="102" alt=""></span></span><figcaption><b>14 회색 쥐</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#98d878;--ds:-2.53s;--db:-0.58s;"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="85" height="108" alt=""></span></span><figcaption><b>15 초록 토끼</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#e838a8;--ds:-0.28s;--db:-0.45s;"><span class="pal"><img src="../assets/reading-room/16-magenta-lion.png" width="119" height="102" alt=""></span></span><figcaption><b>16 자주 사자</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8d878;--ds:-0.08s;--db:-1.63s;"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="99" height="98" alt=""></span></span><figcaption><b>17 노란 강아지</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#58b8c8;--ds:-0.55s;--db:-0.39s;"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="113" height="85" alt=""></span></span><figcaption><b>18 청록 토끼</b></figcaption></figure><figure class="out"><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f89828;--ds:-1.87s;--db:-0.67s;"><span class="pal"><img src="../assets/reading-room/19-orange-twins.png" width="99" height="95" alt=""></span></span><figcaption><b>19 주황 쌍둥이</b><span class=tag-out>뺌 · 한 사람이 두 마리</span></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#a8d818;--ds:-2.16s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="109" height="93" alt=""></span></span><figcaption><b>20 초록 악어</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#d8e8f8;--ds:-1.96s;--db:-1.08s;"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="86" height="103" alt=""></span></span><figcaption><b>21 하늘 토끼</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8b8d8;--ds:-2.94s;--db:-1.47s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="99" height="99" alt=""></span></span><figcaption><b>22 분홍 고양이</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#c888c8;--ds:-2.86s;--db:-1.42s;"><span class="pal"><img src="../assets/reading-room/23-lavender-dog.png" width="84" height="86" alt=""></span></span><figcaption><b>23 연보라 강아지</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8f828;--ds:-2.90s;--db:-0.03s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="99" height="89" alt=""></span></span><figcaption><b>24 노란 오리</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#f8c8a8;--ds:-3.39s;--db:-0.92s;"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="102" height="90" alt=""></span></span><figcaption><b>25 살구 강아지</b></figcaption></figure><figure class=""><span class="seat dex-seat" style="width:150px;height:112px;--glow:#888888;--ds:-3.02s;--db:-0.23s;"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="51" height="66" alt=""></span></span><figcaption><b>26 꼬마 토끼</b></figcaption></figure></div>
+
+    <div class="sheet-row">
+      <div class="sheet-sub"><h3>움직임</h3><p>사람마다 시작 시점을 어긋나게 해서 다 같이 똑같이 움직이지 않아요. <code>transform</code>·<code>opacity</code>만 움직이고, 탭을 안 보면 멈춰요.</p></div>
+      <div>
+        <table class="spec" data-doan-id="motion-spec">
+          <thead><tr><th>동작</th><th>무엇이</th><th>시간 · 곡선</th><th>언제</th><th>움직임 줄이기</th></tr></thead>
+          <tbody>
+            <tr><td><b>앉기</b></td><td>자리 아래 12px에서 올라오며 0.6 → 1배, 흐림 → 선명</td><td>480ms · <code>cubic-bezier(0.16, 1, 0.3, 1)</code></td><td>누가 들어왔을 때 한 번</td><td>흐림 → 선명 200ms만</td></tr>
+            <tr><td><b>흔들흔들</b></td><td>엉덩이를 축으로 몸 전체가 좌우 2.5°</td><td>3.6s · ease-in-out · 왕복</td><td>계속</td><td>멈춤</td></tr>
+            <tr><td><b>들썩</b></td><td>책에 빠진 듯 세로로 1 → 1.035배</td><td>2.6s · ease-in-out</td><td>계속</td><td>멈춤</td></tr>
+            <tr><td><b>일어나기</b></td><td>0.85배로 줄며 흐려짐</td><td>240ms · ease-in</td><td>누가 나갔을 때 한 번</td><td>흐려짐만</td></tr>
+          </tbody>
+        </table>
+        <p class="spec-note">스티커는 그림 한 장이라 <b>책장 넘김·눈 깜빡임은 없어요.</b> 원하면 같은 그림체로 몸·책·눈을 나눈 그림이 필요해요.</p>
+      </div>
+    </div>
+
+    <div class="sheet-row">
+      <div class="sheet-sub"><h3>순간 그림</h3><p>정지 그림으로 본 앉기·흔들흔들·일어나기. 맨 오른쪽 두 칸에 마우스를 올리면 실제 움직임을 다시 봐요.</p></div>
+      <div class="keys" data-doan-id="key-states">
+        <div class="key-grp"><p>앉기</p><div><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-3.36s;--db:-1.78s;opacity:0.12;transform:translateY(12px) scale(0.6)"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>0ms · 자리 아래, 흐림</figcaption></figure><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-3.24s;--db:-1.21s;opacity:0.9;transform:translateY(1px) scale(0.95)"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>160ms · 거의 다 올라옴</figcaption></figure><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-0.45s;--db:-0.56s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>480ms · 앉음</figcaption></figure></div></div>
+        <div class="key-grp"><p>흔들흔들</p><div><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-1.63s;--db:-0.90s;transform:rotate(-2.5deg)"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>왼쪽 2.5°</figcaption></figure><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-1.65s;--db:-0.20s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>가운데 · 들썩</figcaption></figure><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-0.70s;--db:-2.35s;transform:rotate(2.5deg)"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>오른쪽 2.5°</figcaption></figure></div></div>
+        <div class="key-grp"><p>일어나기</p><div><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-1.92s;--db:-1.13s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>0ms</figcaption></figure><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-0.38s;--db:-1.08s;opacity:0.5;transform:translateY(2px) scale(0.92)"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>120ms · 줄며 흐려짐</figcaption></figure><figure class="key"><span class="seat still" style="width:100px;height:76px;--glow:#f83898;--ds:-2.20s;--db:-0.45s;opacity:0.06;transform:translateY(4px) scale(0.85)"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>240ms · 사라짐</figcaption></figure></div></div>
+        <div class="key-grp"><p>다시 보기</p><div>
+          <figure class="key replay enter"><span class="seat" style="width:100px;height:76px;--glow:#f83898;--ds:-0.18s;--db:-1.69s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>올리면 앉기</figcaption></figure>
+          <figure class="key replay leave"><span class="seat" style="width:100px;height:76px;--glow:#f83898;--ds:-2.85s;--db:-0.32s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="62" height="76" alt=""></span></span><figcaption>올리면 일어나기</figcaption></figure>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="sheet-row">
+      <div class="sheet-sub"><h3>다크 모드 · 크기 · 움직임 줄이기</h3><p>어두운 화면에서는 원본 시트처럼 몸 색으로 은은하게 빛이 번져요. 검은 테두리(특히 검은 고양이)가 배경에 묻히지 않게 하려는 거예요.</p></div>
+      <div class="extras">
+        <div class="dark" data-doan-id="dark-mode"><p>다크 모드<b>같이 읽는 중 8명</b></p><div><span class="seat me" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-1.60s;--db:-0.54s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f8f8;--ds:-2.39s;--db:-2.55s;"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="41" height="57" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c87848;--ds:-0.37s;--db:-1.17s;"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="51" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#e838a8;--ds:-0.90s;--db:-2.17s;"><span class="pal"><img src="../assets/reading-room/16-magenta-lion.png" width="62" height="53" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8c8a8;--ds:-2.18s;--db:-0.61s;"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="53" height="47" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83808;--ds:-1.22s;--db:-1.33s;"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="45" height="45" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b8d8;--ds:-3.28s;--db:-0.98s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#58b8c8;--ds:-2.85s;--db:-2.00s;"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="58" height="44" alt=""></span></span></div></div>
+        <div class="sizes" data-doan-id="sizes"><figure><span class="seat" style="width:44px;height:48px;--glow:#f8b808;--ds:-2.26s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="51" height="42" alt=""></span></span><figcaption>C 목차 · 약 40px</figcaption></figure><figure><span class="seat" style="width:56px;height:60px;--glow:#f8b808;--ds:-1.35s;--db:-0.89s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="62" height="52" alt=""></span></span><figcaption>A·B · 약 50px</figcaption></figure><figure><span class="seat" style="width:150px;height:112px;--glow:#f8b808;--ds:-2.21s;--db:-2.59s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="121" height="100" alt=""></span></span><figcaption>도감 · 약 100px</figcaption></figure></div>
+        <div class="reduced still" data-doan-id="reduced-motion"><p>움직임 줄이기</p><div><span class="seat" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.92s;--db:-1.39s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-0.60s;--db:-1.40s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.28s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-2.61s;--db:-1.57s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div><span>멈춘 그림. 앉고 일어날 때 흐려지기만</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── A · 바닥 띠 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">A</span>
+      <div><h2>바닥 띠</h2><p class="route">화면 맨 아래 고정 · 높이 76px · 굵은 검은 윗줄 · 본문 폭에 맞춰 가운데</p></div>
+      <div class="notes">
+        <div><b>처음 말씀하신 자리</b>어느 데스크톱 폭에서나 같은 자리라 가장 잘 보여요. 스크롤해도 늘 바닥에 있어요.</div>
+        <div><b>본문을 76px 덮어요</b>고정 띠라 본문 위에 얹혀요. 본문 끝(푸터)이 가려지지 않게 본문 아래 여백을 76px 늘려요. 그림은 맨 끝까지 내린 모습.</div>
+        <div><b>많아지면 어깨를 붙여요</b>23명이 다 들어와도 한 줄. 자리가 모자라면 조금씩 겹쳐 앉아요 (상태 판 참고).</div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <p class="frame-cap">데스크톱 1920 × 1080 <span>· 총무 최도윤 · 7명 접속 · 맨 아래까지 내림</span></p>
+      <div class="frame xl vb vb-desk vb-xl" data-doan-frame="a-desktop" data-doan-title="A 바닥 띠 · 1920"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a><p class="vb-grp">운영</p><a href="#">회차 현황</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav><div class="vb-who"><b>최도윤</b>총무<br><a href="#">로그아웃</a></div></aside><div class="vb-col" style="padding-bottom:76px"><main class="vb-main">
+  <header class="vb-head"><h1>11월 4일 수요일</h1><p>도윤님, 오늘은 할 일이 없어요. 12월 책은 2권 요청해 두었어요.</p></header>
+  <section>
+    <div class="vb-sec-head"><h2>회차별 내 상태</h2><p>요청 → 주문 → 배송 → 읽기 → 마감</p></div>
+    <table class="vb-table">
+      <thead><tr><th>회차</th><th>단계</th><th>내 상태</th><th>할 일</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">12월 회차<span class="vb-sub">요청 받는 중</span></td><td><span class="vb-step"><i class="on"></i><i></i><i></i><i></i><i></i></span></td><td class="strong">2권 요청 · 750원 남음<span class="vb-sub">29,250 / 30,000원 사용</span></td><td><span class="vb-btn">+ 한 권 더 요청</span></td></tr>
+        <tr><td class="strong">11월 회차<span class="vb-sub">읽는 중 · 9월 휴회 보전</span></td><td><span class="vb-step"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span></td><td class="strong">일지 제출함<span class="vb-sub">동아리 4 / 23명 제출</span></td><td><span class="vb-btn">내 일지 보기 →</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <div class="vb-sec-head"><h2>12월 회차 구매 요청</h2><p>전체 · 내 요청</p></div>
+    <table class="vb-table">
+      <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th><th class="num">금액(원)</th><th>진행</th></tr></thead>
+      <tbody><tr><td class="strong">김하늘</td><td>아주 희미한 빛으로도</td><td class="muted">yes24</td><td class="num">15,120</td><td class="muted">요청됨</td></tr><tr><td class="strong">김하늘</td><td>물고기는 존재하지 않는다</td><td class="muted">알라딘</td><td class="num">15,750</td><td class="muted">요청됨</td></tr><tr class=me-row><td class="strong">최도윤 (나)</td><td>이처럼 사소한 것들</td><td class="muted">yes24</td><td class="num">11,700</td><td class="muted">요청됨</td></tr><tr class=me-row><td class="strong">최도윤 (나)</td><td>작별하지 않는다</td><td class="muted">yes24</td><td class="num">15,120</td><td class="muted">요청됨</td></tr><tr><td class="strong">이서윤</td><td>사피엔스</td><td class="muted">교보문고</td><td class="num">19,800</td><td class="muted">요청됨</td></tr><tr><td class="strong">이서윤</td><td>데미안</td><td class="muted">yes24</td><td class="num">7,200</td><td class="muted">요청됨</td></tr><tr><td class="strong">박준호</td><td>불편한 편의점</td><td class="muted">yes24</td><td class="num">12,600</td><td class="muted">요청됨</td></tr><tr><td class="strong">정민재</td><td>아몬드</td><td class="muted">알라딘</td><td class="num">10,800</td><td class="muted">요청됨</td></tr></tbody>
+      <tfoot><tr><td colspan="3">5 / 23명 요청 · 8권</td><td class="num">108,090</td><td>합계</td></tr></tfoot>
+    </table>
+  </section>
+</main><footer class="fa"><span><b>시끌북적</b> · 사내 독서 동아리</span><span class="fa-line"><span>Design by <a href="#"><b>Doan</b></a></span><span>Made by <a href="#">hyeyeong.sung@day1company.co.kr</a></span><span><a href="#">개인정보처리방침</a></span></span></footer></div><div class="rr-band"><div class="rr-band-in" style="max-width:1136px" data-doan-id="a-band" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="rr-count">같이 읽는 중<b>7명</b></p><div class="rr-row"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-1.66s;--db:-1.66s;margin-left:0.0px"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-0.76s;--db:-1.67s;margin-left:4.0px"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-0.04s;--db:-0.10s;margin-left:4.0px"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-3.33s;--db:-1.60s;margin-left:4.0px"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-0.92s;--db:-1.42s;margin-left:4.0px"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.43s;--db:-1.90s;margin-left:4.0px"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-0.58s;--db:-2.38s;margin-left:4.0px"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div></div></div></div>
+    </div>
+  </section>
+
+  <!-- ───────── B · 오른쪽 여백 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">B</span>
+      <div><h2>오른쪽 여백<span class="rec">채택</span></h2><p class="route">본문 오른쪽 빈칸의 바닥 · 아래 선반부터 채움 · 폭 1600px 이상에서만</p></div>
+      <div class="notes">
+        <div><b>말씀하신 빈 공간</b>큰 화면에서 본문 오른쪽에 남는 칸(1920 기준 324px)에 선반을 놓고 앉혀요. 본문·푸터와 겹치는 곳이 없어요.</div>
+        <div><b>폭에 따라 한 줄 수가 바뀜</b>한 줄 = (빈칸 − 44) ÷ 60마리. 1920은 4마리, 1728은 3마리, 1600~1680은 2마리씩. 2마리도 안 되면 숨겨요.</div>
+        <div><b>노트북에서는 안 보여요</b>1440·1470·1512 화면은 빈칸이 100px 안팎이라 자리가 없어요. 그때 C 자리로 옮겨 앉히는 방법도 있어요.</div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <p class="frame-cap">데스크톱 1920 × 1080 <span>· 총무 최도윤 · 7명 접속</span></p>
+      <div class="frame xl vb vb-desk vb-xl" data-doan-frame="b-desktop" data-doan-title="B 오른쪽 여백 · 1920" data-doan-implements="src/components/reading-room.tsx"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a><p class="vb-grp">운영</p><a href="#">회차 현황</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav><div class="vb-who"><b>최도윤</b>총무<br><a href="#">로그아웃</a></div></aside><div class="vb-col"><main class="vb-main">
+  <header class="vb-head"><h1>11월 4일 수요일</h1><p>도윤님, 오늘은 할 일이 없어요. 12월 책은 2권 요청해 두었어요.</p></header>
+  <section>
+    <div class="vb-sec-head"><h2>회차별 내 상태</h2><p>요청 → 주문 → 배송 → 읽기 → 마감</p></div>
+    <table class="vb-table">
+      <thead><tr><th>회차</th><th>단계</th><th>내 상태</th><th>할 일</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">12월 회차<span class="vb-sub">요청 받는 중</span></td><td><span class="vb-step"><i class="on"></i><i></i><i></i><i></i><i></i></span></td><td class="strong">2권 요청 · 750원 남음<span class="vb-sub">29,250 / 30,000원 사용</span></td><td><span class="vb-btn">+ 한 권 더 요청</span></td></tr>
+        <tr><td class="strong">11월 회차<span class="vb-sub">읽는 중 · 9월 휴회 보전</span></td><td><span class="vb-step"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span></td><td class="strong">일지 제출함<span class="vb-sub">동아리 4 / 23명 제출</span></td><td><span class="vb-btn">내 일지 보기 →</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <div class="vb-sec-head"><h2>12월 회차 구매 요청</h2><p>전체 · 내 요청</p></div>
+    <table class="vb-table">
+      <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th><th class="num">금액(원)</th><th>진행</th></tr></thead>
+      <tbody><tr><td class="strong">김하늘</td><td>아주 희미한 빛으로도</td><td class="muted">yes24</td><td class="num">15,120</td><td class="muted">요청됨</td></tr><tr><td class="strong">김하늘</td><td>물고기는 존재하지 않는다</td><td class="muted">알라딘</td><td class="num">15,750</td><td class="muted">요청됨</td></tr><tr class=me-row><td class="strong">최도윤 (나)</td><td>이처럼 사소한 것들</td><td class="muted">yes24</td><td class="num">11,700</td><td class="muted">요청됨</td></tr><tr class=me-row><td class="strong">최도윤 (나)</td><td>작별하지 않는다</td><td class="muted">yes24</td><td class="num">15,120</td><td class="muted">요청됨</td></tr><tr><td class="strong">이서윤</td><td>사피엔스</td><td class="muted">교보문고</td><td class="num">19,800</td><td class="muted">요청됨</td></tr><tr><td class="strong">이서윤</td><td>데미안</td><td class="muted">yes24</td><td class="num">7,200</td><td class="muted">요청됨</td></tr><tr><td class="strong">박준호</td><td>불편한 편의점</td><td class="muted">yes24</td><td class="num">12,600</td><td class="muted">요청됨</td></tr><tr><td class="strong">정민재</td><td>아몬드</td><td class="muted">알라딘</td><td class="num">10,800</td><td class="muted">요청됨</td></tr></tbody>
+      <tfoot><tr><td colspan="3">5 / 23명 요청 · 8권</td><td class="num">108,090</td><td>합계</td></tr></tfoot>
+    </table>
+  </section>
+</main><footer class="fa"><span><b>시끌북적</b> · 사내 독서 동아리</span><span class="fa-line"><span>Design by <a href="#"><b>Doan</b></a></span><span>Made by <a href="#">hyeyeong.sung@day1company.co.kr</a></span><span><a href="#">개인정보처리방침</a></span></span></footer></div><div class="rr-corner-pos"><div class="rr-corner" style="width:236px" data-doan-id="b-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="rr-corner-t">같이 읽는 중<b>7명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></div>
+    </div>
+  </section>
+
+  <!-- ───────── C · 목차 아래 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">C</span>
+      <div><h2>목차 아래</h2><p class="route">왼쪽 목차 빈칸 · 이름 칸 윗줄을 바닥 삼아 · 한 줄 4마리 · 약 40px</p></div>
+      <div class="notes">
+        <div><b>늘 같은 자리</b>목차는 화면에 고정돼 있어서 스크롤해도 그대로예요. 데스크톱 어느 폭에서나 보이고 본문과 안 겹쳐요.</div>
+        <div><b>'운영' 묶음과 같은 머리</b>회색 작은 제목 + 굵은 검은 윗줄. 목차에 묶음이 하나 더 생긴 것처럼 보여요.</div>
+        <div><b>낮은 화면은 한 줄</b>운영진 목차가 길어서 높이 800px 화면에서는 한 줄(3마리 + <code>+N</code>)만 앉아요. 멤버 화면은 메뉴가 짧아 23명이 다 들어가요.</div>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <p class="frame-cap">데스크톱 1920 × 1080 <span>· 총무 최도윤 · 7명 접속</span></p>
+      <div class="frame xl vb vb-desk vb-xl" data-doan-frame="c-desktop" data-doan-title="C 목차 아래 · 1920"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a><p class="vb-grp">운영</p><a href="#">회차 현황</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav><div class="rr-side" data-doan-id="c-side" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="rr-side-t">같이 읽는 중<b>7명</b></p><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#f8f828;--ds:-3.50s;--db:-1.31s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="42" height="38" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f83898;--ds:-0.51s;--db:-1.55s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="37" height="45" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#a8d818;--ds:-1.87s;--db:-1.32s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="46" height="39" alt=""></span></span></div><div class="rr-sshelf"><span class="seat me" style="width:44px;height:48px;--glow:#4898e8;--ds:-1.18s;--db:-1.35s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="35" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f808;--ds:-3.06s;--db:-0.41s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="47" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#b0b0b0;--ds:-0.81s;--db:-0.69s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="45" height="46" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#c8c8c8;--ds:-1.21s;--db:-1.30s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="42" height="43" alt=""></span></span></div></div><div class="vb-who"><b>최도윤</b>총무<br><a href="#">로그아웃</a></div></aside><div class="vb-col"><main class="vb-main">
+  <header class="vb-head"><h1>11월 4일 수요일</h1><p>도윤님, 오늘은 할 일이 없어요. 12월 책은 2권 요청해 두었어요.</p></header>
+  <section>
+    <div class="vb-sec-head"><h2>회차별 내 상태</h2><p>요청 → 주문 → 배송 → 읽기 → 마감</p></div>
+    <table class="vb-table">
+      <thead><tr><th>회차</th><th>단계</th><th>내 상태</th><th>할 일</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">12월 회차<span class="vb-sub">요청 받는 중</span></td><td><span class="vb-step"><i class="on"></i><i></i><i></i><i></i><i></i></span></td><td class="strong">2권 요청 · 750원 남음<span class="vb-sub">29,250 / 30,000원 사용</span></td><td><span class="vb-btn">+ 한 권 더 요청</span></td></tr>
+        <tr><td class="strong">11월 회차<span class="vb-sub">읽는 중 · 9월 휴회 보전</span></td><td><span class="vb-step"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span></td><td class="strong">일지 제출함<span class="vb-sub">동아리 4 / 23명 제출</span></td><td><span class="vb-btn">내 일지 보기 →</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <div class="vb-sec-head"><h2>12월 회차 구매 요청</h2><p>전체 · 내 요청</p></div>
+    <table class="vb-table">
+      <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th><th class="num">금액(원)</th><th>진행</th></tr></thead>
+      <tbody><tr><td class="strong">김하늘</td><td>아주 희미한 빛으로도</td><td class="muted">yes24</td><td class="num">15,120</td><td class="muted">요청됨</td></tr><tr><td class="strong">김하늘</td><td>물고기는 존재하지 않는다</td><td class="muted">알라딘</td><td class="num">15,750</td><td class="muted">요청됨</td></tr><tr class=me-row><td class="strong">최도윤 (나)</td><td>이처럼 사소한 것들</td><td class="muted">yes24</td><td class="num">11,700</td><td class="muted">요청됨</td></tr><tr class=me-row><td class="strong">최도윤 (나)</td><td>작별하지 않는다</td><td class="muted">yes24</td><td class="num">15,120</td><td class="muted">요청됨</td></tr><tr><td class="strong">이서윤</td><td>사피엔스</td><td class="muted">교보문고</td><td class="num">19,800</td><td class="muted">요청됨</td></tr><tr><td class="strong">이서윤</td><td>데미안</td><td class="muted">yes24</td><td class="num">7,200</td><td class="muted">요청됨</td></tr><tr><td class="strong">박준호</td><td>불편한 편의점</td><td class="muted">yes24</td><td class="num">12,600</td><td class="muted">요청됨</td></tr><tr><td class="strong">정민재</td><td>아몬드</td><td class="muted">알라딘</td><td class="num">10,800</td><td class="muted">요청됨</td></tr></tbody>
+      <tfoot><tr><td colspan="3">5 / 23명 요청 · 8권</td><td class="num">108,090</td><td>합계</td></tr></tfoot>
+    </table>
+  </section>
+</main><footer class="fa"><span><b>시끌북적</b> · 사내 독서 동아리</span><span class="fa-line"><span>Design by <a href="#"><b>Doan</b></a></span><span>Made by <a href="#">hyeyeong.sung@day1company.co.kr</a></span><span><a href="#">개인정보처리방침</a></span></span></footer></div></div>
+    </div>
+  </section>
+
+  <!-- ───────── 상태 ───────── -->
+  <section class="sheet" data-doan-frame="states" data-doan-title="사람 수·화면 폭별 상태">
+    <div class="sheet-head"><h2>사람 수 · 화면 폭별 상태</h2><p>혼자일 때, 23명이 다 들어왔을 때, 화면이 좁거나 낮을 때</p></div>
+
+    <div class="st-sec">
+      <h3><span>A</span>바닥 띠</h3>
+      <div class="st-a">
+        <figure><figcaption>혼자 · 1920</figcaption><div class="rr-band st vb"><div class="rr-band-in" style="max-width:1136px" data-doan-id="st-a-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="rr-count">혼자 읽는 중<b>1명</b></p><div class="rr-row"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-2.39s;--db:-2.06s;margin-left:0.0px"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>23명 · 1920 — 40px 간격, 조금씩 겹침</figcaption><div class="rr-band st vb"><div class="rr-band-in" style="max-width:1136px" data-doan-id="st-a-full" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-count">같이 읽는 중<b>23명</b></p><div class="rr-row"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.01s;--db:-2.00s;margin-left:0.0px"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d898;--ds:-3.34s;--db:-1.48s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="50" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-3.37s;--db:-2.28s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#78b8a8;--ds:-0.54s;--db:-0.52s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="68" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#d8e8f8;--ds:-0.40s;--db:-2.33s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="45" height="53" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#888888;--ds:-0.40s;--db:-1.55s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="26" height="34" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#98d878;--ds:-0.95s;--db:-1.42s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="44" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-0.73s;--db:-1.86s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#58b8c8;--ds:-1.37s;--db:-0.08s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="58" height="44" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b808;--ds:-1.66s;--db:-1.09s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="62" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8c8a8;--ds:-1.38s;--db:-2.33s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="53" height="47" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d878;--ds:-0.07s;--db:-0.93s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83808;--ds:-1.76s;--db:-0.80s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="45" height="45" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#e8e808;--ds:-3.45s;--db:-2.46s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="46" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8a8d8;--ds:-2.17s;--db:-2.44s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="52" height="60" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.45s;--db:-1.20s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-3.03s;--db:-2.37s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-1.43s;--db:-0.27s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b8d8;--ds:-0.69s;--db:-2.25s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c87848;--ds:-1.73s;--db:-0.16s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="51" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#8848c8;--ds:-0.23s;--db:-0.41s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="60" height="60" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.21s;--db:-0.98s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f8f8;--ds:-3.43s;--db:-0.66s;margin-left:-16.0px"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="41" height="57" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>23명 · 1280 — 36px 간격, 어깨를 붙여 앉음</figcaption><div class="rr-band st vb"><div class="rr-band-in" style="max-width:1048px" data-doan-id="st-a-full-1280" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-count">같이 읽는 중<b>23명</b></p><div class="rr-row"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-1.18s;--db:-1.17s;margin-left:0.0px"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d898;--ds:-0.78s;--db:-0.78s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="50" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.41s;--db:-2.40s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#78b8a8;--ds:-1.84s;--db:-0.18s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="68" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#d8e8f8;--ds:-3.56s;--db:-1.89s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="45" height="53" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#888888;--ds:-2.44s;--db:-2.10s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="26" height="34" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#98d878;--ds:-3.21s;--db:-1.32s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="44" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-2.63s;--db:-0.94s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#58b8c8;--ds:-0.61s;--db:-0.73s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="58" height="44" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b808;--ds:-2.48s;--db:-1.80s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="62" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8c8a8;--ds:-2.84s;--db:-2.53s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="53" height="47" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d878;--ds:-0.45s;--db:-1.48s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83808;--ds:-0.94s;--db:-2.04s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="45" height="45" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#e8e808;--ds:-1.36s;--db:-1.90s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="46" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8a8d8;--ds:-1.76s;--db:-0.24s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="52" height="60" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.02s;--db:-2.04s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-1.92s;--db:-0.61s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-0.68s;--db:-2.38s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b8d8;--ds:-2.55s;--db:-2.29s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c87848;--ds:-3.51s;--db:-1.20s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="51" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#8848c8;--ds:-3.08s;--db:-2.30s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="60" height="60" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-1.07s;--db:-1.72s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f8f8;--ds:-3.58s;--db:-1.95s;margin-left:-19.8px"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="41" height="57" alt=""></span></span></div></div></div></figure>
+      </div>
+    </div>
+
+    <div class="st-sec">
+      <h3><span>B</span>오른쪽 여백</h3>
+      <div class="st-b">
+        <figure><figcaption>혼자 · 1920</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="st-b-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="rr-corner-t">혼자 읽는 중<b>1명</b></p><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.86s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>23명 · 1920 (4마리씩 6줄)</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="st-b-full" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-corner-t">같이 읽는 중<b>23명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#8848c8;--ds:-0.32s;--db:-1.77s;"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="60" height="60" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.64s;--db:-0.56s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f8f8;--ds:-0.30s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="41" height="57" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.68s;--db:-0.74s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-1.50s;--db:-1.72s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b8d8;--ds:-2.78s;--db:-2.06s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c87848;--ds:-2.24s;--db:-2.22s;"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="51" height="50" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f83808;--ds:-0.68s;--db:-0.59s;"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="45" height="45" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#e8e808;--ds:-1.63s;--db:-2.35s;"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="46" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8a8d8;--ds:-1.45s;--db:-0.52s;"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="52" height="60" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-0.73s;--db:-0.90s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#58b8c8;--ds:-0.58s;--db:-1.77s;"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="58" height="44" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8b808;--ds:-0.66s;--db:-1.04s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="62" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8c8a8;--ds:-2.91s;--db:-1.30s;"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="53" height="47" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d878;--ds:-0.79s;--db:-1.27s;"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="51" height="51" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#d8e8f8;--ds:-0.09s;--db:-0.84s;"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="45" height="53" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#888888;--ds:-3.15s;--db:-2.50s;"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="26" height="34" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#98d878;--ds:-0.71s;--db:-0.76s;"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="44" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.11s;--db:-2.59s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-2.08s;--db:-1.77s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d898;--ds:-1.15s;--db:-1.45s;"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="50" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.91s;--db:-1.72s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#78b8a8;--ds:-3.47s;--db:-1.02s;"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="68" height="51" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>23명 · 1728 (3마리씩 8줄)</figcaption><div class="st-box vb"><div class="rr-corner" style="width:176px" data-doan-id="st-b-full-1728" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-corner-t">같이 읽는 중<b>23명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-3.11s;--db:-1.00s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f8f8;--ds:-1.15s;--db:-1.30s;"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="41" height="57" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8b8d8;--ds:-3.30s;--db:-1.59s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="51" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c87848;--ds:-0.47s;--db:-1.77s;"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="51" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#8848c8;--ds:-2.48s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="60" height="60" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-2.43s;--db:-1.95s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-0.34s;--db:-0.48s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-2.89s;--db:-2.27s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f83808;--ds:-1.34s;--db:-2.51s;"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="45" height="45" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#e8e808;--ds:-2.38s;--db:-1.98s;"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="46" height="50" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8a8d8;--ds:-3.51s;--db:-0.51s;"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="52" height="60" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8b808;--ds:-1.38s;--db:-0.49s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="62" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8c8a8;--ds:-2.10s;--db:-1.31s;"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="53" height="47" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d878;--ds:-1.61s;--db:-0.56s;"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="51" height="51" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#98d878;--ds:-1.11s;--db:-0.60s;"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="44" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-0.49s;--db:-1.11s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#58b8c8;--ds:-2.42s;--db:-1.85s;"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="58" height="44" alt=""></span></span></div><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#78b8a8;--ds:-3.25s;--db:-0.48s;"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="68" height="51" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#d8e8f8;--ds:-1.60s;--db:-0.67s;"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="45" height="53" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#888888;--ds:-2.20s;--db:-2.02s;"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="26" height="34" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.52s;--db:-1.42s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8d898;--ds:-2.98s;--db:-2.32s;"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="50" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.01s;--db:-1.17s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span></div></div></div></figure>
+        <div class="sch-col" data-doan-id="st-b-widths">
+          <figure class="sch"><div class="sch-scr" style="width:320.0px"><i class="sch-side" style="width:38.7px"></i><i class="sch-main" style="left:84.7px;width:189.3px"></i><i class="sch-room" style="width:39.3px"></i></div><figcaption><b>1920px</b> · 오른쪽 빈칸 324px · 4마리씩</figcaption></figure><figure class="sch"><div class="sch-scr" style="width:288.0px"><i class="sch-side" style="width:38.7px"></i><i class="sch-main" style="left:68.7px;width:189.3px"></i><i class="sch-room" style="width:29.3px"></i></div><figcaption><b>1728px</b> · 오른쪽 빈칸 228px · 3마리씩</figcaption></figure><figure class="sch"><div class="sch-scr" style="width:266.7px"><i class="sch-side" style="width:38.7px"></i><i class="sch-main" style="left:58.0px;width:189.3px"></i><i class="sch-room" style="width:19.3px"></i></div><figcaption><b>1600px</b> · 오른쪽 빈칸 164px · 2마리씩</figcaption></figure><figure class="sch"><div class="sch-scr" style="width:252.0px"><i class="sch-side" style="width:38.7px"></i><i class="sch-main" style="left:50.7px;width:189.3px"></i></div><figcaption><b>1512px</b> · 오른쪽 빈칸 120px · 숨김</figcaption></figure><figure class="sch"><div class="sch-scr" style="width:240.0px"><i class="sch-side" style="width:38.7px"></i><i class="sch-main" style="left:44.7px;width:189.3px"></i></div><figcaption><b>1440px</b> · 오른쪽 빈칸 84px · 숨김</figcaption></figure>
+          <p class="spec-note">선반은 화면 높이의 절반까지 쌓고, 넘치면 맨 윗줄 마지막 칸이 <code>+N</code>이 돼요.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="st-sec">
+      <h3><span>C</span>목차 아래</h3>
+      <div class="st-c">
+        <figure><figcaption>23명 · 운영진 · 높이 1080</figcaption><div class="frame-mini vb" style="height:1080px"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a><p class="vb-grp">운영</p><a href="#">회차 현황</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav><div class="rr-side" data-doan-id="st-c-full" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-side-t">같이 읽는 중<b>23명</b></p><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#8848c8;--ds:-1.66s;--db:-1.38s;"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="48" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f83898;--ds:-1.44s;--db:-1.58s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="37" height="45" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f8f8;--ds:-3.03s;--db:-0.00s;"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="33" height="47" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#a8d818;--ds:-1.22s;--db:-2.23s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="46" height="39" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#b0b0b0;--ds:-0.70s;--db:-2.03s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="45" height="46" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8b8d8;--ds:-3.37s;--db:-2.15s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="42" height="42" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#c87848;--ds:-1.37s;--db:-2.39s;"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="42" height="40" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#f83808;--ds:-2.64s;--db:-1.57s;"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="37" height="37" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#e8e808;--ds:-3.30s;--db:-0.96s;"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="38" height="41" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8a8d8;--ds:-0.31s;--db:-2.51s;"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="42" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f828;--ds:-1.31s;--db:-1.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="42" height="38" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#58b8c8;--ds:-2.57s;--db:-2.36s;"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="48" height="36" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8b808;--ds:-0.06s;--db:-1.62s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="51" height="42" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8c8a8;--ds:-1.74s;--db:-2.55s;"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="43" height="38" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8d878;--ds:-1.79s;--db:-1.23s;"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="42" height="41" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#d8e8f8;--ds:-0.57s;--db:-0.17s;"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="37" height="43" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#888888;--ds:-2.82s;--db:-1.83s;"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="22" height="28" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#98d878;--ds:-3.14s;--db:-0.74s;"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="36" height="46" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#c8c8c8;--ds:-1.26s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="42" height="43" alt=""></span></span></div><div class="rr-sshelf"><span class="seat me" style="width:44px;height:48px;--glow:#4898e8;--ds:-3.21s;--db:-1.80s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="35" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8d898;--ds:-0.18s;--db:-1.44s;"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="41" height="47" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f808;--ds:-3.48s;--db:-0.37s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="47" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#78b8a8;--ds:-2.66s;--db:-0.17s;"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="56" height="42" alt=""></span></span></div></div><div class="vb-who"><b>최도윤</b>총무<br><a href="#">로그아웃</a></div></aside></div></figure>
+        <figure><figcaption>23명 · 운영진 · 높이 800 → 한 줄 + <code>+20</code></figcaption><div class="frame-mini vb" style="height:800px"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a><p class="vb-grp">운영</p><a href="#">회차 현황</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav><div class="rr-side" data-doan-id="st-c-short" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-side-t">같이 읽는 중<b>23명</b></p><div class="rr-sshelf"><span class="seat me" style="width:44px;height:48px;--glow:#4898e8;--ds:-1.47s;--db:-0.98s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="35" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8d898;--ds:-0.48s;--db:-0.41s;"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="41" height="47" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f808;--ds:-1.15s;--db:-2.28s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="47" height="48" alt=""></span></span><span class="rr-more">+20</span></div></div><div class="vb-who"><b>최도윤</b>총무<br><a href="#">로그아웃</a></div></aside></div></figure>
+        <figure><figcaption>23명 · 멤버 · 높이 800 (다 들어감)</figcaption><div class="frame-mini vb" style="height:800px"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a></nav><div class="rr-side" data-doan-id="st-c-member" role="img" aria-label="지금 23명이 같이 보고 있어요"><p class="rr-side-t">같이 읽는 중<b>23명</b></p><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#8848c8;--ds:-1.83s;--db:-2.24s;"><span class="pal"><img src="../assets/reading-room/07-purple-dog.png" width="48" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f83898;--ds:-1.10s;--db:-0.31s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="37" height="45" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f8f8;--ds:-2.20s;--db:-1.49s;"><span class="pal"><img src="../assets/reading-room/02-white-bunny.png" width="33" height="47" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#a8d818;--ds:-2.47s;--db:-2.04s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="46" height="39" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#b0b0b0;--ds:-1.11s;--db:-1.20s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="45" height="46" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8b8d8;--ds:-1.30s;--db:-1.12s;"><span class="pal"><img src="../assets/reading-room/22-pink-cat.png" width="42" height="42" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#c87848;--ds:-2.95s;--db:-1.65s;"><span class="pal"><img src="../assets/reading-room/08-brown-mouse.png" width="42" height="40" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#f83808;--ds:-2.81s;--db:-0.32s;"><span class="pal"><img src="../assets/reading-room/04-red-crab.png" width="37" height="37" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#e8e808;--ds:-1.49s;--db:-2.21s;"><span class="pal"><img src="../assets/reading-room/05-lime-bear.png" width="38" height="41" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8a8d8;--ds:-1.08s;--db:-1.02s;"><span class="pal"><img src="../assets/reading-room/09-pink-snail.png" width="42" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f828;--ds:-3.20s;--db:-2.15s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="42" height="38" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#58b8c8;--ds:-1.17s;--db:-0.22s;"><span class="pal"><img src="../assets/reading-room/18-cyan-bunny.png" width="48" height="36" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8b808;--ds:-3.42s;--db:-0.09s;"><span class="pal"><img src="../assets/reading-room/13-orange-cat.png" width="51" height="42" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8c8a8;--ds:-0.93s;--db:-0.95s;"><span class="pal"><img src="../assets/reading-room/25-peach-dog.png" width="43" height="38" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8d878;--ds:-0.07s;--db:-2.13s;"><span class="pal"><img src="../assets/reading-room/17-yellow-dog.png" width="42" height="41" alt=""></span></span></div><div class="rr-sshelf"><span class="seat" style="width:44px;height:48px;--glow:#d8e8f8;--ds:-1.50s;--db:-2.43s;"><span class="pal"><img src="../assets/reading-room/21-sky-bunny.png" width="37" height="43" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#888888;--ds:-3.58s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/26-mini-bunny.png" width="22" height="28" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#98d878;--ds:-3.26s;--db:-1.66s;"><span class="pal"><img src="../assets/reading-room/15-green-bunny.png" width="36" height="46" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#c8c8c8;--ds:-0.43s;--db:-0.49s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="42" height="43" alt=""></span></span></div><div class="rr-sshelf"><span class="seat me" style="width:44px;height:48px;--glow:#4898e8;--ds:-0.79s;--db:-1.47s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="35" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8d898;--ds:-2.15s;--db:-1.69s;"><span class="pal"><img src="../assets/reading-room/11-peach-bear.png" width="41" height="47" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#f8f808;--ds:-1.04s;--db:-1.99s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="47" height="48" alt=""></span></span><span class="seat" style="width:44px;height:48px;--glow:#78b8a8;--ds:-0.65s;--db:-0.58s;"><span class="pal"><img src="../assets/reading-room/01-mint-angel.png" width="56" height="42" alt=""></span></span></div></div><div class="vb-who"><b>김하늘</b>멤버<br><a href="#">로그아웃</a></div></aside></div></figure>
+        <figure><figcaption>혼자 · 멤버 · 높이 800</figcaption><div class="frame-mini vb" style="height:800px"><aside class="vb-index" aria-label="사이드바"><div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div><nav class="vb-nav" aria-label="메뉴"><a href="#" aria-current="page">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#">내 기록</a><a href="#">벌점</a></nav><div class="rr-side" data-doan-id="st-c-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="rr-side-t">혼자 읽는 중<b>1명</b></p><div class="rr-sshelf"><span class="seat me" style="width:44px;height:48px;--glow:#4898e8;--ds:-0.22s;--db:-0.80s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="35" height="48" alt=""></span></span></div></div><div class="vb-who"><b>김하늘</b>멤버<br><a href="#">로그아웃</a></div></aside></div></figure>
+      </div>
+    </div>
+
+    <div class="st-sec">
+      <h3><span>·</span>세 자리 공통</h3>
+      <ul class="st-common" data-doan-id="st-common">
+        <li><b>다른 탭을 보면</b>그 사람의 캐릭터가 일어나 나가요(240ms). 돌아오면 다시 앉아요. 내 화면의 움직임도 멈춰서 배터리를 아껴요.</li>
+        <li><b>연결이 끊기면</b>오류 문구 없이 자리째 사라져요. 다시 연결되면 처음부터 다시 앉아요. 놀이 요소라 실패를 알릴 필요가 없어요.</li>
+        <li><b>모바일 (768px 미만)</b>그리지 않아요. 연결도 열지 않아 다른 사람 숫자에도 안 잡혀요.</li>
+        <li><b>화면 읽기 프로그램</b>캐릭터 묶음 전체를 "지금 7명이 같이 보고 있어요" 한 줄로 읽어요. 한 마리씩은 읽지 않아요.</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
