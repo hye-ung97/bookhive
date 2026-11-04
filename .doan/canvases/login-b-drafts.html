@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="login-b-drafts">
+<meta name="doan:width" content="1960">
+<title>로그인 B 통일 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@800&display=swap">
+<style>
+/* ───────── 보드 (b-timetable-pages · footer-drafts와 같은 틀) ───────── */
+:root {
+  --board-bg: #e7e5e0;
+  --board-ink: #1c1c1c;
+  --board-ink2: #5d5a55;
+  --board-line: #d2cfc8;
+  --board-paper: #ffffff;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --serif: "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--board-bg); color: var(--board-ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+.board { width: 1960px; padding: 96px; display: flex; flex-direction: column; gap: 120px; }
+ul, ol, dl { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, p { margin: 0; }
+button { font-family: inherit; }
+.frames { display: flex; flex-wrap: wrap; gap: 64px; align-items: flex-start; }
+.frame-wrap { display: flex; flex-direction: column; gap: 12px; }
+.frame-cap { font: 600 14px/20px var(--sans); color: var(--board-ink2); }
+.frame-cap span { font-weight: 400; }
+.frame-cap.gap { margin-top: 40px; }
+.frame { position: relative; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08); }
+.desk { width: 1280px; min-height: 760px; }
+.mob { width: 390px; min-height: 844px; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 개요 */
+.brief { width: 1768px; padding: 56px 64px; background: var(--board-paper); border-radius: 16px; }
+.brief h1 { font: 800 48px/56px var(--sans); letter-spacing: -0.02em; }
+.brief-lead { margin-top: 14px; max-width: 80ch; font: 400 18px/30px var(--sans); color: var(--board-ink2); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 48px; }
+.brief-cols h3 { font: 700 15px/22px var(--sans); margin-bottom: 10px; }
+.brief-cols code { font: 500 13px/22px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--board-ink); }
+.pick li { padding: 10px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.pick li b { color: var(--board-ink); }
+.pick-h { margin-top: 24px; }
+.not-code { margin-top: 28px; display: inline-flex; gap: 8px; padding: 8px 14px; border-radius: 8px; background: #fff4d6; font: 500 13px/20px var(--sans); color: #6b4e00; }
+.not-code b { color: #3d2c00; }
+.proposal { display: inline-flex; align-items: center; margin-left: 12px; padding: 4px 12px; border-radius: 999px; background: var(--board-ink); color: var(--board-paper); font: 700 14px/20px var(--sans); vertical-align: 8px; letter-spacing: 0; }
+.proposal.ref { background: transparent; color: var(--board-ink2); border: 1px solid var(--board-line); }
+
+/* 시안 묶음 머리 */
+.page { display: flex; flex-direction: column; gap: 28px; }
+.page-top { display: grid; grid-template-columns: 96px 520px 1fr; gap: 32px; align-items: end; padding-bottom: 20px; border-bottom: 1px solid var(--board-line); }
+.page-top .no { font: 800 64px/64px var(--sans); letter-spacing: -0.04em; color: var(--board-ink2); }
+.page-top h2 { font: 800 36px/44px var(--sans); letter-spacing: -0.02em; }
+.page-top .route { margin-top: 6px; font: 500 14px/20px var(--sans); color: var(--board-ink2); }
+.page-top .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.page-top .notes b { display: block; margin-bottom: 4px; color: var(--board-ink); }
+
+/* ───────── Google 버튼: 코드의 .gbtn 그대로 (Google 브랜드 가이드 색·모양이라 모든 시안에서 예외) ───────── */
+.gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 48px; padding: 0 24px; border: 1px solid #747775; border-radius: 6px; background: #ffffff; color: #1f1f1f; font: 600 15px/1 var(--sans); letter-spacing: 0; white-space: nowrap; cursor: pointer; }
+.gbtn svg { width: 18px; height: 18px; flex: none; }
+.gbtn.full { width: 100%; }
+
+/* ───────── 지금: 코드의 로그인 전용 말투 (globals.css 797–859 값 그대로) ───────── */
+.nw { --nw-paper: #fbfaf7; --nw-hair: #e2ded5; --nw-ink: #111111; --nw-ink2: #5c5c5c; --nw-ink3: #9a968e; --nw-red: #d0281b; --nw-red-soft: #fbe9e7;
+  display: grid; background: var(--nw-paper); color: var(--nw-ink); letter-spacing: -0.01em; }
+.nw a { color: inherit; }
+.nw-d { grid-template-rows: 64px minmax(0, 1fr) 56px; }
+.nw-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 56px; border-bottom: 1px solid var(--nw-hair); font: 500 13px/1 var(--sans); color: var(--nw-ink2); }
+.nw-brand { display: inline-flex; align-items: center; gap: 10px; font: 800 17px/1 var(--sans); letter-spacing: -0.03em; color: var(--nw-ink); }
+.nw-brand i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--nw-ink); color: #ffffff; }
+.nw-brand .ic { width: 15px; height: 15px; }
+.nw-mid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 96px; align-items: center; padding: 48px 56px 48px 120px; }
+.nw-kick { font: 600 13px/18px var(--sans); color: var(--nw-ink2); }
+.nw-h { margin-top: 20px; font: 800 46px/64px var(--serif); letter-spacing: -0.03em; }
+.nw-err { margin-top: 32px; max-width: 520px; display: flex; gap: 10px; padding: 14px 16px; border-left: 3px solid var(--nw-red); background: var(--nw-red-soft); font: 500 14px/22px var(--sans); }
+.nw-err .ic { margin-top: 3px; color: var(--nw-red); }
+.nw-act { margin-top: 40px; display: flex; align-items: center; gap: 20px; }
+.nw-err + .nw-act { margin-top: 16px; }
+.nw-hint { display: flex; gap: 8px; font: 400 13px/20px var(--sans); color: var(--nw-ink2); }
+.nw-hint .ic { width: 15px; height: 15px; margin-top: 2px; color: var(--nw-ink3); }
+.nw-cap { margin-bottom: 10px; font: 600 12px/16px var(--sans); color: var(--nw-ink2); }
+.nw-steps { border-top: 1.5px solid var(--nw-ink); }
+.nw-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 8px; padding: 16px 0; border-bottom: 1px solid var(--nw-hair); }
+.nw-steps .n { grid-row: span 2; font: 700 12px/20px var(--sans); color: var(--nw-ink3); font-variant-numeric: tabular-nums; }
+.nw-steps b { font: 700 15px/20px var(--sans); }
+.nw-steps small { font: 400 13px/18px var(--sans); color: var(--nw-ink2); }
+.nw-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 56px; border-top: 1px solid var(--nw-hair); font: 400 12px/18px var(--sans); color: var(--nw-ink2); }
+.nw .u { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--nw-ink3); }
+.nw-m { grid-template-rows: 56px minmax(0, 1fr) auto; }
+.nw-m .nw-top { padding: 0 20px; font-size: 12px; }
+.nw-m .nw-mid { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 56px 24px 32px; }
+.nw-m .nw-h { margin-top: 14px; font-size: 32px; line-height: 46px; }
+.nw-m .nw-act { margin-top: 32px; flex-direction: column; align-items: stretch; gap: 12px; }
+.nw-m .nw-steps { margin-top: 48px; }
+.nw-m .nw-steps li { padding: 12px 0; }
+.nw-m .nw-foot { padding: 16px 24px 24px; border-top: 0; }
+
+/* ───────── B 시간표 공통 (globals.css :root 토큰·부품과 같은 값) ───────── */
+.vb {
+  --b-bg: #ffffff;
+  --b-ink: #111111;
+  --b-ink2: #5c5c5c;
+  --b-rule: #d9d9d9;
+  --b-fill: #f2f2f2;
+  --b-past: #c9c9c9;
+  --b-red: #d0281b;
+  --b-red-soft: #fbe9e7;
+  --b-on: #ffffff;
+  background: var(--b-bg); color: var(--b-ink); font-family: var(--sans); font-variant-numeric: tabular-nums;
+}
+.vb a { color: inherit; text-decoration: none; }
+/* .t-title · .page-sub · .eyebrow */
+.vb-title { font: 800 44px/52px var(--sans); letter-spacing: -0.03em; }
+.vb-sub { margin-top: 10px; font: 500 16px/24px var(--sans); color: var(--b-ink2); }
+.vb-eyebrow { font: 600 13px/18px var(--sans); color: var(--b-ink2); }
+.vb-eyebrow + .vb-title { margin-top: 12px; }
+/* .block-head + .t-heading */
+.vb-bh { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; padding-bottom: 10px; border-bottom: 2px solid var(--b-ink); }
+.vb-bh h2 { font: 800 20px/28px var(--sans); letter-spacing: -0.01em; }
+.vb-bh p { font: 500 13px/18px var(--sans); color: var(--b-ink2); }
+/* .note.note-danger */
+.vb-note { display: flex; align-items: flex-start; gap: 10px; max-width: 560px; padding: 12px 16px; border-left: 4px solid var(--b-red); background: var(--b-red-soft); font: 500 14px/21px var(--sans); }
+.vb-note .ic { margin-top: 3px; color: var(--b-red); }
+.vb-note b { font-weight: 800; }
+.vb-hint { display: flex; gap: 8px; font: 400 13px/20px var(--sans); color: var(--b-ink2); }
+.vb-hint .ic { width: 15px; height: 15px; margin-top: 2px; }
+/* 회차 순서 줄: 번호는 잉크, 줄은 --rule */
+.vb-rows li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px 8px; padding: 14px 0; border-bottom: 1px solid var(--b-rule); }
+.vb-rows .n { grid-row: span 2; font: 800 13px/20px var(--sans); font-variant-numeric: tabular-nums; }
+.vb-rows b { font: 700 15px/20px var(--sans); }
+.vb-rows small { font: 400 13px/18px var(--sans); color: var(--b-ink2); }
+/* 앱 .foot과 같은 한 줄. 로그인 전 화면이라 메일 줄은 뺀다 */
+.vb-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 24px; padding: 18px 0 22px; border-top: 1px solid var(--b-rule); font: 400 12px/18px var(--sans); color: var(--b-ink2); }
+.vb-foot b { font-weight: 700; color: var(--b-ink); }
+.vb-foot-line { display: flex; flex-wrap: wrap; }
+.vb-foot-line > * + *::before { content: "·"; margin: 0 8px; color: var(--b-past); }
+.vb-foot a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--b-past); }
+.vb-foot.stack { flex-direction: column; align-items: flex-start; gap: 2px; padding: 16px 0 18px; }
+/* 모바일 위 막대 (.appbar · .solo-top) */
+.vb-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 56px; border-bottom: 2px solid var(--b-ink); font: 500 13px/18px var(--sans); color: var(--b-ink2); }
+.vb-bar b { font: 800 20px/1 var(--sans); letter-spacing: -0.03em; color: var(--b-ink); }
+.mob .vb-title { font-size: 30px; line-height: 38px; }
+.mob .vb-sub { font-size: 14px; line-height: 21px; }
+
+/* ───────── 시안 A · 배치 그대로 ───────── */
+.va-d { display: grid; grid-template-rows: 56px minmax(0, 1fr) auto; }
+.va-d .vb-bar { padding: 0 48px; }
+.va-mid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 96px; align-items: center; padding: 48px 48px 48px 120px; }
+.va-mid .vb-note { margin-top: 28px; }
+.va-act { margin-top: 36px; display: flex; align-items: center; gap: 20px; }
+.vb-note + .va-act { margin-top: 16px; }
+.va-steps .vb-bh h2 { font-size: 18px; line-height: 26px; }
+.va-foot { padding: 0 48px; }
+.va-m { display: grid; grid-template-rows: 56px minmax(0, 1fr) auto; }
+.va-m .vb-bar { padding: 0 20px; }
+.va-m .va-mid { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 40px 20px 32px; }
+.va-m .vb-title { margin-top: 10px; }
+.va-m .gbtn { margin-top: 28px; }
+.va-m .vb-hint { margin-top: 12px; }
+.va-m .va-steps { margin-top: 44px; }
+.va-m .vb-rows li { padding: 12px 0; }
+.va-m .va-foot { padding: 0 20px; }
+
+/* ───────── 시안 B · 한 장 (.solo 틀) ───────── */
+.vs { display: flex; }
+.vs-in { width: 720px; margin: 0 auto; padding: 0 24px; display: flex; flex-direction: column; gap: 32px; }
+.vs-head { padding-top: 8px; }
+.vs-act { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.vs-steps ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.vs-steps li { display: grid; gap: 2px; padding: 14px 16px 0; }
+.vs-steps li + li { border-left: 1px solid var(--b-rule); }
+.vs-steps li:first-child { padding-left: 0; }
+.vs-steps .n { font: 800 13px/20px var(--sans); }
+.vs-steps b { font: 700 15px/22px var(--sans); }
+.vs-steps small { font: 400 13px/18px var(--sans); color: var(--b-ink2); }
+.vs-in > .vb-foot { margin-top: auto; }
+.vs-m .vs-in { width: 100%; padding: 0 20px; gap: 28px; }
+.vs-m .vs-act { align-items: stretch; }
+
+/* ───────── 시안 C · 앱 틀 (왼쪽 목차 자리) ───────── */
+.vc-d { display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+.vc-side { display: flex; flex-direction: column; padding: 32px 0 24px; border-right: 2px solid var(--b-ink); }
+.vc-logo { padding: 0 24px 28px; }
+.vc-logo b { display: block; font: 800 24px/30px var(--sans); letter-spacing: -0.03em; }
+.vc-logo span { font: 500 12px/16px var(--sans); color: var(--b-ink2); }
+.vc-cap { padding: 0 24px 8px; font: 700 12px/16px var(--sans); letter-spacing: 0.04em; color: var(--b-ink2); }
+/* 목차의 .nav 줄 높이·윗줄을 빌리되 링크가 아니므로 hover·검게 뒤집기는 없다 */
+.vc-steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 6px; padding: 12px 24px; border-top: 1px solid var(--b-rule); }
+.vc-steps .n { grid-row: span 2; font: 800 12px/20px var(--sans); color: var(--b-ink2); }
+.vc-steps b { font: 700 14px/20px var(--sans); }
+.vc-steps small { font: 400 12px/16px var(--sans); color: var(--b-ink2); }
+.vc-who { margin-top: auto; padding: 16px 24px 0; border-top: 2px solid var(--b-ink); font: 400 13px/20px var(--sans); color: var(--b-ink2); }
+.vc-who b { display: block; font: 700 15px/22px var(--sans); color: var(--b-ink); }
+.vc-col { display: flex; flex-direction: column; min-width: 0; }
+.vc-main { flex: 1; display: flex; flex-direction: column; gap: 40px; padding: 36px 48px 56px; }
+.vc-login { display: grid; gap: 16px; max-width: 560px; }
+.vc-login .gbtn { justify-self: start; }
+.vc-foot { padding: 0 48px; }
+.vc-m { display: grid; grid-template-rows: 56px minmax(0, 1fr) auto auto; }
+.vc-m .vb-bar { padding: 0 20px; }
+.vc-m .vc-main { padding: 24px 20px 32px; gap: 28px; }
+.vc-m .vb-rows li { padding: 12px 0; }
+.vc-m .vc-foot { padding: 0 20px; }
+/* 모바일 하단 탭 자리 (.tabs와 같은 2px 윗줄)에 Google 버튼 */
+.vc-dock { display: grid; gap: 8px; padding: 12px 20px 16px; border-top: 2px solid var(--b-ink); background: var(--b-bg); }
+.vc-dock .vb-hint { justify-content: center; font-size: 12px; line-height: 18px; }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ───────── 개요 ───────── -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 로그인 B 통일 시안">
+    <h1>로그인 · B 시간표로 맞추기</h1>
+    <p class="brief-lead">지금 로그인 화면만 종이색 바탕, 얇은 베이지 선, 명조 제목, 둥근 모서리를 써서 앱 안쪽과 말투가 달라요. 앱 안쪽과 같은 B 시간표 규칙으로 맞춘 세 가지를 이전 화면 아래에 나란히 그렸어요. 문구는 지금 것을 그대로 쓰고 자리만 옮겼어요. 새로 생긴 문구는 각 시안 머리에 적어 두었어요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>세 시안 모두 같은 것</h3>
+        <ul class="pick" data-doan-id="brief-fixed">
+          <li><b>바탕·잉크</b> 흰 바탕 <code>--bg</code>, 검은 잉크 <code>--ink</code>, 보조 글자 <code>--ink2</code>. 로그인 전용 <code>--lg-*</code> 토큰은 없애요.</li>
+          <li><b>글꼴</b> Pretendard 하나. 큰 문장은 홈 머리와 같은 <code>.t-title</code> (44px, 모바일 30px).</li>
+          <li><b>줄·모서리</b> 구역은 2px 검은 줄, 줄 사이는 1px 회색 줄. 모서리는 모두 직각.</li>
+          <li><b>빨강</b> 미등록 계정 안내에만. 앱의 <code>.note.note-danger</code>와 같은 모양 (왼쪽 4px).</li>
+          <li><b>푸터</b> 앱 <code>.foot</code>과 같은 한 줄. 로그인 전 화면이라 메일은 빼고 Design by Doan · 개인정보처리방침만.</li>
+          <li><b>예외</b> Google 버튼은 브랜드 가이드 색·모양 그대로 둬요 (지금 코드와 같음).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>세 시안 — 무엇이 다른가</h3>
+        <ul class="pick" data-doan-id="brief-alts">
+          <li><b>A · 배치 그대로</b> — 지금처럼 왼쪽 큰 문장, 오른쪽 회차 순서. 겉모습만 B로 바꿔요. 코드는 CSS 위주라 셋 중 가장 적게 바뀌어요.</li>
+          <li><b>B · 한 장</b> — 개인정보처리방침·404와 같은 가운데 720px 틀(<code>.solo</code>). 앱 밖 화면 셋이 한 모양이 되고, 회차 순서는 가로 세 칸이 돼요.</li>
+          <li><b>C · 앱 틀</b> — 앱의 왼쪽 목차 자리에 로고·회차 순서, 오른쪽 본문에 홈과 같은 머리·구역 머리. 로그인 전후로 화면 뼈대가 같아요. 모바일은 하단 탭 자리에 Google 버튼.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>정한 것</h3>
+        <ul class="pick" data-doan-id="brief-decide">
+          <li><b>시안</b> A · 배치 그대로.</li>
+          <li><b>명조 글꼴</b> 쓰는 곳이 없어져서 <code>layout.tsx</code>의 나눔명조 로딩과 <code>--font-serif</code>를 지웠어요.</li>
+          <li><b>Design by Doan</b> 로그인 푸터에도 넣었어요. 메일 줄만 빼요 (<code>&lt;SiteFooter contact={false} /&gt;</code>).</li>
+        </ul>
+        <h3 class="pick-h">그리지 않은 상태</h3>
+        <ul class="pick" data-doan-id="brief-states">
+          <li><b>일반 로그인 오류</b> 미등록 안내와 같은 자리·같은 모양에 "로그인하지 못했어요. 다시 시도해 주세요." 한 줄.</li>
+          <li><b>개발용 이메일 로그인</b> 로컬에서만 보여요. 버튼 아래 1px 줄 뒤에 앱 <code>.input</code>·<code>.btn</code>으로.</li>
+          <li><b>모바일 미등록·다크 모드·hover·focus</b> 앱 공통 토큰과 규칙을 그대로 따라요.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="not-code"><b>A로 정함</b> A는 <code>src/app/login/page.tsx</code>, <code>globals.css</code> 로그인 부분, 공용 푸터 <code>src/components/site-footer.tsx</code>에 들어갔어요. 나눔명조 로딩도 지웠어요. 맨 위 "이전"은 바꾸기 전 코드, B·C는 처음 시안 그대로 남겨 둔 것이고 코드에 없어요.</p>
+  </section>
+
+  <!-- ───────── 지금 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">0</span>
+      <div><h2>이전<span class="proposal ref">A 전 코드</span></h2><p class="route">/login · 로그인 전용 말투 (B 개편 때 초안 3 "한 문장")</p></div>
+      <div class="notes">
+        <div><b>앱 안쪽과 다른 점</b>종이색 #fbfaf7 바탕, 베이지 1px 선, 명조 46px 제목, 둥근 책 아이콘, 64px 위 막대.</div>
+        <div><b>같은 점</b>검은 잉크, Pretendard 본문, 빨간 안내의 왼쪽 줄. 배치와 문구는 세 시안에 그대로 이어져요.</div>
+        <div><b>그대로 옮겨 그림</b><code>src/app/login/page.tsx</code>와 <code>globals.css</code>의 로그인 부분 값을 그대로 썼어요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 <span>· 로그인 전</span></p>
+        <div class="frame desk nw nw-d" data-doan-frame="now-desktop" data-doan-title="이전 · 데스크톱">
+          <header class="nw-top"><span class="nw-brand"><i><svg class="ic"><use href="#i-book"/></svg></i>시끌북적</span><span>사내 독서 동아리</span></header>
+          <div class="nw-mid">
+            <div>
+              <p class="nw-kick">한 달에 한 회차</p>
+              <h1 class="nw-h">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <div class="nw-act">
+                <button class="gbtn" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+                <p class="nw-hint"><span>등록된 멤버만<br>이용할 수 있어요</span></p>
+              </div>
+            </div>
+            <div>
+              <p class="nw-cap">한 회차는 이렇게 돌아가요</p>
+              <ol class="nw-steps">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </div>
+          </div>
+          <footer class="nw-foot"><span>명단에 없다면 총무에게 등록을 요청해 주세요</span><a class="u" href="#">개인정보처리방침</a></footer>
+        </div>
+        <p class="frame-cap gap">데스크톱 1280 <span>· 명단에 없는 계정으로 로그인했을 때</span></p>
+        <div class="frame desk nw nw-d" data-doan-frame="now-notmember" data-doan-title="이전 · 미등록 계정">
+          <header class="nw-top"><span class="nw-brand"><i><svg class="ic"><use href="#i-book"/></svg></i>시끌북적</span><span>사내 독서 동아리</span></header>
+          <div class="nw-mid">
+            <div>
+              <p class="nw-kick">한 달에 한 회차</p>
+              <h1 class="nw-h">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <div class="nw-err" role="alert"><svg class="ic"><use href="#i-alert"/></svg><span><b>등록되지 않은 계정이에요.</b> 멤버 명단에 없는 계정이라 들어갈 수 없어요. 등록한 Google 계정이 맞는지 확인하거나 총무에게 등록을 요청해 주세요.</span></div>
+              <div class="nw-act">
+                <button class="gbtn" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>다른 계정으로 로그인</button>
+                <p class="nw-hint"><span>등록된 멤버만<br>이용할 수 있어요</span></p>
+              </div>
+            </div>
+            <div>
+              <p class="nw-cap">한 회차는 이렇게 돌아가요</p>
+              <ol class="nw-steps">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </div>
+          </div>
+          <footer class="nw-foot"><span>명단에 없다면 총무에게 등록을 요청해 주세요</span><a class="u" href="#">개인정보처리방침</a></footer>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 <span>· 로그인 전</span></p>
+        <div class="frame mob nw nw-m" data-doan-frame="now-mobile" data-doan-title="이전 · 모바일">
+          <header class="nw-top"><span class="nw-brand"><i><svg class="ic"><use href="#i-book"/></svg></i>시끌북적</span><span>사내 독서 동아리</span></header>
+          <div class="nw-mid">
+            <p class="nw-kick">한 달에 한 회차</p>
+            <h1 class="nw-h">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+            <div class="nw-act">
+              <button class="gbtn full" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+              <p class="nw-hint"><svg class="ic"><use href="#i-info"/></svg><span>등록된 멤버만 이용할 수 있어요. 명단에 없다면 총무에게 등록을 요청해 주세요.</span></p>
+            </div>
+            <ol class="nw-steps">
+              <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+              <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+              <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+            </ol>
+          </div>
+          <footer class="nw-foot"><span>시끌북적</span><a class="u" href="#">개인정보처리방침</a></footer>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── A · 배치 그대로 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">A</span>
+      <div><h2>배치 그대로<span class="proposal">채택</span></h2><p class="route">두 칸 배치·문구 유지 · 색·선·글꼴·안내·푸터만 B로</p></div>
+      <div class="notes">
+        <div><b>무엇이 바뀌나</b>종이색 → 흰 바탕, 베이지 선 → 2px 검은 줄과 1px 회색 줄, 명조 → <code>.t-title</code>, 책 아이콘 → 글자 로고, 오류 → <code>.note-danger</code>, 푸터 → 앱 푸터 한 줄.</div>
+        <div><b>코드</b><code>globals.css</code>의 로그인 CSS를 B 토큰으로 바꾸고 <code>page.tsx</code>는 클래스 몇 개만 바꿔요. 셋 중 가장 작은 변경이에요.</div>
+        <div><b>아쉬운 점</b>배치가 그대로라 다른 화면과 겹쳐 보면 여전히 '따로 만든 화면'처럼 보여요. 오른쪽 굵은 줄 머리가 왼쪽 문장과 무게를 나눠 가져요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 <span>· 로그인 전</span></p>
+        <div class="frame desk vb va-d" data-doan-frame="a-desktop" data-doan-title="A 배치 그대로 · 데스크톱" data-doan-implements="src/app/login/page.tsx">
+          <header class="vb-bar" data-doan-id="a-d-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+          <div class="va-mid">
+            <div data-doan-id="a-d-hero">
+              <p class="vb-eyebrow">한 달에 한 회차</p>
+              <h1 class="vb-title">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <div class="va-act">
+                <button class="gbtn" type="button" data-doan-id="a-d-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+                <p class="vb-hint"><span>등록된 멤버만<br>이용할 수 있어요</span></p>
+              </div>
+            </div>
+            <div class="va-steps" data-doan-id="a-d-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2></div>
+              <ol class="vb-rows">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </div>
+          </div>
+          <div class="va-foot">
+            <footer class="vb-foot" data-doan-id="a-d-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+        </div>
+        <p class="frame-cap gap">데스크톱 1280 <span>· 명단에 없는 계정으로 로그인했을 때</span></p>
+        <div class="frame desk vb va-d" data-doan-frame="a-notmember" data-doan-title="A 배치 그대로 · 미등록 계정" data-doan-implements="src/app/login/page.tsx">
+          <header class="vb-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+          <div class="va-mid">
+            <div>
+              <p class="vb-eyebrow">한 달에 한 회차</p>
+              <h1 class="vb-title">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <div class="vb-note" role="alert" data-doan-id="a-n-note"><svg class="ic"><use href="#i-alert"/></svg><span><b>등록되지 않은 계정이에요.</b> 멤버 명단에 없는 계정이라 들어갈 수 없어요. 등록한 Google 계정이 맞는지 확인하거나 총무에게 등록을 요청해 주세요.</span></div>
+              <div class="va-act">
+                <button class="gbtn" type="button" data-doan-id="a-n-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>다른 계정으로 로그인</button>
+                <p class="vb-hint"><span>등록된 멤버만<br>이용할 수 있어요</span></p>
+              </div>
+            </div>
+            <div class="va-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2></div>
+              <ol class="vb-rows">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </div>
+          </div>
+          <div class="va-foot">
+            <footer class="vb-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 <span>· 로그인 전</span></p>
+        <div class="frame mob vb va-m" data-doan-frame="a-mobile" data-doan-title="A 배치 그대로 · 모바일" data-doan-implements="src/app/login/page.tsx">
+          <header class="vb-bar" data-doan-id="a-m-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+          <div class="va-mid">
+            <p class="vb-eyebrow">한 달에 한 회차</p>
+            <h1 class="vb-title">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+            <button class="gbtn full" type="button" data-doan-id="a-m-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+            <p class="vb-hint"><svg class="ic"><use href="#i-info"/></svg><span>등록된 멤버만 이용할 수 있어요. 명단에 없다면 총무에게 등록을 요청해 주세요.</span></p>
+            <div class="va-steps" data-doan-id="a-m-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2></div>
+              <ol class="vb-rows">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </div>
+          </div>
+          <div class="va-foot">
+            <footer class="vb-foot stack" data-doan-id="a-m-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── B · 한 장 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">B</span>
+      <div><h2>한 장<span class="proposal">제안</span></h2><p class="route">개인정보처리방침·404와 같은 .solo 틀 · 가운데 720px 한 줄</p></div>
+      <div class="notes">
+        <div><b>무엇이 바뀌나</b>위 막대·큰 제목·설명 줄이 <code>/privacy</code>, 404와 똑같아져요. "한 달에 한 회차"와 "등록된 멤버만 이용할 수 있어요"를 설명 줄 하나로 합치고, 회차 순서는 구역 머리 아래 가로 세 칸.</div>
+        <div><b>코드</b><code>.login-*</code> CSS 대부분을 지우고 <code>.solo</code>·<code>.t-title</code>·<code>.page-sub</code>·<code>.block-head</code>를 써요. 새로 만드는 건 가로 세 칸 순서 하나.</div>
+        <div><b>아쉬운 점</b>넓은 화면에서 양옆이 많이 비고, 큰 문장이 두 줄로 줄어 지금보다 조용해요. 모바일은 A와 거의 같아요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 <span>· 로그인 전</span></p>
+        <div class="frame desk vb vs" data-doan-frame="b-desktop" data-doan-title="B 한 장 · 데스크톱">
+          <div class="vs-in">
+            <header class="vb-bar" data-doan-id="b-d-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+            <div class="vs-head" data-doan-id="b-d-head">
+              <h1 class="vb-title">같이 고르고, 각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <p class="vb-sub">한 달에 한 회차 · 등록된 멤버만 이용할 수 있어요.</p>
+            </div>
+            <div class="vs-act">
+              <button class="gbtn" type="button" data-doan-id="b-d-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+            </div>
+            <section class="vs-steps" data-doan-id="b-d-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2><p>명단에 없다면 총무에게 등록을 요청해 주세요</p></div>
+              <ol>
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </section>
+            <footer class="vb-foot" data-doan-id="b-d-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+        </div>
+        <p class="frame-cap gap">데스크톱 1280 <span>· 명단에 없는 계정으로 로그인했을 때</span></p>
+        <div class="frame desk vb vs" data-doan-frame="b-notmember" data-doan-title="B 한 장 · 미등록 계정">
+          <div class="vs-in">
+            <header class="vb-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+            <div class="vs-head">
+              <h1 class="vb-title">같이 고르고, 각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <p class="vb-sub">한 달에 한 회차 · 등록된 멤버만 이용할 수 있어요.</p>
+            </div>
+            <div class="vs-act">
+              <div class="vb-note" role="alert" data-doan-id="b-n-note"><svg class="ic"><use href="#i-alert"/></svg><span><b>등록되지 않은 계정이에요.</b> 멤버 명단에 없는 계정이라 들어갈 수 없어요. 등록한 Google 계정이 맞는지 확인하거나 총무에게 등록을 요청해 주세요.</span></div>
+              <button class="gbtn" type="button" data-doan-id="b-n-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>다른 계정으로 로그인</button>
+            </div>
+            <section class="vs-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2><p>명단에 없다면 총무에게 등록을 요청해 주세요</p></div>
+              <ol>
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </section>
+            <footer class="vb-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 <span>· 로그인 전</span></p>
+        <div class="frame mob vb vs vs-m" data-doan-frame="b-mobile" data-doan-title="B 한 장 · 모바일">
+          <div class="vs-in">
+            <header class="vb-bar" data-doan-id="b-m-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+            <div class="vs-head">
+              <h1 class="vb-title">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <p class="vb-sub">한 달에 한 회차 · 등록된 멤버만 이용할 수 있어요.</p>
+            </div>
+            <div class="vs-act">
+              <button class="gbtn full" type="button" data-doan-id="b-m-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+            </div>
+            <section data-doan-id="b-m-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2></div>
+              <ol class="vb-rows">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </section>
+            <footer class="vb-foot stack" data-doan-id="b-m-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── C · 앱 틀 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">C</span>
+      <div><h2>앱 틀<span class="proposal">제안</span></h2><p class="route">왼쪽 232px 목차 자리 + 본문 · 로그인 전후로 뼈대가 같음</p></div>
+      <div class="notes">
+        <div><b>무엇이 바뀌나</b>로그인하면 메뉴가 될 왼쪽 칸에 로고와 회차 순서, 아래 이름 칸 자리에 "로그인 전". 본문은 홈처럼 큰 제목 + 설명 줄, 그 아래 구역 머리 "로그인". 모바일은 하단 탭 자리에 Google 버튼이 붙어 있어요.</div>
+        <div><b>새 문구</b>"로그인"(구역 머리), "로그인 전"(이름 칸), "한 달에 한 회차씩 돌아가요"(설명 줄). 나머지는 지금 문구예요.</div>
+        <div><b>아쉬운 점</b>왼쪽 회차 순서가 메뉴처럼 보일 수 있어서 링크 모양(hover·검게 뒤집기)은 뺐어요. 셋 중 코드가 가장 많이 바뀌어요 (앱 틀 일부를 로그인에서 다시 써야 해요).</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 <span>· 로그인 전</span></p>
+        <div class="frame desk vb vc-d" data-doan-frame="c-desktop" data-doan-title="C 앱 틀 · 데스크톱">
+          <aside class="vc-side" data-doan-id="c-d-side">
+            <div class="vc-logo"><b>시끌북적</b><span>독서 동아리</span></div>
+            <p class="vc-cap">한 회차는 이렇게 돌아가요</p>
+            <ol class="vc-steps" data-doan-id="c-d-steps">
+              <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+              <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+              <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+            </ol>
+            <div class="vc-who" data-doan-id="c-d-who"><b>로그인 전</b>명단에 없다면 총무에게 등록을 요청해 주세요</div>
+          </aside>
+          <div class="vc-col">
+            <main class="vc-main">
+              <header data-doan-id="c-d-head">
+                <h1 class="vb-title">같이 고르고, 각자 읽고,<br>한 줄씩 남겨요.</h1>
+                <p class="vb-sub">한 달에 한 회차씩 돌아가요.</p>
+              </header>
+              <section class="vc-login" data-doan-id="c-d-login">
+                <div class="vb-bh"><h2>로그인</h2><p>등록된 멤버만 이용할 수 있어요</p></div>
+                <button class="gbtn" type="button" data-doan-id="c-d-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+              </section>
+            </main>
+            <div class="vc-foot">
+              <footer class="vb-foot" data-doan-id="c-d-foot">
+                <span><b>시끌북적</b> · 사내 독서 동아리</span>
+                <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+              </footer>
+            </div>
+          </div>
+        </div>
+        <p class="frame-cap gap">데스크톱 1280 <span>· 명단에 없는 계정으로 로그인했을 때</span></p>
+        <div class="frame desk vb vc-d" data-doan-frame="c-notmember" data-doan-title="C 앱 틀 · 미등록 계정">
+          <aside class="vc-side">
+            <div class="vc-logo"><b>시끌북적</b><span>독서 동아리</span></div>
+            <p class="vc-cap">한 회차는 이렇게 돌아가요</p>
+            <ol class="vc-steps">
+              <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+              <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+              <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+            </ol>
+            <div class="vc-who"><b>로그인 전</b>명단에 없다면 총무에게 등록을 요청해 주세요</div>
+          </aside>
+          <div class="vc-col">
+            <main class="vc-main">
+              <header>
+                <h1 class="vb-title">같이 고르고, 각자 읽고,<br>한 줄씩 남겨요.</h1>
+                <p class="vb-sub">한 달에 한 회차씩 돌아가요.</p>
+              </header>
+              <section class="vc-login">
+                <div class="vb-bh"><h2>로그인</h2><p>등록된 멤버만 이용할 수 있어요</p></div>
+                <div class="vb-note" role="alert" data-doan-id="c-n-note"><svg class="ic"><use href="#i-alert"/></svg><span><b>등록되지 않은 계정이에요.</b> 멤버 명단에 없는 계정이라 들어갈 수 없어요. 등록한 Google 계정이 맞는지 확인하거나 총무에게 등록을 요청해 주세요.</span></div>
+                <button class="gbtn" type="button" data-doan-id="c-n-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>다른 계정으로 로그인</button>
+              </section>
+            </main>
+            <div class="vc-foot">
+              <footer class="vb-foot">
+                <span><b>시끌북적</b> · 사내 독서 동아리</span>
+                <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 <span>· 로그인 전 · 버튼은 바닥에 고정</span></p>
+        <div class="frame mob vb vc-m" data-doan-frame="c-mobile" data-doan-title="C 앱 틀 · 모바일">
+          <header class="vb-bar" data-doan-id="c-m-bar"><b>시끌북적</b><span>사내 독서 동아리</span></header>
+          <main class="vc-main">
+            <header>
+              <h1 class="vb-title">같이 고르고,<br>각자 읽고,<br>한 줄씩 남겨요.</h1>
+              <p class="vb-sub">한 달에 한 회차씩 돌아가요.</p>
+            </header>
+            <section data-doan-id="c-m-steps">
+              <div class="vb-bh"><h2>한 회차는 이렇게 돌아가요</h2></div>
+              <ol class="vb-rows">
+                <li><span class="n">01</span><b>다음 달 읽을 책 요청</b><small>요청 마감일까지</small></li>
+                <li><span class="n">02</span><b>총무가 주문 · 배송</b><small>서점별로 묶어서</small></li>
+                <li><span class="n">03</span><b>읽고 일지 쓰기</b><small>일지 마감일까지</small></li>
+              </ol>
+            </section>
+          </main>
+          <div class="vc-foot">
+            <footer class="vb-foot stack" data-doan-id="c-m-foot">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="vb-foot-line"><span>Design by <a href="#"><b>Doan</b></a></span><span><a href="#">개인정보처리방침</a></span></span>
+            </footer>
+          </div>
+          <div class="vc-dock" data-doan-id="c-m-dock">
+            <button class="gbtn full" type="button" data-doan-id="c-m-google"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#g-mark"/></svg>Google 계정으로 계속하기</button>
+            <p class="vb-hint"><span>등록된 멤버만 이용할 수 있어요</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <!-- Google "G" 로고: 네 색은 Google 브랜드 가이드 값 -->
+  <symbol id="g-mark" viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  </symbol>
+</svg>
+</body>
+</html>
