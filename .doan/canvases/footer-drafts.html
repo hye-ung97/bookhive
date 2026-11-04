@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="footer-drafts">
+<meta name="doan:width" content="1960">
+<title>푸터 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&display=swap">
+<style>
+/* ───────── 보드 (b-timetable-pages와 같은 틀) ───────── */
+:root {
+  --board-bg: #e7e5e0;
+  --board-ink: #1c1c1c;
+  --board-ink2: #5d5a55;
+  --board-line: #d2cfc8;
+  --board-paper: #ffffff;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --serif: "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--board-bg); color: var(--board-ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+.board { width: 1960px; padding: 96px; display: flex; flex-direction: column; gap: 120px; }
+ul, ol, dl { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, p, dd { margin: 0; }
+.frames { display: flex; flex-wrap: wrap; gap: 64px; align-items: flex-start; }
+.frame-wrap { display: flex; flex-direction: column; gap: 12px; }
+.frame-cap { font: 600 14px/20px var(--sans); color: var(--board-ink2); }
+.frame-cap span { font-weight: 400; }
+.frame { position: relative; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08); }
+.desk { width: 1280px; }
+.mob { width: 390px; }
+
+/* 개요 */
+.brief { width: 1768px; padding: 56px 64px; background: var(--board-paper); border-radius: 16px; }
+.brief h1 { font: 800 48px/56px var(--sans); letter-spacing: -0.02em; }
+.brief-lead { margin-top: 14px; max-width: 80ch; font: 400 18px/30px var(--sans); color: var(--board-ink2); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 48px; }
+.brief-cols h3 { font: 700 15px/22px var(--sans); margin-bottom: 10px; }
+.brief-cols p { font: 400 14px/23px var(--sans); color: var(--board-ink2); }
+.brief-cols p + p { margin-top: 10px; }
+.brief-cols p b { color: var(--board-ink); }
+.items li { display: grid; grid-template-columns: 96px 1fr 44px; gap: 12px; padding: 9px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.items li > b { color: var(--board-ink); }
+.items li code, .brief-cols code { font: 500 13px/22px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--board-ink); }
+.pri { justify-self: end; align-self: start; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--board-line); font: 600 11px/18px var(--sans); white-space: nowrap; }
+.pri.must { background: var(--board-ink); border-color: var(--board-ink); color: var(--board-paper); }
+.pick { display: grid; gap: 0; }
+.pick li { padding: 10px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.pick li b { color: var(--board-ink); }
+.proposal { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; padding: 1px 9px; border-radius: 999px; background: var(--board-ink); color: var(--board-paper); font: 600 11px/18px var(--sans); vertical-align: 1px; }
+.not-code { margin-top: 28px; display: inline-flex; gap: 8px; padding: 8px 14px; border-radius: 8px; background: #fff4d6; font: 500 13px/20px var(--sans); color: #6b4e00; }
+.not-code b { color: #3d2c00; }
+
+/* 시안 묶음 머리 */
+.page { display: flex; flex-direction: column; gap: 28px; }
+.page-top { display: grid; grid-template-columns: 96px 520px 1fr; gap: 32px; align-items: end; padding-bottom: 20px; border-bottom: 1px solid var(--board-line); }
+.page-top .no { font: 800 64px/64px var(--sans); letter-spacing: -0.04em; color: var(--board-ink2); }
+.page-top h2 { font: 800 36px/44px var(--sans); letter-spacing: -0.02em; }
+.page-top .route { margin-top: 6px; font: 500 14px/20px var(--sans); color: var(--board-ink2); }
+.page-top .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.page-top .notes b { display: block; margin-bottom: 4px; color: var(--board-ink); }
+
+/* ───────── B · 시간표 공통 (b-timetable-pages와 같은 토큰) ───────── */
+.vb {
+  --b-bg: #ffffff;
+  --b-ink: #111111;
+  --b-ink2: #5c5c5c;
+  --b-rule: #d9d9d9;
+  --b-fill: #f2f2f2;
+  --b-fill2: #e6e6e6;
+  --b-past: #c9c9c9;
+  --b-red: #d0281b;
+  --b-on: #ffffff;
+  background: var(--b-bg); color: var(--b-ink); font-family: var(--sans); font-variant-numeric: tabular-nums;
+}
+.vb a { color: inherit; text-decoration: none; }
+.red { color: var(--b-red); }
+
+/* 데스크톱 뼈대: 화면 높이 800. 이름 칸은 앱의 .who와 같은 크기 (윗줄 2 + 16 + 22 + 20 + 20 = 80, 아래 여백 24) */
+.vb-desk { display: grid; grid-template-columns: 232px minmax(0, 1fr); height: 800px; }
+.vb-index { display: flex; flex-direction: column; border-right: 2px solid var(--b-ink); padding: 32px 0 24px; }
+.vb-logo { padding: 0 24px 28px; }
+.vb-logo b { display: block; font: 800 24px/30px var(--sans); letter-spacing: -0.03em; }
+.vb-logo span { font: 500 12px/16px var(--sans); color: var(--b-ink2); }
+.vb-nav { display: flex; flex-direction: column; }
+.vb-nav a { display: flex; align-items: center; height: 44px; padding: 0 24px; border-top: 1px solid var(--b-rule); font: 600 15px/1 var(--sans); }
+.vb-nav a[aria-current="page"] { background: var(--b-ink); color: var(--b-on); border-top-color: var(--b-ink); }
+.vb-who { margin-top: auto; height: 80px; padding: 16px 24px 0; border-top: 2px solid var(--b-ink); font: 400 13px/20px var(--sans); color: var(--b-ink2); }
+.vb-who b { display: block; font: 700 15px/22px var(--sans); color: var(--b-ink); }
+.vb-who a { text-decoration: underline; text-underline-offset: 3px; }
+.vb-col { display: flex; flex-direction: column; min-width: 0; }
+.vb-main { flex: 1; padding: 36px 48px 56px; display: flex; flex-direction: column; gap: 40px; min-width: 0; }
+
+.vb-head h1 { font: 800 44px/52px var(--sans); letter-spacing: -0.03em; }
+.vb-head p { margin-top: 10px; font: 500 16px/24px var(--sans); color: var(--b-ink2); }
+.vb-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--b-ink); }
+.vb-sec-head h2 { font: 800 20px/28px var(--sans); letter-spacing: -0.01em; }
+.vb-sec-head p { font: 500 13px/18px var(--sans); color: var(--b-ink2); }
+.vb-table { width: 100%; border-collapse: collapse; }
+.vb-table th { padding: 10px 12px; text-align: left; font: 600 12px/16px var(--sans); color: var(--b-ink2); border-bottom: 1px solid var(--b-ink); }
+.vb-table td { padding: 12px; border-bottom: 1px solid var(--b-rule); font: 400 14px/20px var(--sans); }
+.vb-table td:first-child, .vb-table th:first-child { padding-left: 0; }
+.vb-table td:last-child, .vb-table th:last-child { padding-right: 0; text-align: right; }
+.vb-table .strong { font-weight: 700; }
+.vb-mark { display: inline-flex; align-items: center; gap: 6px; font: 700 13px/1 var(--sans); }
+.vb-mark.ok::before { content: ""; width: 10px; height: 10px; background: var(--b-ink); }
+.vb-mark.no { color: var(--b-red); }
+.vb-mark.no::before { content: ""; width: 8px; height: 8px; border: 2px solid var(--b-red); }
+
+/* 모바일 뼈대: 화면 높이 844, 하단 글자 탭 고정 */
+.vb-mob { display: flex; flex-direction: column; height: 844px; }
+.vb-mtop { display: flex; align-items: center; justify-content: space-between; height: 56px; flex: none; padding: 0 20px; border-bottom: 2px solid var(--b-ink); }
+.vb-mtop b { font: 800 20px/1 var(--sans); letter-spacing: -0.03em; }
+.vb-mono { display: grid; place-items: center; width: 32px; height: 32px; background: var(--b-ink); color: var(--b-on); font: 700 14px/1 var(--sans); }
+.vb-mob .vb-main { padding: 24px 20px 32px; gap: 28px; }
+.vb-mob .vb-head h1 { font-size: 30px; line-height: 38px; }
+.vb-mob .vb-head p { font-size: 14px; line-height: 21px; }
+.vb-mrows li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--b-rule); }
+.vb-mrows b { font: 700 15px/22px var(--sans); }
+.vb-mrows span { grid-column: 1; font: 400 13px/18px var(--sans); color: var(--b-ink2); }
+.vb-mrows .vb-mark { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.vb-tabs { display: grid; grid-template-columns: repeat(4, 1fr); flex: none; border-top: 2px solid var(--b-ink); }
+.vb-tabs a { display: grid; place-items: center; height: 56px; font: 700 13px/1 var(--sans); }
+.vb-tabs a + a { border-left: 1px solid var(--b-rule); }
+.vb-tabs a[aria-current="page"] { background: var(--b-ink); color: var(--b-on); }
+
+/* ───────── 시안 A · 한 줄 ───────── */
+.fa { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 24px; margin: 0 48px; padding: 18px 0 22px; border-top: 1px solid var(--b-rule); font: 400 12px/18px var(--sans); color: var(--b-ink2); }
+.fa b { font-weight: 700; color: var(--b-ink); }
+.fa-line { display: flex; flex-wrap: wrap; gap: 2px 0; }
+.fa-line > * + *::before { content: "·"; margin: 0 8px; color: var(--b-past); text-decoration: none; display: inline-block; }
+.fa a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--b-past); }
+.vb-mob .fa { flex-direction: column; align-items: flex-start; gap: 2px; margin: 0 20px; padding: 16px 0 18px; }
+.vb-mob .fa-line { flex-direction: column; }
+.vb-mob .fa-line > * + *::before { content: none; }
+
+/* ───────── 시안 B · 판권 칸 ───────── */
+/* 데스크톱: 윗줄 높이를 목차의 이름 칸 윗줄과 맞춰 화면을 가로지르는 굵은 줄 하나로 잇는다 (104 = 80 + 24) */
+.fb { display: grid; grid-template-columns: 1.15fr 0.75fr 0.75fr 2.15fr 1.3fr; height: 104px; padding: 0 48px; border-top: 2px solid var(--b-ink); }
+.fb > * { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; padding: 0 20px; }
+.fb > * + * { border-left: 1px solid var(--b-rule); }
+.fb > :first-child { padding-left: 0; }
+.fb-brand b { font: 800 17px/22px var(--sans); letter-spacing: -0.03em; }
+.fb-brand a, .fb dd a { text-decoration: underline; text-underline-offset: 3px; }
+.fb-brand a { font: 500 12px/16px var(--sans); color: var(--b-ink2); text-decoration-color: var(--b-past); }
+.fb dt { font: 600 12px/16px var(--sans); color: var(--b-ink2); }
+.fb dd { font: 700 14px/20px var(--sans); white-space: nowrap; }
+.fb dd small { font: 500 14px/20px var(--sans); color: var(--b-ink2); }
+/* 모바일: 위에 이름 줄, 아래 2열 칸. 메일과 운영 문의는 한 줄을 다 쓴다 */
+.vb-mob .fb { display: grid; grid-template-columns: 1fr 1fr; height: auto; padding: 0 20px; }
+.vb-mob .fb > * { padding: 12px 0; gap: 4px; }
+.vb-mob .fb > * + * { border-left: 0; border-top: 1px solid var(--b-rule); }
+.vb-mob .fb > .fb-brand { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; padding: 14px 0 12px; }
+.vb-mob .fb > .half + .half { padding-left: 16px; border-left: 1px solid var(--b-rule); }
+.vb-mob .fb > .wide { grid-column: 1 / -1; }
+
+/* ───────── 시안 C · 판권면 ───────── */
+.fc { display: grid; grid-template-columns: 300px minmax(0, 1fr) auto; gap: 32px; margin: 0 48px; padding: 28px 0 32px; border-top: 1px solid var(--b-ink); }
+.fc-title b { display: block; font: 800 26px/32px var(--serif); letter-spacing: -0.03em; }
+.fc-title span { display: block; margin-top: 8px; font: 700 14px/22px var(--serif); color: var(--b-ink2); }
+.fc-rows { display: grid; gap: 6px; }
+.fc-rows > div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; font: 400 13px/20px var(--sans); }
+.fc-rows dt { color: var(--b-ink2); }
+.fc-rows dd b { font-weight: 700; }
+.fc-rows dd a { text-decoration: underline; text-underline-offset: 3px; }
+.fc-rows dd small { font-size: 13px; color: var(--b-ink2); }
+.fc-rows code { font: 500 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--b-ink2); }
+a.fc-end { align-self: end; font: 500 12px/18px var(--sans); color: var(--b-ink2); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--b-past); }
+.vb-mob .fc { grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 0 20px; padding: 22px 0 22px; }
+.vb-mob .fc-title b { font-size: 22px; line-height: 28px; }
+.vb-mob .fc-title span { margin-top: 4px; font-size: 13px; line-height: 20px; }
+.vb-mob .fc-rows > div { grid-template-columns: 60px minmax(0, 1fr); gap: 10px; }
+.vb-mob .fc-end { align-self: start; }
+
+/* 채택 표시 */
+.rec { display: inline-flex; align-items: center; margin-left: 12px; padding: 4px 12px; border-radius: 999px; background: var(--board-ink); color: var(--board-paper); font: 700 14px/20px var(--sans); vertical-align: 8px; letter-spacing: 0; }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ───────── 개요 ───────── -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 푸터 시안">
+    <h1>푸터 시안</h1>
+    <p class="brief-lead">로그인 후 모든 화면 맨 아래에 누가 디자인하고 누가 만들었는지, 문의는 어디로 하는지 남겨요. B 시간표(흰 종이, 검은 잉크, 직각, 굵은 줄)를 그대로 따르고, 크기가 다른 세 가지로 그렸어요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>넣을 내용</h3>
+        <ul class="items" data-doan-id="content-list">
+          <li><b>서비스</b><span>시끌북적 · 사내 독서 동아리</span><span class="pri must">필수</span></li>
+          <li><b>디자인</b><span>Doan. 표기는 <code>Design by Doan</code>(A) 또는 라벨 붙인 <code>디자인 Doan</code>(B·C)</span><span class="pri must">요청</span></li>
+          <li><b>개발</b><span>이름은 빼고 메일만 — <code>Made by 메일</code></span><span class="pri must">요청</span></li>
+          <li><b>메일</b><span><code>hyeyeong.sung@day1company.co.kr</code> — 누르면 메일 앱이 제목 <code>[시끌북적] </code>을 채운 채로 열려요</span><span class="pri must">요청</span></li>
+          <li><b>운영 문의</b><span>책 주문·회비는 총무에게 Slack. 개발자 메일로 운영 문의가 오지 않게 갈라 둬요 (개인정보처리방침의 문의 항목과 같은 말)</span><span class="pri">추천</span></li>
+          <li><b>개인정보처리방침</b><span><code>/privacy</code> 링크. 지금은 로그인 화면 푸터에만 있어요</span><span class="pri">추천</span></li>
+          <li><b>펴낸 날</b><span>첫 배포일 + 마지막 배포일·커밋. C에만 넣었고, Vercel 빌드 값을 읽어야 해요</span><span class="pri">선택</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>어디에 붙이나</h3>
+        <p><b>로그인 후 모든 화면, 본문 맨 아래.</b> 내용이 짧은 화면에서는 화면 바닥에 붙고, 긴 화면에서는 스크롤 끝에서 보여요. 본문과 같은 폭(최대 1136px, 좌우 48px)으로 가운데 맞춰요.</p>
+        <p><b>모바일은 하단 탭 바로 위.</b> 탭은 지금처럼 바닥에 고정이고, 푸터는 스크롤 끝에서만 보여요.</p>
+        <p><b>로그인·개인정보처리방침 화면은 지금 그대로.</b> 로그인 없이 열리는 화면이라 메일 주소를 올리면 스팸 수집 봇에 걸릴 수 있어요. 로그인 화면 푸터에는 원하면 <code>Design by Doan</code> 한 조각만 더해요.</p>
+      </div>
+      <div>
+        <h3>세 시안</h3>
+        <ul class="pick">
+          <li><b>A · 한 줄</b><span class="proposal">채택</span> — 회색 작은 글씨 한 줄. 가장 조용하고 높이 60px.</li>
+          <li><b>B · 판권 칸</b> — 라벨 붙은 칸을 줄로 나눈 한 줄. 데스크톱에서는 윗줄이 왼쪽 목차의 이름 칸 윗줄과 같은 높이라, 화면을 가로지르는 굵은 줄 하나로 이어져요.</li>
+          <li><b>C · 판권면</b> — 책 맨 뒤 판권면처럼 명조 제목과 항목 줄. 가장 '책' 같지만 키가 크고(약 150px), 펴낸 날 때문에 코드가 조금 더 필요해요.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="not-code"><b>A로 정함</b> A는 <code>src/components/app-shell.tsx</code> 본문 아래와 <code>globals.css</code>의 <code>.foot</code>에 들어갔어요. B·C는 처음 시안 그대로 남겨 둔 것이고 코드에 없어요.</p>
+  </section>
+
+  <!-- ───────── A · 한 줄 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">A</span>
+      <div><h2>한 줄<span class="rec">채택</span></h2><p class="route">회색 12px 한 줄 · 얇은 회색 윗줄 · 윗줄은 본문 글자 폭만큼</p></div>
+      <div class="notes">
+        <div><b>가장 조용함</b>본문을 방해하지 않아요. 크레딧이 '있다는 것'만 보여 주고 싶을 때.</div>
+        <div><b>링크 셋</b>Doan → github.com/SInhyeokKang/doan-design (새 탭), 메일 → 제목 [시끌북적] 채운 메일 창, 개인정보처리방침 → /privacy.</div>
+        <div><b>이름 뺌</b>Made by 뒤에 이름 대신 메일. 모바일은 항목마다 한 줄씩 쌓아요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 × 800 <span>· 멤버 최도윤 · 짧은 화면이라 푸터가 바닥에 붙음</span></p>
+        <div class="frame desk vb vb-desk" data-doan-frame="a-desktop" data-doan-title="A 한 줄 · 데스크톱" data-doan-implements="src/components/app-shell.tsx">
+          <aside class="vb-index" aria-label="사이드바">
+            <div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div>
+            <nav class="vb-nav" aria-label="메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#" aria-current="page">내 기록</a><a href="#">벌점</a></nav>
+            <div class="vb-who"><b>최도윤</b>멤버<br><a href="#">로그아웃</a></div>
+          </aside>
+          <div class="vb-col">
+            <main class="vb-main">
+              <header class="vb-head"><h1>내 기록</h1><p>회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p></header>
+              <section>
+                <div class="vb-sec-head"><h2>지난 회차</h2><p>4회차 · 책 5권</p></div>
+                <table class="vb-table">
+                  <thead><tr><th>회차</th><th>읽은 책</th><th>일지</th><th>쓴 돈</th></tr></thead>
+                  <tbody>
+                    <tr><td class="strong">11월 회차</td><td>불편한 편의점 외 1권</td><td><span class="vb-mark no">미작성</span></td><td>41,400원</td></tr>
+                    <tr><td class="strong">10월 회차</td><td>소년이 온다</td><td><span class="vb-mark ok">제출</span></td><td>26,600원</td></tr>
+                    <tr><td class="strong">8월 회차</td><td>아몬드</td><td><span class="vb-mark ok">제출</span></td><td>13,500원</td></tr>
+                    <tr><td class="strong">7월 회차</td><td>파친코 1</td><td><span class="vb-mark ok">제출</span></td><td>15,750원</td></tr>
+                  </tbody>
+                </table>
+              </section>
+            </main>
+            <footer class="fa" data-doan-id="a-d-footer">
+              <span><b>시끌북적</b> · 사내 독서 동아리</span>
+              <span class="fa-line">
+                <span>Design by <a href="#"><b>Doan</b></a></span>
+                <span>Made by <a href="#">hyeyeong.sung@day1company.co.kr</a></span>
+                <span><a href="#">개인정보처리방침</a></span>
+              </span>
+            </footer>
+          </div>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 × 844 <span>· 스크롤 끝, 하단 탭 위</span></p>
+        <div class="frame mob vb vb-mob" data-doan-frame="a-mobile" data-doan-title="A 한 줄 · 모바일" data-doan-implements="src/components/app-shell.tsx">
+          <header class="vb-mtop"><b>시끌북적</b><span class="vb-mono" aria-hidden="true">도</span></header>
+          <main class="vb-main">
+            <header class="vb-head"><h1>내 기록</h1><p>회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p></header>
+            <section>
+              <div class="vb-sec-head"><h2>지난 회차</h2><p>4회차 · 책 5권</p></div>
+              <ul class="vb-mrows">
+                <li><b>11월 회차</b><span>불편한 편의점 외 1권 · 41,400원</span><span class="vb-mark no">미작성</span></li>
+                <li><b>10월 회차</b><span>소년이 온다 · 26,600원</span><span class="vb-mark ok">제출</span></li>
+                <li><b>8월 회차</b><span>아몬드 · 13,500원</span><span class="vb-mark ok">제출</span></li>
+                <li><b>7월 회차</b><span>파친코 1 · 15,750원</span><span class="vb-mark ok">제출</span></li>
+              </ul>
+            </section>
+          </main>
+          <footer class="fa" data-doan-id="a-m-footer">
+            <span><b>시끌북적</b> · 사내 독서 동아리</span>
+            <span class="fa-line"><span>Design by <a href="#"><b>Doan</b></a></span><span>Made by <a href="#">hyeyeong.sung@day1company.co.kr</a></span><span><a href="#">개인정보처리방침</a></span></span>
+          </footer>
+          <nav class="vb-tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#" aria-current="page">내 기록</a></nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── B · 판권 칸 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">B</span>
+      <div><h2>판권 칸</h2><p class="route">라벨 + 값 칸 · 굵은 검은 윗줄 · 높이 104px</p></div>
+      <div class="notes">
+        <div><b>시간표 그대로</b>숫자 칸(.vb-tiles)처럼 라벨 위·값 아래, 칸 사이 얇은 줄. 지금 화면들과 가장 잘 맞아요.</div>
+        <div><b>줄 하나로 이어짐</b>푸터 윗줄이 목차의 이름 칸 윗줄과 같은 높이(바닥에서 104px)라 화면 끝까지 굵은 줄이 한 번에 지나가요.</div>
+        <div><b>문의를 둘로 가름</b>오류·제안은 메일, 책·회비는 총무 Slack. 메일이 라벨을 달고 있어 문의처로 바로 읽혀요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 × 800 <span>· 멤버 최도윤 · 짧은 화면이라 푸터가 바닥에 붙음</span></p>
+        <div class="frame desk vb vb-desk" data-doan-frame="b-desktop" data-doan-title="B 판권 칸 · 데스크톱">
+          <aside class="vb-index" aria-label="사이드바">
+            <div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div>
+            <nav class="vb-nav" aria-label="메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#" aria-current="page">내 기록</a><a href="#">벌점</a></nav>
+            <div class="vb-who"><b>최도윤</b>멤버<br><a href="#">로그아웃</a></div>
+          </aside>
+          <div class="vb-col">
+            <main class="vb-main">
+              <header class="vb-head"><h1>내 기록</h1><p>회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p></header>
+              <section>
+                <div class="vb-sec-head"><h2>지난 회차</h2><p>4회차 · 책 5권</p></div>
+                <table class="vb-table">
+                  <thead><tr><th>회차</th><th>읽은 책</th><th>일지</th><th>쓴 돈</th></tr></thead>
+                  <tbody>
+                    <tr><td class="strong">11월 회차</td><td>불편한 편의점 외 1권</td><td><span class="vb-mark no">미작성</span></td><td>41,400원</td></tr>
+                    <tr><td class="strong">10월 회차</td><td>소년이 온다</td><td><span class="vb-mark ok">제출</span></td><td>26,600원</td></tr>
+                    <tr><td class="strong">8월 회차</td><td>아몬드</td><td><span class="vb-mark ok">제출</span></td><td>13,500원</td></tr>
+                    <tr><td class="strong">7월 회차</td><td>파친코 1</td><td><span class="vb-mark ok">제출</span></td><td>15,750원</td></tr>
+                  </tbody>
+                </table>
+              </section>
+            </main>
+            <footer class="fb" data-doan-id="b-d-footer">
+              <div class="fb-brand"><b>시끌북적</b><a href="#">개인정보처리방침</a></div>
+              <dl><dt>디자인</dt><dd>Doan</dd></dl>
+              <dl><dt>개발</dt><dd>성혜영</dd></dl>
+              <dl><dt>오류 제보·제안</dt><dd><a href="#">hyeyeong.sung@day1company.co.kr</a></dd></dl>
+              <dl><dt>책·회비 문의</dt><dd>총무에게 <small>Slack</small></dd></dl>
+            </footer>
+          </div>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 × 844 <span>· 스크롤 끝, 하단 탭 위</span></p>
+        <div class="frame mob vb vb-mob" data-doan-frame="b-mobile" data-doan-title="B 판권 칸 · 모바일">
+          <header class="vb-mtop"><b>시끌북적</b><span class="vb-mono" aria-hidden="true">도</span></header>
+          <main class="vb-main">
+            <header class="vb-head"><h1>내 기록</h1><p>회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p></header>
+            <section>
+              <div class="vb-sec-head"><h2>지난 회차</h2><p>4회차 · 책 5권</p></div>
+              <ul class="vb-mrows">
+                <li><b>11월 회차</b><span>불편한 편의점 외 1권 · 41,400원</span><span class="vb-mark no">미작성</span></li>
+                <li><b>10월 회차</b><span>소년이 온다 · 26,600원</span><span class="vb-mark ok">제출</span></li>
+                <li><b>8월 회차</b><span>아몬드 · 13,500원</span><span class="vb-mark ok">제출</span></li>
+              </ul>
+            </section>
+          </main>
+          <footer class="fb" data-doan-id="b-m-footer">
+            <div class="fb-brand"><b>시끌북적</b><a href="#">개인정보처리방침</a></div>
+            <dl class="half"><dt>디자인</dt><dd>Doan</dd></dl>
+            <dl class="half"><dt>개발</dt><dd>성혜영</dd></dl>
+            <dl class="wide"><dt>오류 제보·제안</dt><dd><a href="#">hyeyeong.sung@day1company.co.kr</a></dd></dl>
+            <dl class="wide"><dt>책·회비 문의</dt><dd>총무에게 <small>Slack</small></dd></dl>
+          </footer>
+          <nav class="vb-tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#" aria-current="page">내 기록</a></nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── C · 판권면 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">C</span>
+      <div><h2>판권면</h2><p class="route">명조 제목 + 항목 줄 · 얇은 검은 윗줄 · 높이 약 150px</p></div>
+      <div class="notes">
+        <div><b>책 맨 뒤 판권면</b>독서 동아리라서 가장 '우리 것' 같은 푸터. 로그인 화면 한 문장의 명조를 다시 써요.</div>
+        <div><b>펴낸 날 = 배포</b>초판은 첫 커밋(2026.10.23), 고친 날·커밋은 Vercel 빌드 값 <code>VERCEL_GIT_COMMIT_SHA</code>로 채워요. 코드에 없음.</div>
+        <div><b>아쉬운 점</b>세 시안 중 가장 키가 커서, 짧은 화면에서는 본문만큼 눈에 띄어요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 1280 × 800 <span>· 멤버 최도윤 · 짧은 화면이라 푸터가 바닥에 붙음</span></p>
+        <div class="frame desk vb vb-desk" data-doan-frame="c-desktop" data-doan-title="C 판권면 · 데스크톱">
+          <aside class="vb-index" aria-label="사이드바">
+            <div class="vb-logo"><b>시끌북적</b><span>독서 동아리</span></div>
+            <nav class="vb-nav" aria-label="메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지 쓰기</a><a href="#" aria-current="page">내 기록</a><a href="#">벌점</a></nav>
+            <div class="vb-who"><b>최도윤</b>멤버<br><a href="#">로그아웃</a></div>
+          </aside>
+          <div class="vb-col">
+            <main class="vb-main">
+              <header class="vb-head"><h1>내 기록</h1><p>회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p></header>
+              <section>
+                <div class="vb-sec-head"><h2>지난 회차</h2><p>4회차 · 책 5권</p></div>
+                <table class="vb-table">
+                  <thead><tr><th>회차</th><th>읽은 책</th><th>일지</th><th>쓴 돈</th></tr></thead>
+                  <tbody>
+                    <tr><td class="strong">11월 회차</td><td>불편한 편의점 외 1권</td><td><span class="vb-mark no">미작성</span></td><td>41,400원</td></tr>
+                    <tr><td class="strong">10월 회차</td><td>소년이 온다</td><td><span class="vb-mark ok">제출</span></td><td>26,600원</td></tr>
+                    <tr><td class="strong">8월 회차</td><td>아몬드</td><td><span class="vb-mark ok">제출</span></td><td>13,500원</td></tr>
+                  </tbody>
+                </table>
+              </section>
+            </main>
+            <footer class="fc" data-doan-id="c-d-footer">
+              <div class="fc-title"><b>시끌북적</b><span>같이 고르고, 각자 읽고, 한 줄씩 남겨요.</span></div>
+              <dl class="fc-rows">
+                <div><dt>디자인</dt><dd><b>Doan</b></dd></div>
+                <div><dt>만든 사람</dt><dd><b>성혜영</b></dd></div>
+                <div><dt>문의</dt><dd><a href="#">hyeyeong.sung@day1company.co.kr</a> <small>오류·제안 · 책·회비는 총무에게 Slack</small></dd></div>
+                <div><dt>펴낸 날</dt><dd>2026년 10월 23일 초판 · 2026년 11월 4일 고침 <code>10fea8e</code></dd></div>
+              </dl>
+              <a class="fc-end" href="#">개인정보처리방침</a>
+            </footer>
+          </div>
+        </div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 390 × 844 <span>· 스크롤 끝, 하단 탭 위</span></p>
+        <div class="frame mob vb vb-mob" data-doan-frame="c-mobile" data-doan-title="C 판권면 · 모바일">
+          <header class="vb-mtop"><b>시끌북적</b><span class="vb-mono" aria-hidden="true">도</span></header>
+          <main class="vb-main">
+            <header class="vb-head"><h1>내 기록</h1><p>회차별 요청·일지·잔액. 회차 이름은 읽는 달 기준이에요.</p></header>
+            <section>
+              <div class="vb-sec-head"><h2>지난 회차</h2><p>4회차 · 책 5권</p></div>
+              <ul class="vb-mrows">
+                <li><b>11월 회차</b><span>불편한 편의점 외 1권 · 41,400원</span><span class="vb-mark no">미작성</span></li>
+                <li><b>10월 회차</b><span>소년이 온다 · 26,600원</span><span class="vb-mark ok">제출</span></li>
+              </ul>
+            </section>
+          </main>
+          <footer class="fc" data-doan-id="c-m-footer">
+            <div class="fc-title"><b>시끌북적</b><span>같이 고르고, 각자 읽고, 한 줄씩 남겨요.</span></div>
+            <dl class="fc-rows">
+              <div><dt>디자인</dt><dd><b>Doan</b></dd></div>
+              <div><dt>만든 사람</dt><dd><b>성혜영</b></dd></div>
+              <div><dt>문의</dt><dd><a href="#">hyeyeong.sung@day1company.co.kr</a><br><small>오류·제안 · 책·회비는 총무에게 Slack</small></dd></div>
+              <div><dt>펴낸 날</dt><dd>2026.10.23 초판 · 11.4 고침 <code>10fea8e</code></dd></div>
+            </dl>
+            <a class="fc-end" href="#">개인정보처리방침</a>
+          </footer>
+          <nav class="vb-tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#" aria-current="page">내 기록</a></nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
