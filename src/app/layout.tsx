@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Nanum_Myeongjo } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -9,9 +8,6 @@ const pretendard = localFont({
   weight: "100 900",
   display: "swap",
 });
-
-// 로그인 화면의 한 문장에만 쓰는 명조
-const myeongjo = Nanum_Myeongjo({ weight: "800", subsets: ["latin"], variable: "--font-nanum-myeongjo", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "시끌북적", template: "%s · 시끌북적" },
@@ -26,7 +22,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko" className={`${pretendard.variable} ${myeongjo.variable}`}>
+    <html lang="ko" className={pretendard.variable}>
       <body>{children}</body>
     </html>
   );

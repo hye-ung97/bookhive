@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icon";
+import { SiteFooter } from "@/components/site-footer";
 import { getMe } from "@/lib/auth";
 import { signInWithGoogle } from "./actions";
 import { EmailLogin } from "./email-login";
@@ -35,19 +35,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <div className="login">
       <div className="login-in">
         <header className="login-top">
-          <span className="login-brand">
-            <i><Icon name="book" /></i>
-            시끌북적
-          </span>
+          <b>시끌북적</b>
           <span>사내 독서 동아리</span>
         </header>
 
         <div className="login-mid">
           <div className="login-hero">
-            <p className="login-kick">한 달에 한 회차</p>
+            <p className="eyebrow">한 달에 한 회차</p>
             <h1 className="login-h">같이 고르고,<br />각자 읽고,<br />한 줄씩 남겨요.</h1>
             {notMember && (
-              <div className="login-err" role="alert">
+              <div className="note note-danger" role="alert">
                 <Icon name="alertc" />
                 <span>
                   <b>등록되지 않은 계정이에요.</b> 멤버 명단에 없는 계정이라 들어갈 수 없어요. 등록한 Google 계정이 맞는지 확인하거나 총무에게 등록을 요청해 주세요.
@@ -55,7 +52,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               </div>
             )}
             {error && !notMember && (
-              <p className="login-err" role="alert">
+              <p className="note note-danger" role="alert">
                 <Icon name="alertc" />
                 <span>로그인하지 못했어요. 다시 시도해 주세요.</span>
               </p>
@@ -81,8 +78,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             )}
           </div>
 
-          <div className="login-steps-col">
-            <p className="login-steps-cap">한 회차는 이렇게 돌아가요</p>
+          <section className="login-steps-col" aria-labelledby="login-steps-h">
+            <div className="block-head">
+              <h2 className="t-heading" id="login-steps-h">한 회차는 이렇게 돌아가요</h2>
+            </div>
             <ol className="login-steps">
               {STEPS.map((s, i) => (
                 <li key={s.title}>
@@ -92,14 +91,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 </li>
               ))}
             </ol>
-          </div>
+          </section>
         </div>
 
-        <footer className="login-foot">
-          <span className="login-d">명단에 없다면 총무에게 등록을 요청해 주세요</span>
-          <span className="login-m">시끌북적</span>
-          <Link className="u" href="/privacy">개인정보처리방침</Link>
-        </footer>
+        <SiteFooter contact={false} />
       </div>
     </div>
   );

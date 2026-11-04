@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { ReadingRoom } from "./reading-room";
+import { SiteFooter } from "./site-footer";
 
 type NavItem = { href: string; label: string; short?: string; noTab?: boolean };
 
@@ -23,8 +24,6 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
-
-const DEV_MAIL = "hyeyeong.sung@day1company.co.kr";
 
 /** 데스크톱 왼쪽 목차 + 모바일 위 막대·하단 글자 탭. 지금 화면은 검게 뒤집는다 */
 export function AppShell({ me, children }: { me: { name: string; isAdmin: boolean; roleTitle: string | null }; children: ReactNode }) {
@@ -82,23 +81,7 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
             </div>
           </header>
           <main>{children}</main>
-          <footer className="foot">
-            <div className="foot-in">
-              <span><b>시끌북적</b> · 사내 독서 동아리</span>
-              <span className="foot-line">
-                <span>
-                  Design by{" "}
-                  <a href="https://github.com/SInhyeokKang/doan-design" target="_blank" rel="noopener noreferrer" aria-label="Doan GitHub 새 탭에서 열기">
-                    <b>Doan</b>
-                  </a>
-                </span>
-                <span>
-                  Made by <a href={`mailto:${DEV_MAIL}?subject=${encodeURIComponent("[시끌북적] ")}`}>{DEV_MAIL}</a>
-                </span>
-                <span><Link href="/privacy">개인정보처리방침</Link></span>
-              </span>
-            </div>
-          </footer>
+          <SiteFooter />
         </div>
         <nav className="tabs" aria-label="하단 메뉴">
           {tabs.map((t) => (
