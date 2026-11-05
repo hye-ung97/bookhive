@@ -275,6 +275,8 @@ code { padding: 1px 5px; border-radius: 4px; background: #f1efea; font: 600 0.95
 .bb5 .bub { justify-content: center; align-items: center; width: 186px; height: 64px; margin-bottom: 26px; color: var(--b-ink2); }
 .bb5 .bub .cloud { position: absolute; inset: 0; }
 .bb5 .bub span { position: relative; display: inline-flex; align-items: baseline; gap: 4px; margin-top: 6px; }
+/* 선반 사이 회색 줄은 빼고 맨 아래 검은 바닥만 */
+.bb5 .rr-shelf:not(:last-child) { border-bottom-color: transparent; }
 .bb5 .cl-ink { fill: var(--b-ink); }
 .bb5 .cl-pap { fill: var(--b-bg); }
 .bb5 .bub::before, .bb5 .bub::after { border-width: 2px; border-color: var(--b-ink); border-radius: 50%; background: var(--b-bg); }
