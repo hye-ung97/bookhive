@@ -62,16 +62,16 @@ describe("같이 읽는 중 선반 크기", () => {
   it("선반은 화면 높이의 절반까지. 넘치면 마지막 칸이 +N", () => {
     const seats = Array.from({ length: 23 }, (_, i) => seat(`k${i}`, i, i === 0));
     expect(fitSeats(seats, cornerRoom(free(1920), 1080))).toMatchObject({ more: 0 });
-    const tight = fitSeats(seats, cornerRoom(free(1600), 900)); // 2마리 × 4줄 (생각 구름이 한 줄을 쓴다)
-    expect(tight.shown).toHaveLength(7);
-    expect(tight.more).toBe(16);
+    const tight = fitSeats(seats, cornerRoom(free(1600), 900)); // 2마리 × 5줄
+    expect(tight.shown).toHaveLength(9);
+    expect(tight.more).toBe(14);
     expect(tight.shown[0].me).toBe(true);
   });
 
   it("생각 구름은 빈칸이 좁을 때만 줄어든다", () => {
     expect(cloudScale(free(1920))).toBe(1);
     expect(cloudScale(free(1728))).toBe(1);
-    expect(cloudScale(free(1600))).toBeCloseTo(132 / 150);
+    expect(cloudScale(free(1600))).toBeCloseTo(132 / 134);
     expect(cloudScale(free(1600))).toBeGreaterThan(0.8);
   });
 

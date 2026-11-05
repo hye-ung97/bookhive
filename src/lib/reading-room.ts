@@ -7,13 +7,15 @@ export type PresenceState = Record<string, ReaderMeta[]>;
 
 export type Seat = { key: string; avatar: number; at: number; me: boolean; out?: boolean };
 
-/** 한 칸 56 + 사이 4, 선반 높이 66, 선반 위 생각 구름 138 (작은 동그라미까지 134 + 선반과 틈 4) */
+/** 한 칸 56 + 사이 4, 선반 높이 66, 선반 위 생각 구름 114 (작은 동그라미까지 98 + 나 딱지 위로 띄우는 틈 16) */
 const PITCH = 60;
 const SHELF = 66;
-const LABEL = 138;
+const LABEL = 114;
 /** 생각 구름 원래 폭과, 위젯이 화면 오른쪽에서 떨어진 거리 + 왼쪽 숨 쉴 틈 */
-export const CLOUD_W = 150;
-export const CLOUD_H = 134;
+export const CLOUD_W = 110;
+export const CLOUD_H = 98;
+/** 구름을 오른쪽으로 민 거리. 작은 동그라미가 첫 칸(나) 머리 위에 오도록 */
+export const CLOUD_X = 24;
 const CLOUD_GAP = 32;
 
 /** 같은 브라우저의 탭이 여럿이면 먼저 앉은 탭 하나만 */
@@ -71,7 +73,7 @@ export function cornerRoom(free: number, height: number): Room {
 
 /** 빈칸이 구름보다 좁으면(한 줄 2마리, 폭 1600~1680) 구름을 통째로 줄인다. 1이면 원래 크기 */
 export function cloudScale(free: number): number {
-  return Math.min(1, Math.max(0, free - CLOUD_GAP) / CLOUD_W);
+  return Math.min(1, Math.max(0, free - CLOUD_GAP) / (CLOUD_W + CLOUD_X));
 }
 
 /** 첫 줄(나 포함)부터 채운다. 자리가 모자라면 마지막 칸을 비우고 나머지 수(more)를 센다 */
