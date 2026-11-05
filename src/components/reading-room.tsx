@@ -4,11 +4,11 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  cloudScale, CLOUD_H, CLOUD_W, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
+  cloudScale, CLOUD_H, CLOUD_W, cornerRoom, fitSeats, mergeSeats, pickAvatar, presenceSeats, shouldRepick, takenAvatars, turnDelay,
   type PresenceState, type ReaderMeta, type Seat,
 } from "@/lib/reading-room";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { READERS } from "./readers";
+import { FRAMES, READERS } from "./readers";
 
 // 비공개 채널: realtime.messages의 RLS(20261104000001_reading_room.sql)가 활동 멤버만 들여보낸다
 const TOPIC = "reading-room";
@@ -238,12 +238,16 @@ export function ReadingRoom() {
       <div className="rr-seats" style={{ width: room.width }}>
         {shown.map((s) => {
           const r = READERS[s.avatar] ?? READERS[0];
-          const d = motionDelays(s.key);
-          const style = { "--glow": r.glow, "--ds": `-${d.sway}s`, "--db": `-${d.breathe}s` } as CSSProperties;
+          const style = { "--glow": r.glow, "--dt": `-${turnDelay(s.key)}s` } as CSSProperties;
+          // 띠 파일은 2배 크기라 한 장 = 너비 ÷ 장 수 ÷ 2. 창(rr-win)으로 한 장만 보이고 띠를 왼쪽으로 민다
+          const w = r.img.width / FRAMES / 2;
+          const h = r.img.height / 2;
           return (
             <span key={s.key} className={`rr-seat${s.me ? " me" : ""}${s.out ? " out" : ""}`} style={style}>
               <span className="rr-pal">
-                <Image src={r.img} alt="" width={r.img.width / 2} height={r.img.height / 2} unoptimized draggable={false} />
+                <span className="rr-win" style={{ width: w, height: h }}>
+                  <Image src={r.img} alt="" width={w * FRAMES} height={h} unoptimized draggable={false} />
+                </span>
               </span>
             </span>
           );

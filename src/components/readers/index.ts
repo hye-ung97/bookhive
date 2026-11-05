@@ -1,5 +1,6 @@
-// 같이 읽는 중 캐릭터: 독서 스티커 시트에서 한 마리씩 오린 25장 (둘이 붙은 19번 쌍둥이는 한 사람이 두 마리로 보여서 뺐다)
-// 파일은 화면에 앉는 크기(한 칸 56×60)의 2배. glow는 다크 모드에서 테두리가 배경에 묻히지 않게 번지는 몸 색
+// 같이 읽는 중 캐릭터: 독서 스티커 시트와 같은 그림의 책장 넘기기 GIF 25마리 (둘이 붙은 19번 쌍둥이는 한 사람이 두 마리로 보여서 뺐다)
+// 파일은 GIF 8장을 가로로 이은 띠. 한 장은 화면에 앉는 크기(키 58 안팎)의 2배에 옆 장이 번지지 않게 좌우 투명 2px씩.
+// glow는 다크 모드에서 테두리가 배경에 묻히지 않게 번지는 몸 색
 import r01 from "./01-mint-angel.webp";
 import r02 from "./02-white-bunny.webp";
 import r03 from "./03-yellow-lion.webp";
@@ -25,6 +26,9 @@ import r23 from "./23-lavender-dog.webp";
 import r24 from "./24-yellow-duck.webp";
 import r25 from "./25-peach-dog.webp";
 import r26 from "./26-mini-bunny.webp";
+
+/** 띠 한 줄의 장 수. globals.css의 rr-turn steps(8)과 같은 값 */
+export const FRAMES = 8;
 
 export const READERS = [
   { img: r01, glow: "#78b8a8" },
