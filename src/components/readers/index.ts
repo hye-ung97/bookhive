@@ -1,4 +1,5 @@
 // 같이 읽는 중 캐릭터: 독서 스티커 시트와 같은 그림의 책장 넘기기 GIF 25마리 (둘이 붙은 19번 쌍둥이는 한 사람이 두 마리로 보여서 뺐다)
+// + 27번 보라 베레모는 시트 밖에서 따로 만든 같은 박자(8장 × 0.22초)의 GIF. 원본 PNG 장면에서 같은 비율로 줄였다
 // 파일은 GIF 8장을 가로로 이은 띠. 한 장은 화면에 앉는 크기(키 58 안팎)의 2배에 옆 장이 번지지 않게 좌우 투명 2px씩.
 // glow는 다크 모드에서 테두리가 배경에 묻히지 않게 번지는 몸 색
 import r01 from "./01-mint-angel.webp";
@@ -26,6 +27,7 @@ import r23 from "./23-lavender-dog.webp";
 import r24 from "./24-yellow-duck.webp";
 import r25 from "./25-peach-dog.webp";
 import r26 from "./26-mini-bunny.webp";
+import r27 from "./27-purple-beret.webp";
 
 /** 띠 한 줄의 장 수. globals.css의 rr-turn steps(8)과 같은 값 */
 export const FRAMES = 8;
@@ -56,4 +58,6 @@ export const READERS = [
   { img: r24, glow: "#f8f828" },
   { img: r25, glow: "#f8c8a8" },
   { img: r26, glow: "#888888" },
+  // 새 캐릭터는 끝에 붙인다. 앞에 끼우면 이미 앉아 있는 사람의 동물 번호가 바뀐다
+  { img: r27, glow: "#a858f8" },
 ];
