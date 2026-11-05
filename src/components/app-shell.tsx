@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { applyTheme, type Theme } from "@/lib/theme";
 import { ReadingRoom } from "./reading-room";
 import { SiteFooter } from "./site-footer";
+import { ThemeMenu } from "./theme-menu";
 
 type NavItem = { href: string; label: string; short?: string; noTab?: boolean };
 
@@ -26,8 +28,17 @@ export const ADMIN_NAV: NavItem[] = [
 export const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 /** 데스크톱 왼쪽 목차 + 모바일 위 막대·하단 글자 탭. 지금 화면은 검게 뒤집는다 */
-export function AppShell({ me, children }: { me: { name: string; isAdmin: boolean; roleTitle: string | null }; children: ReactNode }) {
+export function AppShell({
+  me,
+  theme: initialTheme,
+  children,
+}: {
+  me: { name: string; isAdmin: boolean; roleTitle: string | null };
+  theme: Theme;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
+  const [theme, setTheme] = useState(initialTheme);
   // 모두의 일지는 메뉴에 따로 없고 일지 쓰기에서 들어가므로 일지 쓰기에 불을 켠다
   const navActive = (href: string) => isActive(pathname, href) || (href === "/journal" && isActive(pathname, "/journals"));
   const link = (item: NavItem) => (
@@ -45,6 +56,11 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
       <button type="submit">로그아웃</button>
     </form>
   );
+  // 목차와 모바일 위 막대 두 곳에 같은 버튼을 두므로 상태는 여기서 하나로 들고 있는다
+  const changeTheme = (next: Theme) => {
+    applyTheme(next);
+    setTheme(next);
+  };
 
   return (
     <div className="app-frame">
@@ -67,8 +83,10 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
             <div className="who">
               <b>{me.name}</b>
               {me.roleTitle ?? (me.isAdmin ? "관리자" : "멤버")}
-              <br />
-              {signout}
+              <div className="who-acts">
+                {signout}
+                <ThemeMenu theme={theme} onChange={changeTheme} placement="up" />
+              </div>
             </div>
           </div>
         </aside>
@@ -76,6 +94,7 @@ export function AppShell({ me, children }: { me: { name: string; isAdmin: boolea
           <header className="appbar">
             <Link className="logo" href="/">시끌북적</Link>
             <div className="appbar-right">
+              <ThemeMenu theme={theme} onChange={changeTheme} placement="down" />
               {signout}
               <span className="mono" aria-hidden="true">{initial}</span>
             </div>

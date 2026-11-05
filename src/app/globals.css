@@ -76,6 +76,23 @@ body {
 .signout { display: inline; }
 .signout button { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .signout button:hover { color: var(--ink); }
+.who-acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; min-height: 28px; }
+/* 화면 모드 메뉴: 아이콘 버튼 하나 → 이름 붙은 세 줄 메뉴. 데스크톱은 위로, 모바일은 아래로 연다 */
+.theme-menu { position: relative; display: inline-flex; }
+.theme-btn { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 5px 0 6px; border: 1px solid var(--ink); background: var(--bg); color: var(--ink); cursor: pointer; }
+.theme-btn:hover { background: var(--fill); }
+.theme-btn .chev { width: 12px; height: 12px; }
+.theme-btn[aria-expanded="true"] { background: var(--ink); color: var(--on); }
+.theme-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.appbar .theme-btn { height: 32px; padding: 0 7px 0 8px; }
+.theme-list { position: absolute; z-index: 20; right: 0; bottom: calc(100% + 6px); width: 168px; display: flex; flex-direction: column; background: var(--bg); border: 2px solid var(--ink); }
+.theme-menu[data-placement="down"] .theme-list { bottom: auto; top: calc(100% + 10px); }
+.theme-list button { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px; border: 0; background: none; color: var(--ink); font: 600 13px/1 var(--font-sans); text-align: left; cursor: pointer; }
+.theme-list button + button { border-top: 1px solid var(--rule); }
+.theme-list button:hover { background: var(--fill); }
+.theme-list button[aria-checked="true"] { background: var(--ink); color: var(--on); }
+.theme-list button:focus-visible { outline-offset: -4px; }
+.theme-list .ck { margin-left: auto; }
 .maincol { min-width: 0; display: flex; flex-direction: column; }
 main {
   width: 100%; max-width: 1136px; min-width: 0; margin-inline: auto; display: flex; flex-direction: column; gap: 40px;
