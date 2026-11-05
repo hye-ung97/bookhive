@@ -1,3 +1,7 @@
 {
-  "v": 1
+  "v": 1,
+  "tokenCss": "src/app/globals.css",
+  "serve": [
+    "src/app/fonts"
+  ]
 }

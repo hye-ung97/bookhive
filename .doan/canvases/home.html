@@ -1,0 +1,1755 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="home">
+<meta name="doan:width" content="2800">
+<title>홈 (메인 페이지)</title>
+<!-- Gowun Batang은 현재 앱. 나머지는 아래 '새 방향 제안' 시안 전용 (Gothic A1: 통장, Gowun Dodum·Hahmlet: 매대, IBM Plex Sans KR: 시간표) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&family=Hahmlet:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../src/app/globals.css">
+<style>
+  /* 앱에서는 next/font가 글꼴 변수를 <html>에 달아 준다. 캔버스는 같은 글꼴 파일을 직접 불러 변수만 맞춘다 */
+  @font-face { font-family: "Pretendard"; src: url("../../src/app/fonts/PretendardVariable.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+  :root { --font-pretendard: "Pretendard"; --font-gowun: "Gowun Batang"; }
+
+  /* globals.css 첫 줄 @import "tailwindcss"는 캔버스에서 풀리지 않는다. 화면에 영향을 주는 preflight 리셋만 옮겨 둔다 */
+  *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+  html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
+  h1, h2, h3 { font-size: inherit; font-weight: inherit; }
+  a { color: inherit; text-decoration: inherit; }
+  b, strong { font-weight: bolder; }
+  svg { display: block; vertical-align: middle; }
+  button, select { font: inherit; color: inherit; background-color: transparent; border-radius: 0; }
+  hr { height: 0; color: inherit; border-top-width: 1px; }
+
+  /* 앱의 100vh·sticky는 캔버스에서 보드 전체를 기준으로 잡혀서, 프레임 안에서는 내용 높이에 맞춘다 */
+  .cv .shell { min-height: 0; }
+  .cv .side-inner { position: static; height: 100%; }
+  .cv .tabs { position: static; }
+
+  /* 보드 */
+  body { background: var(--muted); }
+  .cv { display: grid; gap: 72px; padding: 80px; }
+  .cv-head { display: grid; gap: 6px; max-width: 880px; }
+  .cv-note { color: var(--fg2); font-size: 14px; line-height: 22px; }
+  .cv-note code { font: 400 13px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg); }
+  .cv-row { display: flex; align-items: flex-start; gap: 64px; }
+  .cv-col { display: grid; gap: 12px; align-content: start; }
+  .cv-cap { font: 500 13px/18px var(--font-sans); color: var(--fg2); }
+  .cv-cap b { color: var(--fg); font-weight: 600; margin-right: 6px; }
+  .cv-frame { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); }
+  .w-desktop { width: 1280px; }
+  .w-tablet { width: 834px; }
+  .w-mobile { width: 390px; }
+
+  /* 상태 모음: 실제 카드 폭(데스크톱 홈 카드 520px)에 맞춘 격자 */
+  .w-states { width: 2320px; padding: 40px; }
+  .states { display: grid; grid-template-columns: repeat(4, 520px); gap: 40px; align-items: start; }
+  .st { display: grid; gap: 10px; align-content: start; }
+  .st-wide { grid-column: span 2; }
+
+  /* ───────── 새 방향 제안: 기존 디자인을 쓰지 않는 시안. 각 시안의 팔레트·글꼴은 .a1/.a2/.a3 안에서만 ───────── */
+  .alt { width: 1816px; padding: 40px; display: grid; gap: 28px; }
+  .alt-note { display: grid; gap: 6px; max-width: 1120px; }
+  .alt-flag { justify-self: start; font: 600 12px/16px var(--font-sans); padding: 3px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-fg); }
+  .alt-note h2 { font: 700 20px/28px var(--font-sans); color: var(--fg); }
+  .alt-note p { font-size: 14px; line-height: 22px; color: var(--fg2); }
+  .alt-boards { display: flex; gap: 64px; align-items: flex-start; }
+  .alt-board { display: grid; gap: 10px; }
+  .alt-art { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+  .alt-art.is-desk { width: 1280px; }
+  .alt-art.is-mob { width: 390px; height: 844px; }
+
+  /* 시안 1 · 시간표 */
+  .a1 { --a1-paper: #ffffff; --a1-ink: #141414; --a1-ink2: #595959; --a1-past: #6e6e6e; --a1-rule: #e3e3e3; --a1-signal: #c2410c;
+    background: var(--a1-paper); color: var(--a1-ink); font: 400 15px/22px "IBM Plex Sans KR", var(--font-sans); font-variant-numeric: tabular-nums; }
+  .a1-top { display: flex; align-items: center; gap: 40px; height: 64px; padding: 0 48px; border-bottom: 2px solid var(--a1-ink); }
+  .a1-logo { font-weight: 700; font-size: 18px; }
+  .a1-nav { display: flex; gap: 4px; flex: 1; align-self: stretch; }
+  .a1-nav a { display: flex; align-items: center; padding: 0 12px; color: var(--a1-ink2); font-weight: 500; }
+  .a1-nav a[aria-current="page"] { color: var(--a1-ink); font-weight: 600; box-shadow: inset 0 -3px 0 var(--a1-ink); }
+  .a1-me { font-size: 14px; color: var(--a1-ink2); }
+  .a1-body { padding: 40px 48px 56px; display: grid; gap: 48px; }
+  .a1-title h2 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: -0.02em; }
+  .a1-title p { margin-top: 6px; color: var(--a1-ink2); }
+  .a1-row { display: grid; grid-template-columns: 128px 72px 140px minmax(0, 1fr) 140px 150px; gap: 16px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--a1-rule); }
+  .a1-row.is-head { padding: 0 0 10px; border-bottom: 2px solid var(--a1-ink); font-size: 13px; font-weight: 600; color: var(--a1-ink2); }
+  .a1-row.is-past { color: var(--a1-past); }
+  .a1-date b { display: block; font-size: 20px; line-height: 26px; font-weight: 700; }
+  .a1-dday { font-size: 13px; font-weight: 600; color: var(--a1-ink2); }
+  .a1-dday.is-soon { color: var(--a1-signal); }
+  .a1-what { font-weight: 600; }
+  .a1-sub { display: block; font-size: 13px; color: var(--a1-ink2); }
+  .a1-row.is-past .a1-sub { color: var(--a1-past); }
+  .a1-act { justify-self: end; }
+  .a1-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; background: var(--a1-ink); color: var(--a1-paper); font-weight: 600; font-size: 14px; border-radius: 4px; white-space: nowrap; }
+  .a1-now { position: relative; border-top: 2px solid var(--a1-signal); margin: 16px 0 0; }
+  .a1-now span { position: absolute; left: 0; top: -12px; padding: 0 8px; border-radius: 2px; background: var(--a1-signal); color: var(--a1-paper); font-size: 12px; font-weight: 600; line-height: 22px; }
+  .a1-lower { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 56px; align-items: start; }
+  .a1-h3 { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: 2px solid var(--a1-ink); font-size: 17px; font-weight: 700; }
+  .a1-h3 span { font-size: 13px; font-weight: 500; color: var(--a1-ink2); }
+  .a1-li { display: grid; grid-template-columns: minmax(0, 1fr) 150px 80px 64px; gap: 12px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--a1-rule); font-size: 14px; }
+  .a1-li .r { text-align: right; }
+  .a1-li .m { color: var(--a1-ink2); font-size: 13px; }
+  .a1-li.is-me { font-weight: 600; }
+  .a1-names { display: grid; gap: 16px; padding-top: 14px; }
+  .a1-names p { margin-bottom: 8px; font-size: 13px; color: var(--a1-ink2); }
+  .a1-names ul { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; font-size: 14px; }
+  .a1-names li::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--a1-ink); vertical-align: 1px; }
+  .a1-names .is-pending li::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--a1-ink2); }
+  .a1-mob { height: 100%; display: grid; grid-template-rows: 56px minmax(0, 1fr) 60px; }
+  .a1-mtop { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid var(--a1-ink); }
+  .a1-mbody { overflow: hidden; padding: 20px 20px 0; display: grid; align-content: start; }
+  .a1-mbody .a1-title h2 { font-size: 24px; line-height: 32px; }
+  .a1-mbody .a1-title { margin-bottom: 20px; }
+  .a1-mrow { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--a1-rule); }
+  .a1-mrow.is-past { color: var(--a1-past); }
+  .a1-mrow .a1-date b { font-size: 17px; line-height: 22px; }
+  .a1-mrow .a1-btn { margin-top: 10px; }
+  .a1-mtabs { display: flex; border-top: 1px solid var(--a1-rule); }
+  .a1-mtabs a { flex: 1; display: grid; justify-items: center; align-content: center; gap: 2px; font-size: 11px; color: var(--a1-ink2); }
+  .a1-mtabs a[aria-current="page"] { color: var(--a1-ink); font-weight: 600; }
+  .a1-mtabs .ic { width: 20px; height: 20px; }
+
+  /* 시안 2 · 통장 */
+  .a2 { --a2-paper: #f3f6f1; --a2-sheet: #ffffff; --a2-ink: #13261b; --a2-ink2: #4d6356; --a2-rule: #d5e0d7; --a2-green: #1d5b3a; --a2-green-soft: #e3eee6;
+    --a2-side: #10301f; --a2-side-ink: #e3eee6; --a2-side-ink2: #a9c2b1; --a2-over: #b42318; --a2-over-bg: #fdeceb;
+    background: var(--a2-paper); color: var(--a2-ink); font: 400 14px/21px "Gothic A1", var(--font-sans); font-variant-numeric: tabular-nums; }
+  .a2-desk { display: grid; grid-template-columns: 216px minmax(0, 1fr); }
+  .a2-side { display: flex; flex-direction: column; gap: 28px; padding: 28px 16px; background: var(--a2-side); color: var(--a2-side-ink); }
+  .a2-logo { padding: 0 10px; font-size: 18px; font-weight: 800; }
+  .a2-nav { display: grid; gap: 2px; }
+  .a2-nav a { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 10px; border-radius: 6px; color: var(--a2-side-ink2); font-weight: 500; }
+  .a2-nav a[aria-current="page"] { background: var(--a2-green); color: var(--a2-sheet); font-weight: 700; }
+  .a2-who { margin-top: auto; padding: 12px 10px 0; border-top: 1px solid var(--a2-green); font-size: 13px; }
+  .a2-who span { display: block; font-size: 12px; color: var(--a2-side-ink2); }
+  .a2-main { display: grid; gap: 24px; align-content: start; padding: 36px 44px 56px; }
+  .a2-head h2 { font-size: 26px; line-height: 34px; font-weight: 800; letter-spacing: -0.02em; }
+  .a2-head p { margin-top: 4px; color: var(--a2-ink2); }
+  .a2-tabs { display: flex; border-bottom: 1px solid var(--a2-rule); }
+  .a2-tab { display: grid; gap: 2px; margin-bottom: -1px; padding: 10px 20px 12px 0; margin-right: 24px; border-bottom: 3px solid transparent; color: var(--a2-ink2); font-size: 12px; }
+  .a2-tab b { font-size: 15px; font-weight: 500; }
+  .a2-tab[aria-selected="true"] { border-bottom-color: var(--a2-green); }
+  .a2-tab[aria-selected="true"] b { color: var(--a2-ink); font-weight: 800; }
+  .a2-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  .a2-sheet { background: var(--a2-sheet); border: 1px solid var(--a2-rule); border-radius: 8px; }
+  .a2-tbl { width: 100%; border-collapse: collapse; }
+  .a2-tbl th { padding: 12px 16px; border-bottom: 1px solid var(--a2-rule); text-align: left; font-size: 12px; font-weight: 700; color: var(--a2-ink2); }
+  .a2-tbl td { padding: 14px 16px; border-bottom: 1px solid var(--a2-rule); vertical-align: top; }
+  .a2-tbl .n { text-align: right; white-space: nowrap; }
+  .a2-tbl .bal { font-weight: 700; }
+  .a2-tbl td small { display: block; font-size: 12px; color: var(--a2-ink2); }
+  .a2-tbl tr.is-preview td { background: var(--a2-over-bg); border-bottom: 1px dashed var(--a2-over); }
+  .a2-tbl tr.is-preview .bal { color: var(--a2-over); }
+  .a2-tbl tr.is-me td { background: var(--a2-green-soft); }
+  .a2-tbl tr.is-pending td { color: var(--a2-ink2); }
+  .a2-err { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--a2-over); font-size: 13px; font-weight: 700; }
+  .a2-err .ic { width: 14px; height: 14px; }
+  .a2-mark { margin-left: 6px; padding: 0 5px; border: 1px solid var(--a2-green); border-radius: 3px; color: var(--a2-green); font-size: 11px; font-weight: 700; }
+  .a2-add { display: grid; gap: 8px; padding: 16px; }
+  .a2-add label { font-size: 13px; font-weight: 700; }
+  .a2-add label small { font-weight: 400; color: var(--a2-ink2); }
+  .a2-inrow { display: flex; gap: 8px; }
+  .a2-input { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--a2-rule); border-radius: 6px; background: var(--a2-sheet); color: var(--a2-ink2); white-space: nowrap; overflow: hidden; }
+  .a2-input.is-err { border-color: var(--a2-over); color: var(--a2-ink); }
+  .a2-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 18px; border-radius: 6px; background: var(--a2-green); color: var(--a2-sheet); font-weight: 700; white-space: nowrap; }
+  .a2-btn[aria-disabled="true"] { background: var(--a2-rule); color: var(--a2-ink2); }
+  .a2-btn.is-line { height: 36px; padding: 0 12px; border: 1px solid var(--a2-green); background: var(--a2-sheet); color: var(--a2-green); font-size: 13px; }
+  .a2-foot { display: flex; justify-content: space-between; align-items: baseline; padding: 16px; border-top: 2px solid var(--a2-ink); }
+  .a2-foot b { font-size: 22px; line-height: 28px; font-weight: 800; }
+  .a2-foot span { color: var(--a2-ink2); font-size: 13px; }
+  .a2-todo { padding: 4px 16px 8px; }
+  .a2-todo h3 { padding: 14px 0 10px; font-size: 15px; font-weight: 800; }
+  .a2-item { display: grid; gap: 6px; justify-items: start; padding: 14px 0; border-top: 1px solid var(--a2-rule); }
+  .a2-item p { font-size: 13px; color: var(--a2-ink2); }
+  .a2-chip { padding: 2px 8px; border-radius: 4px; background: var(--a2-green-soft); color: var(--a2-green); font-size: 12px; font-weight: 700; }
+  .a2-club h3 { display: flex; justify-content: space-between; align-items: baseline; padding: 16px; border-bottom: 1px solid var(--a2-rule); font-size: 15px; font-weight: 800; }
+  .a2-club h3 span { font-size: 13px; font-weight: 500; color: var(--a2-ink2); }
+  .a2-mob { height: 100%; display: grid; grid-template-rows: 56px minmax(0, 1fr) 60px; }
+  .a2-mtop { display: flex; align-items: center; padding: 0 20px; background: var(--a2-side); color: var(--a2-side-ink); font-size: 17px; font-weight: 800; }
+  .a2-mbody { overflow: hidden; display: grid; gap: 16px; align-content: start; padding: 20px 16px 0; }
+  .a2-mbody .a2-head h2 { font-size: 22px; line-height: 30px; }
+  .a2-mbody .a2-tab { margin-right: 16px; padding-right: 0; }
+  .a2-mbody .a2-tbl td { padding: 12px; }
+  .a2-mtabs { display: flex; border-top: 1px solid var(--a2-rule); background: var(--a2-sheet); }
+  .a2-mtabs a { flex: 1; display: grid; justify-items: center; align-content: center; gap: 2px; font-size: 11px; color: var(--a2-ink2); }
+  .a2-mtabs a[aria-current="page"] { color: var(--a2-green); font-weight: 700; }
+  .a2-mtabs .ic { width: 20px; height: 20px; }
+
+  /* 시안 3 · 매대 */
+  .a3 { --a3-paper: #f5f0e8; --a3-ink: #2b2118; --a3-ink2: #6a5a4a; --a3-rule: #e2d8c9; --a3-spine: #fffaf2; --a3-edge: #cdbfa9; --a3-plum: #6e2a52; --a3-plum-soft: #f1e3ec; --a3-cart: #8a5a00;
+    background: var(--a3-paper); color: var(--a3-ink); font: 400 15px/23px "Gowun Dodum", var(--font-sans); font-variant-numeric: tabular-nums; }
+  .a3-serif { font-family: "Hahmlet", var(--font-serif); }
+  .a3-top { display: flex; align-items: center; gap: 36px; padding: 22px 48px; }
+  .a3-logo { font: 700 22px/28px "Hahmlet", var(--font-serif); }
+  .a3-nav { display: flex; gap: 24px; flex: 1; }
+  .a3-nav a { color: var(--a3-ink2); }
+  .a3-nav a[aria-current="page"] { color: var(--a3-ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 7px; }
+  .a3-me { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .a3-avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--a3-plum); color: var(--a3-spine); font-size: 14px; }
+  .a3-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 48px; align-items: start; padding: 20px 48px 56px; }
+  .a3-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .a3-h h2 { font: 700 34px/42px "Hahmlet", var(--font-serif); letter-spacing: -0.02em; }
+  .a3-h p { margin-top: 6px; color: var(--a3-ink2); }
+  .a3-h p b { color: var(--a3-plum); font-weight: 400; }
+  .a3-seg { display: inline-flex; padding: 3px; border: 1px solid var(--a3-edge); border-radius: 999px; font-size: 13px; }
+  .a3-seg a { padding: 3px 14px; border-radius: 999px; color: var(--a3-ink2); }
+  .a3-seg a[aria-current="true"] { background: var(--a3-ink); color: var(--a3-paper); }
+  /* 선반: 책 아래 4px 선. 이름표(간격 10 + 줄 20)만큼 위에 긋는다 */
+  .a3-shelf { display: flex; align-items: flex-end; gap: 14px; padding-top: 32px; background: linear-gradient(var(--a3-ink), var(--a3-ink)) 0 calc(100% - 30px) / 100% 4px no-repeat; }
+  .a3-grp { display: grid; gap: 10px; justify-items: start; }
+  .a3-books { display: flex; align-items: flex-end; gap: 3px; padding-bottom: 4px; }
+  .a3-spine { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 0; background: var(--a3-spine); border: 1px solid var(--a3-edge); border-bottom: 0; border-radius: 3px 3px 0 0; }
+  .a3-spine .t { writing-mode: vertical-rl; white-space: nowrap; font: 600 15px/1.2 "Hahmlet", var(--font-serif); }
+  .a3-spine .s { font-size: 11px; line-height: 14px; color: var(--a3-ink2); }
+  .a3-spine .c { font-size: 11px; line-height: 14px; color: var(--a3-cart); }
+  .a3-spine.is-me { background: var(--a3-plum); border-color: var(--a3-plum); color: var(--a3-spine); }
+  .a3-spine.is-me .s { color: var(--a3-plum-soft); }
+  .a3-slot { width: 52px; height: 140px; border: 1.5px dashed var(--a3-edge); border-bottom: 0; border-radius: 3px 3px 0 0; }
+  .a3-name { font-size: 13px; line-height: 20px; color: var(--a3-ink2); white-space: nowrap; }
+  .a3-name.is-me { color: var(--a3-plum); }
+  .a3-legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 16px; font-size: 13px; color: var(--a3-ink2); }
+  .a3-aside { padding: 4px 24px; background: var(--a3-spine); border: 1px solid var(--a3-edge); border-radius: 6px; }
+  .a3-sec { display: grid; gap: 12px; padding: 20px 0; border-top: 1px solid var(--a3-rule); }
+  .a3-sec:first-child { border-top: 0; }
+  .a3-sec h3 { display: flex; align-items: baseline; justify-content: space-between; font: 700 18px/24px "Hahmlet", var(--font-serif); }
+  .a3-sec h3 span { font: 400 13px/18px "Gowun Dodum", var(--font-sans); color: var(--a3-ink2); }
+  .a3-mine { display: flex; gap: 3px; height: 44px; border-bottom: 3px solid var(--a3-ink); }
+  .a3-mine .fill { display: flex; align-items: center; padding: 0 8px; overflow: hidden; border-radius: 3px 3px 0 0; background: var(--a3-plum); color: var(--a3-spine); font-size: 12px; white-space: nowrap; }
+  .a3-mine .gap { flex: 1; display: flex; align-items: center; justify-content: center; border: 1.5px dashed var(--a3-edge); border-bottom: 0; border-radius: 3px 3px 0 0; color: var(--a3-ink2); font-size: 13px; }
+  .a3-cap { font-size: 13px; color: var(--a3-ink2); }
+  .a3-btn { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 20px; border-radius: 999px; background: var(--a3-plum); color: var(--a3-spine); white-space: nowrap; }
+  .a3-btn.is-line { height: 36px; padding: 0 14px; border: 1px solid var(--a3-plum); background: transparent; color: var(--a3-plum); font-size: 14px; }
+  .a3-bk { display: grid; gap: 2px; }
+  .a3-bk b { font: 600 15px/22px "Hahmlet", var(--font-serif); }
+  .a3-bk span { font-size: 13px; color: var(--a3-ink2); }
+  .a3-st { margin-right: 6px; padding: 1px 8px; border-radius: 999px; background: var(--a3-plum-soft); color: var(--a3-plum); font-size: 12px; }
+  .a3-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .a3-acts a.lk { color: var(--a3-plum); font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
+  .a3-mob { height: 100%; display: grid; grid-template-rows: 60px minmax(0, 1fr) 60px; }
+  .a3-mob .a3-top { padding: 14px 20px; justify-content: space-between; }
+  .a3-mbody { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-content: start; padding: 8px 20px 0; }
+  .a3-mbody .a3-h h2 { font-size: 26px; line-height: 34px; }
+  .a3-scroll { overflow: hidden; margin-right: -20px; }
+  .a3-mbody .a3-shelf { width: max-content; padding-top: 8px; }
+  .a3-mbody .a3-aside { padding: 0 16px; }
+  .a3-mtabs { display: flex; border-top: 1px solid var(--a3-rule); background: var(--a3-spine); }
+  .a3-mtabs a { flex: 1; display: grid; justify-items: center; align-content: center; gap: 2px; font-size: 11px; color: var(--a3-ink2); }
+  .a3-mtabs a[aria-current="page"] { color: var(--a3-plum); }
+  .a3-mtabs .ic { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+<!-- 아이콘: src/components/icon.tsx와 같은 패스 -->
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></symbol>
+  <symbol id="i-arrowR" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-chevL" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chevR" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-pkg" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-alertc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+</svg>
+
+<div class="cv">
+  <header class="cv-head">
+    <p class="eyebrow">시끌북적 · 캔버스</p>
+    <h1 class="t-title">홈 (메인 페이지)</h1>
+    <p class="cv-note">
+      <code>src/app/(app)/page.tsx</code>와 <code>src/components/app-shell.tsx</code>를 옮겨 그렸어요. 문구·구조·클래스는 코드와 같고,
+      스타일은 <code>src/app/globals.css</code>를 그대로 불러와요. 이름·책·금액은 예시 데이터이고, 날짜는 2026년 11월 2일(월) 기준이에요.
+      화면 폭에 따른 배치는 앱과 같은 컨테이너 쿼리(<code>.app-frame</code>)가 바꿔요.
+    </p>
+  </header>
+
+  <div class="cv-row">
+    <!-- ───────── 데스크톱 ───────── -->
+    <div class="cv-col">
+      <p class="cv-cap"><b>데스크톱</b>1280px · 사이드바 240 + 본문 최대 1120</p>
+      <section class="cv-frame w-desktop" data-doan-frame="desktop" data-doan-title="데스크톱 · 1280" data-doan-implements="src/app/(app)/page.tsx">
+        <div class="app-frame">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바" data-doan-id="d-sidebar">
+              <div class="side-inner">
+                <a class="logo" href="#">
+                  <svg class="ic"><use href="#i-bookmark"/></svg>
+                  <span class="logo-txt serif">시끌북적</span>
+                </a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#" aria-current="page" title="홈"><svg class="ic"><use href="#i-home"/></svg><span class="lbl">홈</span></a>
+                  <a class="nav" href="#" title="구매 요청"><svg class="ic"><use href="#i-book"/></svg><span class="lbl">구매 요청</span></a>
+                  <a class="nav" href="#" title="일지 쓰기"><svg class="ic"><use href="#i-pen"/></svg><span class="lbl">일지 쓰기</span></a>
+                  <a class="nav" href="#" title="내 기록"><svg class="ic"><use href="#i-history"/></svg><span class="lbl">내 기록</span></a>
+                  <a class="nav" href="#" title="벌점"><svg class="ic"><use href="#i-flag"/></svg><span class="lbl">벌점</span></a>
+                </nav>
+                <div class="who">
+                  <span class="avatar" aria-hidden="true">지</span>
+                  <div class="who-txt">
+                    <b>김지은</b>
+                    <span>멤버</span>
+                  </div>
+                  <button class="icon-btn" type="button" aria-label="로그아웃" title="로그아웃"><svg class="ic"><use href="#i-logout"/></svg></button>
+                </div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <header class="appbar">
+                <a class="logo" href="#"><svg class="ic"><use href="#i-bookmark"/></svg><span class="logo-txt serif">시끌북적</span></a>
+                <button class="icon-btn" type="button" aria-label="로그아웃"><svg class="ic"><use href="#i-logout"/></svg></button>
+              </header>
+              <main>
+                <div class="page-head" data-doan-id="d-greeting">
+                  <div class="stack">
+                    <p class="eyebrow">11월 2일 (월)</p>
+                    <h1 class="t-title">안녕하세요, 지은님</h1>
+                  </div>
+                </div>
+
+                <div class="home-cards">
+                  <section class="card" aria-label="요청 받는 회차" data-doan-id="d-request-card">
+                    <div class="cyc-top">
+                      <span class="tag tag-on">요청 받는 중</span>
+                    </div>
+                    <div class="stack" style="gap: 14px">
+                      <div class="cyc-row">
+                        <div class="cyc-top">
+                          <div class="cyc-name">
+                            <span class="serif">12월 회차</span>
+                            <span class="muted">책 요청</span>
+                          </div>
+                          <span class="dday soon">D-3</span>
+                        </div>
+                        <p class="t-cap">마감 11/5(목)</p>
+                        <dl>
+                          <div class="kv">
+                            <dt>남은 금액</dt>
+                            <dd class="t-display">₩13,460</dd>
+                          </div>
+                        </dl>
+                        <div class="gauge" role="meter" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="36540" aria-valuetext="한도 50,000원 중 36,540원" data-doan-id="d-budget-gauge">
+                          <span class="g-used" style="width: 64.08%"></span>
+                          <span class="g-cof" style="width: 9%"></span>
+                          <span class="g-pend" style="width: 0%"></span>
+                        </div>
+                        <p class="t-cap tnum">32,040 / 50,000원 사용 · 2권</p>
+                        <div>
+                          <a class="btn btn-primary" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card" aria-label="읽는 회차" data-doan-id="d-reading-card">
+                    <div class="cyc-top">
+                      <span class="tag">읽는 중</span>
+                    </div>
+                    <div class="cyc-row">
+                      <div class="cyc-top">
+                        <div class="cyc-name">
+                          <span class="serif">11월 회차</span>
+                          <span class="muted">일지</span>
+                        </div>
+                        <span class="dday">D-25</span>
+                      </div>
+                      <p class="t-cap">일지 마감 11/27(금)</p>
+                      <dl>
+                        <div class="kv">
+                          <dt>내 일지</dt>
+                          <dd><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>미작성</span></dd>
+                        </div>
+                        <div class="kv">
+                          <dt>동아리 제출 현황</dt>
+                          <dd class="row-gap">3 / 8명<a class="link" href="#">읽기</a></dd>
+                        </div>
+                        <div class="kv">
+                          <dt>읽을 책</dt>
+                          <dd>시선으로부터, 달까지 가자</dd>
+                        </div>
+                      </dl>
+                      <div>
+                        <a class="btn btn-primary" href="#">일지 쓰기<svg class="ic"><use href="#i-arrowR"/></svg></a>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <section class="block" aria-labelledby="d-all-h" data-doan-id="d-requests">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="d-all-h">전체 구매 요청</h2>
+                    <div class="row-gap">
+                      <div class="picker" data-doan-id="d-round-picker">
+                        <a class="icon-btn" href="#" aria-label="이전 회차" aria-disabled="false"><svg class="ic"><use href="#i-chevL"/></svg></a>
+                        <select class="select" aria-label="회차 선택">
+                          <option selected>12월 회차 · 요청 중</option>
+                          <option>11월 회차 · 읽는 중</option>
+                          <option>10월 회차 · 마감</option>
+                        </select>
+                        <a class="icon-btn" href="#" aria-label="다음 회차" aria-disabled="true"><svg class="ic"><use href="#i-chevR"/></svg></a>
+                      </div>
+                      <div class="seg" role="group" aria-label="보기" data-doan-id="d-view-seg">
+                        <a href="#" aria-current="true">전체</a>
+                        <a href="#" aria-current="false">내 요청</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="rows" role="table" aria-label="12월 회차 구매 요청 목록" data-doan-id="d-request-table">
+                    <div class="row head" role="row">
+                      <span role="columnheader">요청자</span>
+                      <span role="columnheader">책 제목</span>
+                      <span role="columnheader">서점</span>
+                      <span role="columnheader" class="num">금액(원)</span>
+                      <span role="columnheader">상태</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">박서연</span>
+                      <span class="c-title" role="cell">이처럼 사소한 것들</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">13,500</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">박서연 · 교보문고</span>
+                    </div>
+                    <div class="row is-me" role="row">
+                      <span class="c-name" role="cell">김지은</span>
+                      <span class="c-title" role="cell">도둑맞은 집중력</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">16,920</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">김지은 · yes24</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">이도현</span>
+                      <span class="c-title" role="cell">프로젝트 헤일메리</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">19,800</span>
+                      <span class="c-badge" role="cell"><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></span>
+                      <span class="c-meta">이도현 · yes24</span>
+                    </div>
+                    <div class="row is-me" role="row">
+                      <span class="c-name" role="cell">김지은</span>
+                      <span class="c-title" role="cell">작별하지 않는다</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">15,120</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">김지은 · 교보문고</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">최예린</span>
+                      <span class="c-title" role="cell">불편한 편의점</span>
+                      <span class="c-store muted" role="cell">기타</span>
+                      <span class="c-price num" role="cell">12,600</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">최예린 · 기타</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">강민호</span>
+                      <span class="c-title" role="cell">사피엔스</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">19,800</span>
+                      <span class="c-badge" role="cell"><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></span>
+                      <span class="c-meta">강민호 · yes24</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">정우진</span>
+                      <span class="c-title" role="cell">아주 희미한 빛으로도</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">15,120</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">정우진 · 교보문고</span>
+                    </div>
+                  </div>
+                  <div class="rows-foot">
+                    <span>6 / 9명 요청 · 7권 <span class="tag tag-on">요청 중</span></span>
+                    <span>합계 112,860원</span>
+                  </div>
+                  <div class="stack" style="gap: 8px" data-doan-id="d-roster">
+                    <div class="row-gap" role="group" aria-label="요청한 사람">
+                      <span class="t-cap tnum">요청한 사람 6명</span>
+                      <span class="badge b-del">강민호</span>
+                      <span class="badge b-del">김지은 (나)</span>
+                      <span class="badge b-del">박서연</span>
+                      <span class="badge b-del">이도현</span>
+                      <span class="badge b-del">정우진</span>
+                      <span class="badge b-del">최예린</span>
+                    </div>
+                    <div class="row-gap" role="group" aria-label="요청 안 한 사람">
+                      <span class="t-cap tnum">아직 요청 안 한 사람 3명</span>
+                      <span class="badge b-off">오태윤</span>
+                      <span class="badge b-off">윤하늘</span>
+                      <span class="badge b-off">장수빈</span>
+                    </div>
+                  </div>
+                </section>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴">
+              <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg><span>홈</span></a>
+              <a href="#"><svg class="ic"><use href="#i-book"/></svg><span>구매 요청</span></a>
+              <a href="#"><svg class="ic"><use href="#i-pen"/></svg><span>일지</span></a>
+              <a href="#"><svg class="ic"><use href="#i-history"/></svg><span>내 기록</span></a>
+            </nav>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ───────── 태블릿 (1024 미만: 아이콘 레일) ───────── -->
+    <div class="cv-col">
+      <p class="cv-cap"><b>태블릿</b>834px · 1024px 미만은 사이드바가 아이콘 레일(68)로</p>
+      <section class="cv-frame w-tablet" data-doan-frame="tablet" data-doan-title="태블릿 · 834" data-doan-implements="src/app/(app)/page.tsx">
+        <div class="app-frame">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바" data-doan-id="t-sidebar">
+              <div class="side-inner">
+                <a class="logo" href="#">
+                  <svg class="ic"><use href="#i-bookmark"/></svg>
+                  <span class="logo-txt serif">시끌북적</span>
+                </a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#" aria-current="page" title="홈"><svg class="ic"><use href="#i-home"/></svg><span class="lbl">홈</span></a>
+                  <a class="nav" href="#" title="구매 요청"><svg class="ic"><use href="#i-book"/></svg><span class="lbl">구매 요청</span></a>
+                  <a class="nav" href="#" title="일지 쓰기"><svg class="ic"><use href="#i-pen"/></svg><span class="lbl">일지 쓰기</span></a>
+                  <a class="nav" href="#" title="내 기록"><svg class="ic"><use href="#i-history"/></svg><span class="lbl">내 기록</span></a>
+                  <a class="nav" href="#" title="벌점"><svg class="ic"><use href="#i-flag"/></svg><span class="lbl">벌점</span></a>
+                </nav>
+                <div class="who">
+                  <span class="avatar" aria-hidden="true">지</span>
+                  <div class="who-txt">
+                    <b>김지은</b>
+                    <span>멤버</span>
+                  </div>
+                  <button class="icon-btn" type="button" aria-label="로그아웃" title="로그아웃"><svg class="ic"><use href="#i-logout"/></svg></button>
+                </div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <header class="appbar">
+                <a class="logo" href="#"><svg class="ic"><use href="#i-bookmark"/></svg><span class="logo-txt serif">시끌북적</span></a>
+                <button class="icon-btn" type="button" aria-label="로그아웃"><svg class="ic"><use href="#i-logout"/></svg></button>
+              </header>
+              <main>
+                <div class="page-head" data-doan-id="t-greeting">
+                  <div class="stack">
+                    <p class="eyebrow">11월 2일 (월)</p>
+                    <h1 class="t-title">안녕하세요, 지은님</h1>
+                  </div>
+                </div>
+
+                <div class="home-cards">
+                  <section class="card" aria-label="요청 받는 회차" data-doan-id="t-request-card">
+                    <div class="cyc-top">
+                      <span class="tag tag-on">요청 받는 중</span>
+                    </div>
+                    <div class="stack" style="gap: 14px">
+                      <div class="cyc-row">
+                        <div class="cyc-top">
+                          <div class="cyc-name">
+                            <span class="serif">12월 회차</span>
+                            <span class="muted">책 요청</span>
+                          </div>
+                          <span class="dday soon">D-3</span>
+                        </div>
+                        <p class="t-cap">마감 11/5(목)</p>
+                        <dl>
+                          <div class="kv">
+                            <dt>남은 금액</dt>
+                            <dd class="t-display">₩13,460</dd>
+                          </div>
+                        </dl>
+                        <div class="gauge" role="meter" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="36540" aria-valuetext="한도 50,000원 중 36,540원">
+                          <span class="g-used" style="width: 64.08%"></span>
+                          <span class="g-cof" style="width: 9%"></span>
+                          <span class="g-pend" style="width: 0%"></span>
+                        </div>
+                        <p class="t-cap tnum">32,040 / 50,000원 사용 · 2권</p>
+                        <div>
+                          <a class="btn btn-primary" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card" aria-label="읽는 회차" data-doan-id="t-reading-card">
+                    <div class="cyc-top">
+                      <span class="tag">읽는 중</span>
+                    </div>
+                    <div class="cyc-row">
+                      <div class="cyc-top">
+                        <div class="cyc-name">
+                          <span class="serif">11월 회차</span>
+                          <span class="muted">일지</span>
+                        </div>
+                        <span class="dday">D-25</span>
+                      </div>
+                      <p class="t-cap">일지 마감 11/27(금)</p>
+                      <dl>
+                        <div class="kv">
+                          <dt>내 일지</dt>
+                          <dd><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>미작성</span></dd>
+                        </div>
+                        <div class="kv">
+                          <dt>동아리 제출 현황</dt>
+                          <dd class="row-gap">3 / 8명<a class="link" href="#">읽기</a></dd>
+                        </div>
+                        <div class="kv">
+                          <dt>읽을 책</dt>
+                          <dd>시선으로부터, 달까지 가자</dd>
+                        </div>
+                      </dl>
+                      <div>
+                        <a class="btn btn-primary" href="#">일지 쓰기<svg class="ic"><use href="#i-arrowR"/></svg></a>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <section class="block" aria-labelledby="t-all-h" data-doan-id="t-requests">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="t-all-h">전체 구매 요청</h2>
+                    <div class="row-gap">
+                      <div class="picker">
+                        <a class="icon-btn" href="#" aria-label="이전 회차" aria-disabled="false"><svg class="ic"><use href="#i-chevL"/></svg></a>
+                        <select class="select" aria-label="회차 선택">
+                          <option selected>12월 회차 · 요청 중</option>
+                          <option>11월 회차 · 읽는 중</option>
+                          <option>10월 회차 · 마감</option>
+                        </select>
+                        <a class="icon-btn" href="#" aria-label="다음 회차" aria-disabled="true"><svg class="ic"><use href="#i-chevR"/></svg></a>
+                      </div>
+                      <div class="seg" role="group" aria-label="보기">
+                        <a href="#" aria-current="true">전체</a>
+                        <a href="#" aria-current="false">내 요청</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="rows" role="table" aria-label="12월 회차 구매 요청 목록" data-doan-id="t-request-table">
+                    <div class="row head" role="row">
+                      <span role="columnheader">요청자</span>
+                      <span role="columnheader">책 제목</span>
+                      <span role="columnheader">서점</span>
+                      <span role="columnheader" class="num">금액(원)</span>
+                      <span role="columnheader">상태</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">박서연</span>
+                      <span class="c-title" role="cell">이처럼 사소한 것들</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">13,500</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">박서연 · 교보문고</span>
+                    </div>
+                    <div class="row is-me" role="row">
+                      <span class="c-name" role="cell">김지은</span>
+                      <span class="c-title" role="cell">도둑맞은 집중력</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">16,920</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">김지은 · yes24</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">이도현</span>
+                      <span class="c-title" role="cell">프로젝트 헤일메리</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">19,800</span>
+                      <span class="c-badge" role="cell"><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></span>
+                      <span class="c-meta">이도현 · yes24</span>
+                    </div>
+                    <div class="row is-me" role="row">
+                      <span class="c-name" role="cell">김지은</span>
+                      <span class="c-title" role="cell">작별하지 않는다</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">15,120</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">김지은 · 교보문고</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">최예린</span>
+                      <span class="c-title" role="cell">불편한 편의점</span>
+                      <span class="c-store muted" role="cell">기타</span>
+                      <span class="c-price num" role="cell">12,600</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">최예린 · 기타</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">강민호</span>
+                      <span class="c-title" role="cell">사피엔스</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">19,800</span>
+                      <span class="c-badge" role="cell"><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></span>
+                      <span class="c-meta">강민호 · yes24</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">정우진</span>
+                      <span class="c-title" role="cell">아주 희미한 빛으로도</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">15,120</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">정우진 · 교보문고</span>
+                    </div>
+                  </div>
+                  <div class="rows-foot">
+                    <span>6 / 9명 요청 · 7권 <span class="tag tag-on">요청 중</span></span>
+                    <span>합계 112,860원</span>
+                  </div>
+                  <div class="stack" style="gap: 8px">
+                    <div class="row-gap" role="group" aria-label="요청한 사람">
+                      <span class="t-cap tnum">요청한 사람 6명</span>
+                      <span class="badge b-del">강민호</span>
+                      <span class="badge b-del">김지은 (나)</span>
+                      <span class="badge b-del">박서연</span>
+                      <span class="badge b-del">이도현</span>
+                      <span class="badge b-del">정우진</span>
+                      <span class="badge b-del">최예린</span>
+                    </div>
+                    <div class="row-gap" role="group" aria-label="요청 안 한 사람">
+                      <span class="t-cap tnum">아직 요청 안 한 사람 3명</span>
+                      <span class="badge b-off">오태윤</span>
+                      <span class="badge b-off">윤하늘</span>
+                      <span class="badge b-off">장수빈</span>
+                    </div>
+                  </div>
+                </section>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴">
+              <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg><span>홈</span></a>
+              <a href="#"><svg class="ic"><use href="#i-book"/></svg><span>구매 요청</span></a>
+              <a href="#"><svg class="ic"><use href="#i-pen"/></svg><span>일지</span></a>
+              <a href="#"><svg class="ic"><use href="#i-history"/></svg><span>내 기록</span></a>
+            </nav>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ───────── 모바일 (768 미만: 상단 바 + 하단 탭) ───────── -->
+    <div class="cv-col">
+      <p class="cv-cap"><b>모바일</b>390px · 768px 미만은 상단 바와 하단 탭</p>
+      <section class="cv-frame w-mobile" data-doan-frame="mobile" data-doan-title="모바일 · 390" data-doan-implements="src/app/(app)/page.tsx">
+        <div class="app-frame">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#">
+                  <svg class="ic"><use href="#i-bookmark"/></svg>
+                  <span class="logo-txt serif">시끌북적</span>
+                </a>
+              </div>
+            </aside>
+            <div class="maincol">
+              <header class="appbar" data-doan-id="m-appbar">
+                <a class="logo" href="#"><svg class="ic"><use href="#i-bookmark"/></svg><span class="logo-txt serif">시끌북적</span></a>
+                <button class="icon-btn" type="button" aria-label="로그아웃"><svg class="ic"><use href="#i-logout"/></svg></button>
+              </header>
+              <main>
+                <div class="page-head" data-doan-id="m-greeting">
+                  <div class="stack">
+                    <p class="eyebrow">11월 2일 (월)</p>
+                    <h1 class="t-title">안녕하세요, 지은님</h1>
+                  </div>
+                </div>
+
+                <div class="home-cards">
+                  <section class="card" aria-label="요청 받는 회차" data-doan-id="m-request-card">
+                    <div class="cyc-top">
+                      <span class="tag tag-on">요청 받는 중</span>
+                    </div>
+                    <div class="stack" style="gap: 14px">
+                      <div class="cyc-row">
+                        <div class="cyc-top">
+                          <div class="cyc-name">
+                            <span class="serif">12월 회차</span>
+                            <span class="muted">책 요청</span>
+                          </div>
+                          <span class="dday soon">D-3</span>
+                        </div>
+                        <p class="t-cap">마감 11/5(목)</p>
+                        <dl>
+                          <div class="kv">
+                            <dt>남은 금액</dt>
+                            <dd class="t-display">₩13,460</dd>
+                          </div>
+                        </dl>
+                        <div class="gauge" role="meter" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="36540" aria-valuetext="한도 50,000원 중 36,540원">
+                          <span class="g-used" style="width: 64.08%"></span>
+                          <span class="g-cof" style="width: 9%"></span>
+                          <span class="g-pend" style="width: 0%"></span>
+                        </div>
+                        <p class="t-cap tnum">32,040 / 50,000원 사용 · 2권</p>
+                        <div>
+                          <a class="btn btn-primary" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card" aria-label="읽는 회차" data-doan-id="m-reading-card">
+                    <div class="cyc-top">
+                      <span class="tag">읽는 중</span>
+                    </div>
+                    <div class="cyc-row">
+                      <div class="cyc-top">
+                        <div class="cyc-name">
+                          <span class="serif">11월 회차</span>
+                          <span class="muted">일지</span>
+                        </div>
+                        <span class="dday">D-25</span>
+                      </div>
+                      <p class="t-cap">일지 마감 11/27(금)</p>
+                      <dl>
+                        <div class="kv">
+                          <dt>내 일지</dt>
+                          <dd><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>미작성</span></dd>
+                        </div>
+                        <div class="kv">
+                          <dt>동아리 제출 현황</dt>
+                          <dd class="row-gap">3 / 8명<a class="link" href="#">읽기</a></dd>
+                        </div>
+                        <div class="kv">
+                          <dt>읽을 책</dt>
+                          <dd>시선으로부터, 달까지 가자</dd>
+                        </div>
+                      </dl>
+                      <div>
+                        <a class="btn btn-primary" href="#">일지 쓰기<svg class="ic"><use href="#i-arrowR"/></svg></a>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <section class="block" aria-labelledby="m-all-h" data-doan-id="m-requests">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="m-all-h">전체 구매 요청</h2>
+                    <div class="row-gap">
+                      <div class="picker">
+                        <a class="icon-btn" href="#" aria-label="이전 회차" aria-disabled="false"><svg class="ic"><use href="#i-chevL"/></svg></a>
+                        <select class="select" aria-label="회차 선택">
+                          <option selected>12월 회차 · 요청 중</option>
+                          <option>11월 회차 · 읽는 중</option>
+                          <option>10월 회차 · 마감</option>
+                        </select>
+                        <a class="icon-btn" href="#" aria-label="다음 회차" aria-disabled="true"><svg class="ic"><use href="#i-chevR"/></svg></a>
+                      </div>
+                      <div class="seg" role="group" aria-label="보기">
+                        <a href="#" aria-current="true">전체</a>
+                        <a href="#" aria-current="false">내 요청</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="rows" role="table" aria-label="12월 회차 구매 요청 목록" data-doan-id="m-request-table">
+                    <div class="row head" role="row">
+                      <span role="columnheader">요청자</span>
+                      <span role="columnheader">책 제목</span>
+                      <span role="columnheader">서점</span>
+                      <span role="columnheader" class="num">금액(원)</span>
+                      <span role="columnheader">상태</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">박서연</span>
+                      <span class="c-title" role="cell">이처럼 사소한 것들</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">13,500</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">박서연 · 교보문고</span>
+                    </div>
+                    <div class="row is-me" role="row">
+                      <span class="c-name" role="cell">김지은</span>
+                      <span class="c-title" role="cell">도둑맞은 집중력</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">16,920</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">김지은 · yes24</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">이도현</span>
+                      <span class="c-title" role="cell">프로젝트 헤일메리</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">19,800</span>
+                      <span class="c-badge" role="cell"><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></span>
+                      <span class="c-meta">이도현 · yes24</span>
+                    </div>
+                    <div class="row is-me" role="row">
+                      <span class="c-name" role="cell">김지은</span>
+                      <span class="c-title" role="cell">작별하지 않는다</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">15,120</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">김지은 · 교보문고</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">최예린</span>
+                      <span class="c-title" role="cell">불편한 편의점</span>
+                      <span class="c-store muted" role="cell">기타</span>
+                      <span class="c-price num" role="cell">12,600</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">최예린 · 기타</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">강민호</span>
+                      <span class="c-title" role="cell">사피엔스</span>
+                      <span class="c-store muted" role="cell">yes24</span>
+                      <span class="c-price num" role="cell">19,800</span>
+                      <span class="c-badge" role="cell"><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></span>
+                      <span class="c-meta">강민호 · yes24</span>
+                    </div>
+                    <div class="row" role="row">
+                      <span class="c-name" role="cell">정우진</span>
+                      <span class="c-title" role="cell">아주 희미한 빛으로도</span>
+                      <span class="c-store muted" role="cell">교보문고</span>
+                      <span class="c-price num" role="cell">15,120</span>
+                      <span class="c-badge" role="cell"><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></span>
+                      <span class="c-meta">정우진 · 교보문고</span>
+                    </div>
+                  </div>
+                  <div class="rows-foot">
+                    <span>6 / 9명 요청 · 7권 <span class="tag tag-on">요청 중</span></span>
+                    <span>합계 112,860원</span>
+                  </div>
+                  <div class="stack" style="gap: 8px">
+                    <div class="row-gap" role="group" aria-label="요청한 사람">
+                      <span class="t-cap tnum">요청한 사람 6명</span>
+                      <span class="badge b-del">강민호</span>
+                      <span class="badge b-del">김지은 (나)</span>
+                      <span class="badge b-del">박서연</span>
+                      <span class="badge b-del">이도현</span>
+                      <span class="badge b-del">정우진</span>
+                      <span class="badge b-del">최예린</span>
+                    </div>
+                    <div class="row-gap" role="group" aria-label="요청 안 한 사람">
+                      <span class="t-cap tnum">아직 요청 안 한 사람 3명</span>
+                      <span class="badge b-off">오태윤</span>
+                      <span class="badge b-off">윤하늘</span>
+                      <span class="badge b-off">장수빈</span>
+                    </div>
+                  </div>
+                </section>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴" data-doan-id="m-tabs">
+              <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg><span>홈</span></a>
+              <a href="#"><svg class="ic"><use href="#i-book"/></svg><span>구매 요청</span></a>
+              <a href="#"><svg class="ic"><use href="#i-pen"/></svg><span>일지</span></a>
+              <a href="#"><svg class="ic"><use href="#i-history"/></svg><span>내 기록</span></a>
+            </nav>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ───────── 상태 모음 ───────── -->
+  <div class="cv-col">
+    <p class="cv-cap"><b>상태 모음</b>page.tsx의 분기마다 달라지는 부분. 카드 폭은 데스크톱 홈 카드(520px)와 같아요</p>
+    <section class="cv-frame w-states" data-doan-frame="states" data-doan-title="상태 모음" data-doan-implements="src/app/(app)/page.tsx">
+      <div class="states">
+
+        <div class="st" data-doan-id="s-overlap">
+          <p class="cv-cap"><b>요청 회차 2개</b>접수 기간이 겹치면 이른 달부터 차례로</p>
+          <section class="card" aria-label="요청 받는 회차">
+            <div class="cyc-top">
+              <span class="tag tag-on">요청 받는 중</span>
+              <span class="t-cap">접수 기간이 겹쳐 회차 2개가 열려 있어요</span>
+            </div>
+            <div class="stack" style="gap: 14px">
+              <div class="cyc-row">
+                <div class="cyc-top">
+                  <div class="cyc-name">
+                    <span class="serif">12월 회차</span>
+                    <span class="muted">책 요청</span>
+                  </div>
+                  <span class="dday soon">D-3</span>
+                </div>
+                <p class="t-cap">마감 11/5(목)</p>
+                <dl>
+                  <div class="kv">
+                    <dt>남은 금액</dt>
+                    <dd class="t-display">₩13,460</dd>
+                  </div>
+                </dl>
+                <div class="gauge" role="meter" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="36540" aria-valuetext="한도 50,000원 중 36,540원">
+                  <span class="g-used" style="width: 64.08%"></span>
+                  <span class="g-cof" style="width: 9%"></span>
+                  <span class="g-pend" style="width: 0%"></span>
+                </div>
+                <p class="t-cap tnum">32,040 / 50,000원 사용 · 2권</p>
+                <div>
+                  <a class="btn btn-primary" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                </div>
+              </div>
+            </div>
+            <div class="stack" style="gap: 14px">
+              <hr class="sep">
+              <div class="cyc-row">
+                <div class="cyc-top">
+                  <div class="cyc-name">
+                    <span class="serif">2027년 1월 회차</span>
+                    <span class="muted">책 요청</span>
+                  </div>
+                  <span class="dday">D-28</span>
+                </div>
+                <p class="t-cap">마감 11/30(월)</p>
+                <dl>
+                  <div class="kv">
+                    <dt>남은 금액</dt>
+                    <dd class="t-display">₩50,000</dd>
+                  </div>
+                </dl>
+                <div class="gauge" role="meter" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="0" aria-valuetext="한도 50,000원 중 0원">
+                  <span class="g-used" style="width: 0%"></span>
+                  <span class="g-cof" style="width: 0%"></span>
+                  <span class="g-pend" style="width: 0%"></span>
+                </div>
+                <p class="t-cap tnum">0 / 50,000원 사용 · 0권</p>
+                <div>
+                  <a class="btn btn-primary" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-not-participant">
+          <p class="cv-cap"><b>참가자 아님</b>회차는 열렸지만 내 예산이 없을 때</p>
+          <section class="card" aria-label="요청 받는 회차">
+            <div class="cyc-top">
+              <span class="tag tag-on">요청 받는 중</span>
+            </div>
+            <div class="stack" style="gap: 14px">
+              <div class="cyc-row">
+                <div class="cyc-top">
+                  <div class="cyc-name">
+                    <span class="serif">12월 회차</span>
+                    <span class="muted">책 요청</span>
+                  </div>
+                  <span class="dday soon">D-3</span>
+                </div>
+                <p class="t-cap">마감 11/5(목)</p>
+                <p class="note note-warn"><svg class="ic"><use href="#i-alert"/></svg>이 회차의 참가자로 등록되어 있지 않아요. 총무에게 문의해 주세요.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-no-open">
+          <p class="cv-cap"><b>요청 회차 없음</b></p>
+          <section class="card" aria-label="요청 받는 회차">
+            <div class="cyc-top">
+              <span class="tag tag-on">요청 받는 중</span>
+            </div>
+            <div class="empty">
+              <svg class="ic"><use href="#i-book"/></svg>
+              <strong>지금 요청을 받는 회차가 없어요</strong>
+              <p>다음 회차가 열리면 알려 드려요.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-dday">
+          <p class="cv-cap"><b>마감 D-day 칩</b>요청 마감·일지 마감에 같이 써요</p>
+          <section class="card">
+            <dl>
+              <div class="kv"><dt>4일 이상 남음</dt><dd><span class="dday">D-12</span></dd></div>
+              <div class="kv"><dt>1~3일 남음</dt><dd><span class="dday soon">D-3</span></dd></div>
+              <div class="kv"><dt>마감 당일</dt><dd><span class="dday today">오늘 마감</span></dd></div>
+              <div class="kv"><dt>마감이 지난 뒤</dt><dd><span class="dday">마감 2일 지남</span></dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-journal-done">
+          <p class="cv-cap"><b>일지 제출함</b>버튼이 보조 버튼 '내 일지 보기'로</p>
+          <section class="card" aria-label="읽는 회차">
+            <div class="cyc-top">
+              <span class="tag">읽는 중</span>
+            </div>
+            <div class="cyc-row">
+              <div class="cyc-top">
+                <div class="cyc-name">
+                  <span class="serif">11월 회차</span>
+                  <span class="muted">일지</span>
+                </div>
+                <span class="dday">D-25</span>
+              </div>
+              <p class="t-cap">일지 마감 11/27(금)</p>
+              <dl>
+                <div class="kv">
+                  <dt>내 일지</dt>
+                  <dd><span class="badge b-del"><svg class="ic"><use href="#i-check"/></svg>제출</span></dd>
+                </div>
+                <div class="kv">
+                  <dt>동아리 제출 현황</dt>
+                  <dd class="row-gap">4 / 8명<a class="link" href="#">읽기</a></dd>
+                </div>
+                <div class="kv">
+                  <dt>읽을 책</dt>
+                  <dd>시선으로부터, 달까지 가자</dd>
+                </div>
+              </dl>
+              <div>
+                <a class="btn" href="#">내 일지 보기<svg class="ic"><use href="#i-arrowR"/></svg></a>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-no-books">
+          <p class="cv-cap"><b>이 회차에 요청한 책 없음</b>일지 버튼이 사라져요</p>
+          <section class="card" aria-label="읽는 회차">
+            <div class="cyc-top">
+              <span class="tag">읽는 중</span>
+            </div>
+            <div class="cyc-row">
+              <div class="cyc-top">
+                <div class="cyc-name">
+                  <span class="serif">11월 회차</span>
+                  <span class="muted">일지</span>
+                </div>
+                <span class="dday">D-25</span>
+              </div>
+              <p class="t-cap">일지 마감 11/27(금)</p>
+              <dl>
+                <div class="kv">
+                  <dt>내 일지</dt>
+                  <dd><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>미작성</span></dd>
+                </div>
+                <div class="kv">
+                  <dt>동아리 제출 현황</dt>
+                  <dd class="row-gap">3 / 8명<a class="link" href="#">읽기</a></dd>
+                </div>
+                <div class="kv">
+                  <dt>읽을 책</dt>
+                  <dd>이 회차에 요청한 책이 없어요</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-no-reading">
+          <p class="cv-cap"><b>읽는 회차 없음</b></p>
+          <section class="card" aria-label="읽는 회차">
+            <div class="cyc-top">
+              <span class="tag">읽는 중</span>
+            </div>
+            <div class="empty">
+              <svg class="ic"><use href="#i-book"/></svg>
+              <strong>지금 읽는 회차가 없어요</strong>
+              <p>책이 도착하면 총무가 회차를 열어요.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="st" data-doan-id="s-badges">
+          <p class="cv-cap"><b>요청 상태 배지</b>홈 표에는 취소된 요청이 나오지 않아요</p>
+          <section class="card">
+            <dl>
+              <div class="kv"><dt>요청만 한 책</dt><dd><span class="badge b-req"><svg class="ic"><use href="#i-circle"/></svg>요청됨</span></dd></div>
+              <div class="kv"><dt>총무가 장바구니에 담음</dt><dd><span class="badge b-cart"><svg class="ic"><use href="#i-lock"/></svg>장바구니</span></dd></div>
+              <div class="kv"><dt>주문함</dt><dd><span class="badge b-ord"><svg class="ic"><use href="#i-receipt"/></svg>주문완료</span></dd></div>
+              <div class="kv"><dt>도착함</dt><dd><span class="badge b-del"><svg class="ic"><use href="#i-pkg"/></svg>배송완료</span></dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div class="st st-wide" data-doan-id="s-admin-copy">
+          <p class="cv-cap"><b>총무에게만</b>'시트용 복사' 버튼이 회차 선택 옆에 붙어요</p>
+          <div class="block-head">
+            <h2 class="t-heading">전체 구매 요청</h2>
+            <div class="row-gap">
+              <div class="picker">
+                <a class="icon-btn" href="#" aria-label="이전 회차" aria-disabled="false"><svg class="ic"><use href="#i-chevL"/></svg></a>
+                <select class="select" aria-label="회차 선택">
+                  <option selected>12월 회차 · 요청 중</option>
+                </select>
+                <a class="icon-btn" href="#" aria-label="다음 회차" aria-disabled="true"><svg class="ic"><use href="#i-chevR"/></svg></a>
+              </div>
+              <div class="seg" role="group" aria-label="보기">
+                <a href="#" aria-current="true">전체</a>
+                <a href="#" aria-current="false">내 요청</a>
+              </div>
+              <button class="btn btn-sm" type="button" title="사용 항목 · 단가 · 수량 · 예상 금액 · 성명 순서로 복사해요. 시트의 '사용 항목' 첫 빈칸에 붙여넣어 주세요"><svg class="ic"><use href="#i-copy"/></svg><span aria-live="polite">시트용 복사</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="st st-wide" data-doan-id="s-mine-empty">
+          <p class="cv-cap"><b>'내 요청' 보기 · 요청 없음</b>표 부분만. 아래 인원·합계는 보기와 상관없이 회차 전체</p>
+          <div class="rows" role="table" aria-label="12월 회차 구매 요청 목록">
+            <div class="row head" role="row">
+              <span role="columnheader">요청자</span>
+              <span role="columnheader">책 제목</span>
+              <span role="columnheader">서점</span>
+              <span role="columnheader" class="num">금액(원)</span>
+              <span role="columnheader">상태</span>
+            </div>
+            <div class="empty">
+              <svg class="ic"><use href="#i-book"/></svg>
+              <strong>이 회차에 요청한 책이 없어요</strong>
+            </div>
+          </div>
+          <div class="rows-foot">
+            <span>6 / 9명 요청 · 7권 <span class="tag tag-on">요청 중</span></span>
+            <span>합계 112,860원</span>
+          </div>
+        </div>
+
+        <div class="st st-wide" data-doan-id="s-after-deadline">
+          <p class="cv-cap"><b>요청 마감 뒤 회차</b>읽는 중·마감 회차는 '아직'을 떼고 '요청 안 한 사람'으로</p>
+          <div class="rows-foot">
+            <span>8 / 9명 요청 · 10권 <span class="tag">읽는 중</span></span>
+            <span>합계 151,200원</span>
+          </div>
+          <div class="stack" style="gap: 8px">
+            <div class="row-gap" role="group" aria-label="요청한 사람">
+              <span class="t-cap tnum">요청한 사람 8명</span>
+              <span class="badge b-del">강민호</span>
+              <span class="badge b-del">김지은 (나)</span>
+              <span class="badge b-del">박서연</span>
+              <span class="badge b-del">오태윤</span>
+              <span class="badge b-del">윤하늘</span>
+              <span class="badge b-del">이도현</span>
+              <span class="badge b-del">정우진</span>
+              <span class="badge b-del">최예린</span>
+            </div>
+            <div class="row-gap" role="group" aria-label="요청 안 한 사람">
+              <span class="t-cap tnum">요청 안 한 사람 1명</span>
+              <span class="badge b-off">장수빈</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st st-wide" data-doan-id="s-no-rounds">
+          <p class="cv-cap"><b>회차가 하나도 없음</b>회차 선택·보기 전환 없이 빈 카드만</p>
+          <div class="block-head">
+            <h2 class="t-heading">전체 구매 요청</h2>
+          </div>
+          <div class="card">
+            <div class="empty">
+              <svg class="ic"><use href="#i-book"/></svg>
+              <strong>아직 회차가 없어요</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- ═════════ 새 방향 제안 (코드에 없음). 위 프레임들과 달리 기존 디자인을 쓰지 않는다 ═════════ -->
+  <header class="cv-head" data-doan-id="alt-intro">
+    <h1 class="t-title">새 방향 제안 3개</h1>
+    <p class="cv-note">
+      기존 디자인(미색 종이와 잉크 네이비, Pretendard, 사이드바 + 카드·표)은 쓰지 않고 README의 기획만 보고 다시 짰어요.
+      회차 단계(요청 받는 중 → 읽는 중 → 마감), 1인 회차당 한도 30,000원(11월 회차는 45,000원), yes24·교보문고 도서만,
+      일지는 요청한 책으로 500자 이내, 책은 6층 총무 자리 옆에서 찾아가기. 세 시안은 홈에서 무엇이 화면을 이끄는지가 달라요:
+      시간표는 날짜, 통장은 돈, 매대는 사람과 책. 고르거나 코드에 반영하지 않았어요.
+      예시 데이터는 기획 규칙에 맞춰 다시 잡았어요(위 현재 홈 프레임의 예시 한도 50,000원은 기획과 달라요).
+    </p>
+  </header>
+
+  <!-- ───────── 시안 1 · 시간표 ───────── -->
+  <section class="cv-frame alt" data-doan-frame="home-alt-1" data-doan-title="시안 1 · 시간표 (날짜가 이끄는 홈)">
+    <div class="alt-note">
+      <span class="alt-flag">제안 · 코드에 없음 · 새 문구 포함</span>
+      <h2>시안 1 · 시간표</h2>
+      <p>기차역 종이 시간표처럼 회차 일정을 날짜순으로 한 줄씩 늘어놓아요. '지금' 선 아래에서 내 차례인 줄에만 버튼이 붙어요.
+        바뀌는 점: 카드 두 장 대신 시간표 하나가 홈을 이끌고, 사이드바 대신 위쪽 메뉴를 써요. 책 도착·찾아가기도 같은 줄에 들어와요.</p>
+      <p>그리지 않은 것: 회차 없음·참가자 아님·요청 회차 2개·일지 제출 후 상태, 태블릿 폭, 다크 테마, hover·focus. 모바일은 첫 화면만.</p>
+    </div>
+    <div class="alt-boards">
+      <div class="alt-board">
+        <p class="cv-cap"><b>데스크톱</b>1280px</p>
+        <div class="alt-art is-desk">
+          <div class="a1" data-doan-id="a1-desk">
+            <header class="a1-top">
+              <span class="a1-logo">시끌북적</span>
+              <nav class="a1-nav" aria-label="메뉴">
+                <a href="#" aria-current="page">홈</a>
+                <a href="#">구매 요청</a>
+                <a href="#">일지 쓰기</a>
+                <a href="#">내 기록</a>
+                <a href="#">벌점</a>
+              </nav>
+              <span class="a1-me">김지은 · 멤버</span>
+            </header>
+            <div class="a1-body">
+              <div class="a1-title">
+                <h2>11월 2일 월요일</h2>
+                <p>다가오는 일정이에요. 지은님이 할 일은 2개예요.</p>
+              </div>
+              <div role="table" aria-label="다가오는 일정" data-doan-id="a1-timetable">
+                <div class="a1-row is-head" role="row">
+                  <span role="columnheader">날짜</span>
+                  <span role="columnheader">회차</span>
+                  <span role="columnheader">일정</span>
+                  <span role="columnheader">내 상태</span>
+                  <span role="columnheader">동아리</span>
+                  <span role="columnheader"></span>
+                </div>
+                <div class="a1-row is-past" role="row">
+                  <span class="a1-date" role="cell"><b>10/30(금)</b><span class="a1-dday">지남</span></span>
+                  <span role="cell">11월</span>
+                  <span class="a1-what" role="cell">책 도착</span>
+                  <span role="cell">시선으로부터 · 배송완료<span class="a1-sub">6층 총무 자리 옆에서 찾아가 주세요</span></span>
+                  <span role="cell">—</span>
+                  <span role="cell"></span>
+                </div>
+                <div class="a1-now" data-doan-id="a1-now"><span>지금 · 11/2(월)</span></div>
+                <div class="a1-row" role="row">
+                  <span class="a1-date" role="cell"><b>11/4(수)</b><span class="a1-dday is-soon">D-2</span></span>
+                  <span role="cell">11월</span>
+                  <span class="a1-what" role="cell">책 도착 예정</span>
+                  <span role="cell">달까지 가자 · 주문완료<span class="a1-sub">도착하면 Slack 공지로 알려 드려요</span></span>
+                  <span role="cell">—</span>
+                  <span role="cell"></span>
+                </div>
+                <div class="a1-row" role="row" data-doan-id="a1-row-request">
+                  <span class="a1-date" role="cell"><b>11/5(목)</b><span class="a1-dday is-soon">D-3</span></span>
+                  <span role="cell">12월</span>
+                  <span class="a1-what" role="cell">책 요청 마감</span>
+                  <span role="cell">1권 요청 · 13,080원 남음<span class="a1-sub">한도 30,000원 · yes24·교보문고 도서만</span></span>
+                  <span role="cell">6 / 9명 요청</span>
+                  <span class="a1-act" role="cell"><a class="a1-btn" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a></span>
+                </div>
+                <div class="a1-row" role="row" data-doan-id="a1-row-journal">
+                  <span class="a1-date" role="cell"><b>11/27(금)</b><span class="a1-dday">D-25</span></span>
+                  <span role="cell">11월</span>
+                  <span class="a1-what" role="cell">일지 마감</span>
+                  <span role="cell">아직 안 썼어요<span class="a1-sub">요청한 책으로 한 편, 500자 이내</span></span>
+                  <span role="cell">3 / 8명 제출</span>
+                  <span class="a1-act" role="cell"><a class="a1-btn" href="#"><svg class="ic"><use href="#i-pen"/></svg>일지 쓰기</a></span>
+                </div>
+              </div>
+              <div class="a1-lower">
+                <section aria-label="12월 회차에 올라온 책" data-doan-id="a1-books">
+                  <h3 class="a1-h3">12월 회차에 올라온 책<span>7권 · 113,490원</span></h3>
+                  <div class="a1-li"><span>이처럼 사소한 것들</span><span class="m">박서연 · 교보문고</span><span class="r">13,500</span><span class="m r">요청됨</span></div>
+                  <div class="a1-li is-me"><span>도둑맞은 집중력</span><span class="m">김지은(나) · yes24</span><span class="r">16,920</span><span class="m r">요청됨</span></div>
+                  <div class="a1-li"><span>프로젝트 헤일메리</span><span class="m">이도현 · yes24</span><span class="r">19,800</span><span class="m r">장바구니</span></div>
+                  <div class="a1-li"><span>불편한 편의점</span><span class="m">최예린 · 교보문고</span><span class="r">12,600</span><span class="m r">요청됨</span></div>
+                  <div class="a1-li"><span>사피엔스</span><span class="m">강민호 · yes24</span><span class="r">19,800</span><span class="m r">장바구니</span></div>
+                  <div class="a1-li"><span>아주 희미한 빛으로도</span><span class="m">정우진 · 교보문고</span><span class="r">15,120</span><span class="m r">요청됨</span></div>
+                  <div class="a1-li"><span>물고기는 존재하지 않는다</span><span class="m">박서연 · 교보문고</span><span class="r">15,750</span><span class="m r">요청됨</span></div>
+                </section>
+                <section aria-label="요청 현황" data-doan-id="a1-roster">
+                  <h3 class="a1-h3">요청 현황<span>6 / 9명</span></h3>
+                  <div class="a1-names">
+                    <div>
+                      <p>요청한 사람 6명</p>
+                      <ul><li>강민호</li><li>김지은(나)</li><li>박서연</li><li>이도현</li><li>정우진</li><li>최예린</li></ul>
+                    </div>
+                    <div class="is-pending">
+                      <p>아직 요청 안 한 사람 3명</p>
+                      <ul><li>오태윤</li><li>윤하늘</li><li>장수빈</li></ul>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alt-board">
+        <p class="cv-cap"><b>모바일</b>390 × 844 · 첫 화면</p>
+        <div class="alt-art is-mob">
+          <div class="a1 a1-mob" data-doan-id="a1-mob">
+            <header class="a1-mtop"><span class="a1-logo">시끌북적</span><span class="a1-me">김지은</span></header>
+            <div class="a1-mbody">
+              <div class="a1-title">
+                <h2>11월 2일 월요일</h2>
+                <p>지은님이 할 일은 2개예요.</p>
+              </div>
+              <div class="a1-mrow is-past">
+                <span class="a1-date"><b>10/30</b><span class="a1-dday">지남</span></span>
+                <span><span class="a1-what">11월 · 책 도착</span><span class="a1-sub">시선으로부터 · 6층 총무 자리 옆에서 찾아가 주세요</span></span>
+              </div>
+              <div class="a1-now"><span>지금 · 11/2(월)</span></div>
+              <div class="a1-mrow">
+                <span class="a1-date"><b>11/4</b><span class="a1-dday is-soon">D-2</span></span>
+                <span><span class="a1-what">11월 · 책 도착 예정</span><span class="a1-sub">달까지 가자 · 주문완료</span></span>
+              </div>
+              <div class="a1-mrow">
+                <span class="a1-date"><b>11/5</b><span class="a1-dday is-soon">D-3</span></span>
+                <span>
+                  <span class="a1-what">12월 · 책 요청 마감</span>
+                  <span class="a1-sub">1권 요청 · 13,080원 남음 · 동아리 6 / 9명</span>
+                  <a class="a1-btn" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                </span>
+              </div>
+              <div class="a1-mrow">
+                <span class="a1-date"><b>11/27</b><span class="a1-dday">D-25</span></span>
+                <span>
+                  <span class="a1-what">11월 · 일지 마감</span>
+                  <span class="a1-sub">아직 안 썼어요 · 동아리 3 / 8명 제출</span>
+                  <a class="a1-btn" href="#"><svg class="ic"><use href="#i-pen"/></svg>일지 쓰기</a>
+                </span>
+              </div>
+              <h3 class="a1-h3" style="margin-top: 28px">12월 회차에 올라온 책<span>7권</span></h3>
+            </div>
+            <nav class="a1-mtabs" aria-label="하단 메뉴">
+              <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg>홈</a>
+              <a href="#"><svg class="ic"><use href="#i-book"/></svg>구매 요청</a>
+              <a href="#"><svg class="ic"><use href="#i-pen"/></svg>일지</a>
+              <a href="#"><svg class="ic"><use href="#i-history"/></svg>내 기록</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 시안 2 · 통장 ───────── -->
+  <section class="cv-frame alt" data-doan-frame="home-alt-2" data-doan-title="시안 2 · 통장 (한도가 이끄는 홈)">
+    <div class="alt-note">
+      <span class="alt-flag">제안 · 코드에 없음 · 새 문구 포함</span>
+      <h2>시안 2 · 통장</h2>
+      <p>종이 통장처럼 회차마다 한 면을 쓰고, 한도 30,000원에서 책값이 한 줄씩 빠져나가는 잔액 장부로 보여줘요.
+        바뀌는 점: 돈이 홈을 이끌고, 홈에서 바로 링크를 붙여 요청하며(넘치면 요청 전에 장부에서 미리 빨갛게), 요청 표와 명단이 사람별 장부 하나로 합쳐져요.
+        동아리 장부에는 다른 사람의 남은 돈을 넣지 않았어요(참가자 예산은 본인 것만 읽을 수 있어요).</p>
+      <p>그리지 않은 것: 회차 없음·참가자 아님·요청 회차 2개·11월·10월 탭을 고른 화면, 태블릿 폭, 다크 테마, hover·focus. 데스크톱은 링크를 붙였는데 한도를 넘는 상태, 모바일은 링크를 넣기 전 상태(첫 화면만)예요.</p>
+    </div>
+    <div class="alt-boards">
+      <div class="alt-board">
+        <p class="cv-cap"><b>데스크톱</b>1280px · 붙인 링크가 한도를 넘을 때</p>
+        <div class="alt-art is-desk">
+          <div class="a2 a2-desk" data-doan-id="a2-desk">
+            <aside class="a2-side">
+              <span class="a2-logo">시끌북적</span>
+              <nav class="a2-nav" aria-label="메뉴">
+                <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg>홈</a>
+                <a href="#"><svg class="ic"><use href="#i-book"/></svg>구매 요청</a>
+                <a href="#"><svg class="ic"><use href="#i-pen"/></svg>일지 쓰기</a>
+                <a href="#"><svg class="ic"><use href="#i-history"/></svg>내 기록</a>
+                <a href="#"><svg class="ic"><use href="#i-flag"/></svg>벌점</a>
+              </nav>
+              <div class="a2-who"><b>김지은</b><span>멤버</span></div>
+            </aside>
+            <div class="a2-main">
+              <div class="a2-head">
+                <h2>지은님의 책 통장</h2>
+                <p>회차마다 한 면씩. 책을 요청하면 그 회차 한도에서 바로 빠져요.</p>
+              </div>
+              <div class="a2-tabs" role="tablist" aria-label="회차">
+                <a class="a2-tab" href="#" role="tab" aria-selected="true"><b>12월 회차</b>요청 중 · 마감 11/5(목) D-3</a>
+                <a class="a2-tab" href="#" role="tab" aria-selected="false"><b>11월 회차</b>읽는 중 · 한도 45,000원</a>
+                <a class="a2-tab" href="#" role="tab" aria-selected="false"><b>10월 회차</b>마감</a>
+              </div>
+              <div class="a2-grid">
+                <section class="a2-sheet" aria-label="12월 회차 내 통장" data-doan-id="a2-ledger">
+                  <table class="a2-tbl">
+                    <thead>
+                      <tr><th style="width: 96px">날짜</th><th>내용</th><th class="n">쓴 돈</th><th class="n">남은 돈</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>11/1(일)</td><td>12월 회차 한도<small>1인 회차당</small></td><td class="n">—</td><td class="n bal">30,000</td></tr>
+                      <tr><td>11/2(월)</td><td>도둑맞은 집중력<small>yes24 · 요청됨</small></td><td class="n">16,920</td><td class="n bal">13,080</td></tr>
+                      <tr class="is-preview" data-doan-id="a2-preview">
+                        <td>미리 보기</td>
+                        <td>작별하지 않는다<small>교보문고 · 붙여 넣은 링크</small><span class="a2-err"><svg class="ic"><use href="#i-alertc"/></svg>한도를 2,040원 넘어요.</span></td>
+                        <td class="n">15,120</td>
+                        <td class="n bal">−2,040</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="a2-add" data-doan-id="a2-add">
+                    <label for="a2-url">책 링크 <small>yes24 · 교보문고 도서만</small></label>
+                    <div class="a2-inrow">
+                      <span class="a2-input is-err" id="a2-url"><svg class="ic"><use href="#i-link"/></svg>https://product.kyobobook.co.kr/detail/S000…</span>
+                      <span class="a2-btn" role="button" aria-disabled="true">요청하기</span>
+                    </div>
+                  </div>
+                  <div class="a2-foot"><span>남은 돈 · 11/5(목)까지 담을 수 있어요</span><b>13,080원</b></div>
+                </section>
+                <section class="a2-sheet a2-todo" aria-label="같이 챙길 일" data-doan-id="a2-todo">
+                  <h3>같이 챙길 일</h3>
+                  <div class="a2-item">
+                    <span class="a2-chip">11월 회차 · D-25</span>
+                    <b>일지 쓰기</b>
+                    <p>마감 11/27(금) · 동아리 3 / 8명 제출</p>
+                    <a class="a2-btn is-line" href="#">일지 쓰기</a>
+                  </div>
+                  <div class="a2-item">
+                    <span class="a2-chip">배송완료</span>
+                    <b>시선으로부터</b>
+                    <p>6층 총무 자리 옆에서 찾아가 주세요</p>
+                  </div>
+                  <div class="a2-item">
+                    <span class="a2-chip">주문완료</span>
+                    <b>달까지 가자</b>
+                    <p>11/4(수) 도착 예정</p>
+                  </div>
+                </section>
+              </div>
+              <section class="a2-sheet a2-club" aria-label="동아리 장부" data-doan-id="a2-club">
+                <h3>동아리 장부 · 12월 회차<span>6 / 9명 요청 · 7권 · 113,490원</span></h3>
+                <table class="a2-tbl">
+                  <thead>
+                    <tr><th style="width: 160px">이름</th><th>책</th><th class="n">금액</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>강민호</td><td>사피엔스<small>yes24 · 장바구니</small></td><td class="n">19,800</td></tr>
+                    <tr class="is-me"><td>김지은<span class="a2-mark">나</span></td><td>도둑맞은 집중력<small>yes24 · 요청됨</small></td><td class="n">16,920</td></tr>
+                    <tr><td>박서연</td><td>이처럼 사소한 것들 · 물고기는 존재하지 않는다<small>교보문고 · 요청됨 · 2권</small></td><td class="n">29,250</td></tr>
+                    <tr><td>이도현</td><td>프로젝트 헤일메리<small>yes24 · 장바구니</small></td><td class="n">19,800</td></tr>
+                    <tr><td>정우진</td><td>아주 희미한 빛으로도<small>교보문고 · 요청됨</small></td><td class="n">15,120</td></tr>
+                    <tr><td>최예린</td><td>불편한 편의점<small>교보문고 · 요청됨</small></td><td class="n">12,600</td></tr>
+                    <tr class="is-pending"><td>오태윤</td><td>아직 요청 전</td><td class="n">—</td></tr>
+                    <tr class="is-pending"><td>윤하늘</td><td>아직 요청 전</td><td class="n">—</td></tr>
+                    <tr class="is-pending"><td>장수빈</td><td>아직 요청 전</td><td class="n">—</td></tr>
+                  </tbody>
+                </table>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alt-board">
+        <p class="cv-cap"><b>모바일</b>390 × 844 · 첫 화면, 링크 넣기 전</p>
+        <div class="alt-art is-mob">
+          <div class="a2 a2-mob" data-doan-id="a2-mob">
+            <header class="a2-mtop">시끌북적</header>
+            <div class="a2-mbody">
+              <div class="a2-head"><h2>지은님의 책 통장</h2></div>
+              <div class="a2-tabs" role="tablist" aria-label="회차">
+                <a class="a2-tab" href="#" role="tab" aria-selected="true"><b>12월</b>D-3</a>
+                <a class="a2-tab" href="#" role="tab" aria-selected="false"><b>11월</b>읽는 중</a>
+                <a class="a2-tab" href="#" role="tab" aria-selected="false"><b>10월</b>마감</a>
+              </div>
+              <section class="a2-sheet" aria-label="12월 회차 내 통장">
+                <table class="a2-tbl">
+                  <tbody>
+                    <tr><td>12월 회차 한도<small>11/1(일)</small></td><td class="n bal">30,000</td></tr>
+                    <tr><td>도둑맞은 집중력<small>11/2(월) · yes24 · 요청됨</small></td><td class="n">−16,920<small>13,080</small></td></tr>
+                  </tbody>
+                </table>
+                <div class="a2-add">
+                  <label for="a2-url-m">책 링크 <small>yes24 · 교보문고 도서만</small></label>
+                  <span class="a2-input" id="a2-url-m"><svg class="ic"><use href="#i-link"/></svg>붙여 넣으면 남은 돈을 미리 계산해요</span>
+                  <span class="a2-btn" role="button" aria-disabled="true">요청하기</span>
+                </div>
+                <div class="a2-foot"><span>남은 돈 · 11/5(목)까지</span><b>13,080원</b></div>
+              </section>
+              <section class="a2-sheet a2-todo" aria-label="같이 챙길 일">
+                <h3>같이 챙길 일</h3>
+                <div class="a2-item">
+                  <span class="a2-chip">11월 회차 · D-25</span>
+                  <b>일지 쓰기</b>
+                  <p>마감 11/27(금) · 동아리 3 / 8명 제출</p>
+                </div>
+              </section>
+            </div>
+            <nav class="a2-mtabs" aria-label="하단 메뉴">
+              <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg>홈</a>
+              <a href="#"><svg class="ic"><use href="#i-book"/></svg>구매 요청</a>
+              <a href="#"><svg class="ic"><use href="#i-pen"/></svg>일지</a>
+              <a href="#"><svg class="ic"><use href="#i-history"/></svg>내 기록</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 시안 3 · 매대 ───────── -->
+  <section class="cv-frame alt" data-doan-frame="home-alt-3" data-doan-title="시안 3 · 매대 (사람과 책이 이끄는 홈)">
+    <div class="alt-note">
+      <span class="alt-flag">제안 · 코드에 없음 · 새 문구 포함</span>
+      <h2>시안 3 · 매대</h2>
+      <p>동네 책방 매대처럼 이번 회차에 모인 책을 책등으로 꽂아 보여주고, 내 일은 계산대 옆 메모처럼 오른쪽에 둬요.
+        바뀌는 점: 사람과 책이 홈을 이끌고, 책값은 책등 두께로(1,000원 = 4px), 아직 안 고른 사람은 빈 점선 칸으로 보여요. 내 한도도 같은 방식의 '내 칸'이에요.
+        책등 세로 글씨는 훑어보기 어려워서 '목록' 보기를 같이 둬요.</p>
+      <p>그리지 않은 것: '목록' 보기, 회차 없음·참가자 아님·요청 회차 2개·일지 제출 후 상태, 태블릿 폭, 다크 테마, hover·focus. 모바일은 첫 화면만.</p>
+    </div>
+    <div class="alt-boards">
+      <div class="alt-board">
+        <p class="cv-cap"><b>데스크톱</b>1280px</p>
+        <div class="alt-art is-desk">
+          <div class="a3" data-doan-id="a3-desk">
+            <header class="a3-top">
+              <span class="a3-logo">시끌북적</span>
+              <nav class="a3-nav" aria-label="메뉴">
+                <a href="#" aria-current="page">홈</a>
+                <a href="#">구매 요청</a>
+                <a href="#">일지 쓰기</a>
+                <a href="#">내 기록</a>
+                <a href="#">벌점</a>
+              </nav>
+              <span class="a3-me"><span class="a3-avatar" aria-hidden="true">지</span>김지은</span>
+            </header>
+            <div class="a3-body">
+              <section aria-label="12월 회차 매대" data-doan-id="a3-shelf">
+                <div class="a3-h">
+                  <div>
+                    <h2>12월 회차 매대</h2>
+                    <p>요청 마감 11/5(목) · <b>D-3</b> · 9명 중 6명이 7권을 골랐어요</p>
+                  </div>
+                  <div class="a3-seg" role="group" aria-label="보기">
+                    <a href="#" aria-current="true">매대</a>
+                    <a href="#" aria-current="false">목록</a>
+                  </div>
+                </div>
+                <div class="a3-shelf">
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 79px; height: 236px"><span class="c">장바구니</span><span class="t">사피엔스</span><span class="s">yes24</span></div>
+                    </div>
+                    <span class="a3-name">강민호</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine is-me" style="width: 68px; height: 218px"><span class="t">도둑맞은 집중력</span><span class="s">yes24</span></div>
+                    </div>
+                    <span class="a3-name is-me">김지은(나)</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 54px; height: 226px"><span class="t">이처럼 사소한 것들</span><span class="s">교보</span></div>
+                      <div class="a3-spine" style="width: 63px; height: 290px"><span class="t">물고기는 존재하지 않는다</span><span class="s">교보</span></div>
+                    </div>
+                    <span class="a3-name">박서연</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 79px; height: 240px"><span class="c">장바구니</span><span class="t">프로젝트 헤일메리</span><span class="s">yes24</span></div>
+                    </div>
+                    <span class="a3-name">이도현</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 60px; height: 232px"><span class="t">아주 희미한 빛으로도</span><span class="s">교보</span></div>
+                    </div>
+                    <span class="a3-name">정우진</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 50px; height: 210px"><span class="t">불편한 편의점</span><span class="s">교보</span></div>
+                    </div>
+                    <span class="a3-name">최예린</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books"><div class="a3-slot"></div></div>
+                    <span class="a3-name">오태윤 · 아직</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books"><div class="a3-slot"></div></div>
+                    <span class="a3-name">윤하늘 · 아직</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books"><div class="a3-slot"></div></div>
+                    <span class="a3-name">장수빈 · 아직</span>
+                  </div>
+                </div>
+                <p class="a3-legend"><span>책등 두께는 책값이에요(1,000원 = 4px). 점선 칸은 아직 고르지 않은 사람이에요.</span><span>합계 113,490원</span></p>
+              </section>
+              <aside class="a3-aside" aria-label="내 일" data-doan-id="a3-aside">
+                <section class="a3-sec" data-doan-id="a3-mine">
+                  <h3>내 칸<span>12월 회차 · 한도 30,000원</span></h3>
+                  <div class="a3-mine" role="meter" aria-valuemin="0" aria-valuemax="30000" aria-valuenow="16920" aria-valuetext="한도 30,000원 중 16,920원">
+                    <span class="fill" style="width: 56.4%">도둑맞은 집중력</span>
+                    <span class="gap">13,080원 남음</span>
+                  </div>
+                  <p class="a3-cap">11/5(목)까지 13,080원 안에서 더 고를 수 있어요. yes24·교보문고 도서만.</p>
+                  <a class="a3-btn" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                </section>
+                <section class="a3-sec" data-doan-id="a3-reading">
+                  <h3>읽는 중<span>11월 회차</span></h3>
+                  <div class="a3-bk"><b>시선으로부터</b><span><span class="a3-st">배송완료</span>6층 총무 자리 옆에서 찾아가 주세요</span></div>
+                  <div class="a3-bk"><b>달까지 가자</b><span><span class="a3-st">주문완료</span>11/4(수) 도착 예정</span></div>
+                </section>
+                <section class="a3-sec" data-doan-id="a3-journal">
+                  <h3>일지<span>마감 11/27(금) · D-25</span></h3>
+                  <p class="a3-cap">아직 안 썼어요. 동아리 8명 중 3명이 냈어요.</p>
+                  <div class="a3-acts">
+                    <a class="a3-btn" href="#"><svg class="ic"><use href="#i-pen"/></svg>일지 쓰기</a>
+                    <a class="lk" href="#">모두의 일지 읽기</a>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alt-board">
+        <p class="cv-cap"><b>모바일</b>390 × 844 · 첫 화면</p>
+        <div class="alt-art is-mob">
+          <div class="a3 a3-mob" data-doan-id="a3-mob">
+            <header class="a3-top"><span class="a3-logo">시끌북적</span><span class="a3-avatar" aria-hidden="true">지</span></header>
+            <div class="a3-mbody">
+              <div class="a3-h">
+                <div>
+                  <h2>12월 회차 매대</h2>
+                  <p>마감 11/5(목) · <b>D-3</b> · 9명 중 6명</p>
+                </div>
+              </div>
+              <div class="a3-scroll">
+                <div class="a3-shelf">
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 79px; height: 236px"><span class="c">장바구니</span><span class="t">사피엔스</span><span class="s">yes24</span></div>
+                    </div>
+                    <span class="a3-name">강민호</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine is-me" style="width: 68px; height: 218px"><span class="t">도둑맞은 집중력</span><span class="s">yes24</span></div>
+                    </div>
+                    <span class="a3-name is-me">김지은(나)</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 54px; height: 226px"><span class="t">이처럼 사소한 것들</span><span class="s">교보</span></div>
+                      <div class="a3-spine" style="width: 63px; height: 290px"><span class="t">물고기는 존재하지 않는다</span><span class="s">교보</span></div>
+                    </div>
+                    <span class="a3-name">박서연</span>
+                  </div>
+                  <div class="a3-grp">
+                    <div class="a3-books">
+                      <div class="a3-spine" style="width: 79px; height: 240px"><span class="c">장바구니</span><span class="t">프로젝트 헤일메리</span><span class="s">yes24</span></div>
+                    </div>
+                    <span class="a3-name">이도현</span>
+                  </div>
+                </div>
+              </div>
+              <p class="a3-cap">옆으로 넘겨 모두 보기 · 점선 칸은 아직 안 고른 사람</p>
+              <aside class="a3-aside" aria-label="내 일">
+                <section class="a3-sec">
+                  <h3>내 칸<span>한도 30,000원</span></h3>
+                  <div class="a3-mine" role="meter" aria-valuemin="0" aria-valuemax="30000" aria-valuenow="16920" aria-valuetext="한도 30,000원 중 16,920원">
+                    <span class="fill" style="width: 56.4%">도둑맞은 집중력</span>
+                    <span class="gap">13,080원 남음</span>
+                  </div>
+                  <a class="a3-btn" href="#"><svg class="ic"><use href="#i-plus"/></svg>책 요청하기</a>
+                </section>
+                <section class="a3-sec">
+                  <h3>일지<span>D-25</span></h3>
+                </section>
+              </aside>
+            </div>
+            <nav class="a3-mtabs" aria-label="하단 메뉴">
+              <a href="#" aria-current="page"><svg class="ic"><use href="#i-home"/></svg>홈</a>
+              <a href="#"><svg class="ic"><use href="#i-book"/></svg>구매 요청</a>
+              <a href="#"><svg class="ic"><use href="#i-pen"/></svg>일지</a>
+              <a href="#"><svg class="ic"><use href="#i-history"/></svg>내 기록</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
