@@ -232,6 +232,56 @@ code { padding: 1px 5px; border-radius: 4px; background: #f1efea; font: 600 0.95
 .st-common li { font: 400 14px/22px var(--sans); color: var(--board-ink2); }
 .st-common li b { display: block; margin-bottom: 4px; color: var(--board-ink); }
 
+/* ───────── B · 말풍선 시안 (제안 · 코드에 없음) ───────── */
+.bb-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
+.bb-alt { display: flex; flex-direction: column; gap: 14px; padding-top: 20px; border-top: 1px solid var(--board-line); }
+.bb-alt h3 { font: 800 20px/28px var(--sans); }
+.bb-alt h3 span { margin-right: 8px; color: var(--board-ink2); }
+.bb-alt > p { font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.bb-alt > p b { color: var(--board-ink); }
+.bb-alt .not-code { margin-top: 0; align-self: flex-start; }
+.bb-alt figcaption { margin-bottom: 8px; font: 600 13px/18px var(--sans); color: var(--board-ink2); }
+.bb-alt .st-box { justify-content: flex-start; min-height: 0; }
+.bb-assume { font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.bb-assume b { color: var(--board-ink); }
+
+.bub { position: relative; display: inline-flex; align-items: baseline; gap: 4px; font: 600 12px/16px var(--sans); color: var(--b-ink2); }
+.bub b { font: 800 15px/20px var(--sans); color: var(--b-ink); }
+.bub::before, .bub::after { content: ""; position: absolute; border-style: solid; }
+
+/* 1 · 테두리 말풍선: 네모 · 2px 검은 테두리 · 왼쪽 아래 꼬리 */
+.bb1 .bub { margin-bottom: 14px; padding: 5px 12px 6px; border: 2px solid var(--b-ink); background: var(--b-bg); }
+.bb1 .bub::before { left: 14px; top: 100%; border-width: 12px 12px 0 0; border-color: var(--b-ink) transparent transparent transparent; }
+.bb1 .bub::after { left: 16px; top: 100%; border-width: 7px 7px 0 0; border-color: var(--b-bg) transparent transparent transparent; }
+
+/* 2 · 검은 말풍선: 목차 '홈'·'나' 표시와 같은 검정 바탕 */
+.bb2 .bub { margin-bottom: 12px; padding: 6px 12px 7px; background: var(--b-ink); color: var(--b-past); }
+.bb2 .bub b { color: var(--b-on); }
+.bb2 .bub::before { left: 14px; top: 100%; border-width: 10px 10px 0 0; border-color: var(--b-ink) transparent transparent transparent; }
+.bb2 .bub::after { display: none; }
+
+/* 3 · 숫자만 말풍선: 제목은 그대로, 숫자가 왼쪽을 가리키는 작은 검은 풍선 */
+.bb3 .bub { margin-bottom: 6px; gap: 12px; align-items: center; }
+.bb3 .bub b { position: relative; padding: 1px 8px 2px; background: var(--b-ink); color: var(--b-on); }
+.bb3 .bub b::before { content: ""; position: absolute; right: 100%; top: 50%; margin-top: -5px; border-style: solid; border-width: 5px 6px 5px 0; border-color: transparent var(--b-ink) transparent transparent; }
+.bb3 .bub::before, .bb3 .bub::after { display: none; }
+
+/* 4 · 캐릭터가 말해요: 둥근 만화 말풍선 · 꼬리가 마지막에 들어온 캐릭터를 가리킴 */
+.bb4 .bub { margin-bottom: 18px; padding: 6px 14px 7px; border: 2px solid var(--b-ink); border-radius: 16px; background: var(--b-bg); color: var(--b-ink); font-weight: 700; }
+.bb4 .bub::before { left: var(--tail, 22px); bottom: -7px; width: 10px; height: 10px; border-width: 0 2px 2px 0; border-color: var(--b-ink); background: var(--b-bg); transform: rotate(45deg); }
+.bb4 .bub::after { display: none; }
+
+/* 5 · 생각 구름: 겹친 동그라미로 만든 구름 + 작은 동그라미 두 개 */
+.bb5 .bub { justify-content: center; align-items: center; width: 186px; height: 64px; margin-bottom: 26px; color: var(--b-ink2); }
+.bb5 .bub .cloud { position: absolute; inset: 0; }
+.bb5 .bub span { position: relative; display: inline-flex; align-items: baseline; gap: 4px; margin-top: 6px; }
+.bb5 .cl-ink { fill: var(--b-ink); }
+.bb5 .cl-pap { fill: var(--b-bg); }
+.bb5 .bub::before, .bb5 .bub::after { border-width: 2px; border-color: var(--b-ink); border-radius: 50%; background: var(--b-bg); }
+.bb5 .bub::before { left: 30px; top: calc(100% + 0px); width: 12px; height: 12px; }
+.bb5 .bub::after { left: 26px; top: calc(100% + 15px); width: 8px; height: 8px; }
+.bb-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+
 </style>
 </head>
 <body>
@@ -399,6 +449,49 @@ code { padding: 1px 5px; border-radius: 4px; background: #f1efea; font: 600 0.95
     </table>
   </section>
 </main><footer class="fa"><span><b>시끌북적</b> · 사내 독서 동아리</span><span class="fa-line"><span>Design by <a href="#"><b>Doan</b></a></span><span>Made by <a href="#">hyeyeong.sung@day1company.co.kr</a></span><span><a href="#">개인정보처리방침</a></span></span></footer></div><div class="rr-corner-pos"><div class="rr-corner" style="width:236px" data-doan-id="b-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="rr-corner-t">같이 읽는 중<b>7명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></div>
+    </div>
+  </section>
+
+  <!-- ───────── B · 말풍선 시안 ───────── -->
+  <section class="sheet" data-doan-frame="b-bubble-alts" data-doan-title="B 제목 말풍선 시안 5개">
+    <div class="sheet-head"><h2>B 제목 · 말풍선 시안</h2><p>오른쪽 여백의 "같이 읽는 중 7명"을 말풍선으로 · 선반·캐릭터는 그대로</p></div>
+    <p class="bb-assume"><b>모두 제안이에요 — 코드에 없어요.</b> 위 B 화면은 바꾸지 않았어요. 흰 바탕·검은 글자, 굵은 검은 선, Pretendard 600/800은 다섯 개 모두 같고, 말풍선의 <b>채움·범위·모서리·꼬리가 가리키는 곳·모양(말/생각)</b>만 달라요. 23명일 때는 숫자만 바뀌고 말풍선 모양은 같아요. 말풍선은 움직이지 않아요(캐릭터만 흔들려요).</p>
+    <div class="bb-grid">
+      <div class="bb-alt bb1" data-doan-id="bb1">
+        <h3><span>1</span>테두리 말풍선</h3>
+        <p>제목 줄 전체를 <b>네모 말풍선</b>에 넣고 2px 검은 테두리, 왼쪽 아래 꼬리가 선반을 가리켜요. 화면의 굵은 검은 선·각진 모서리를 그대로 써요.</p>
+        <p class="not-code"><b>제안</b>코드에 없음</p>
+        <figure><figcaption>7명 · 1920</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb1-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="bub" data-doan-id="bb1-bubble">같이 읽는 중<b>7명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>혼자</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb1-corner-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="bub" data-doan-id="bb1-bubble-alone">혼자 읽는 중<b>1명</b></p><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.86s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+      </div>
+      <div class="bb-alt bb2" data-doan-id="bb2">
+        <h3><span>2</span>검은 말풍선</h3>
+        <p>같은 네모 말풍선을 <b>검정 바탕·흰 글자</b>로 채워요. 목차의 선택된 '홈'과 캐릭터 위 '나' 표시와 같은 무게라 가장 눈에 띄어요.</p>
+        <p class="not-code"><b>제안</b>코드에 없음</p>
+        <figure><figcaption>7명 · 1920</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb2-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="bub" data-doan-id="bb2-bubble">같이 읽는 중<b>7명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>혼자</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb2-corner-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="bub" data-doan-id="bb2-bubble-alone">혼자 읽는 중<b>1명</b></p><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.86s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+      </div>
+      <div class="bb-alt bb3" data-doan-id="bb3">
+        <h3><span>3</span>숫자만 말풍선</h3>
+        <p>"같이 읽는 중"은 지금처럼 두고 <b>숫자만</b> 작은 검은 말풍선에 넣어 글자를 가리켜요. 지금 모습에서 가장 적게 바뀌어요.</p>
+        <p class="not-code"><b>제안</b>코드에 없음</p>
+        <figure><figcaption>7명 · 1920</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb3-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="bub" data-doan-id="bb3-bubble">같이 읽는 중<b>7명</b></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>혼자</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb3-corner-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="bub" data-doan-id="bb3-bubble-alone">혼자 읽는 중<b>1명</b></p><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.86s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+      </div>
+      <div class="bb-alt bb4" data-doan-id="bb4">
+        <h3><span>4</span>캐릭터가 말해요</h3>
+        <p><b>둥근 만화 말풍선</b>의 꼬리가 마지막에 들어온 캐릭터를 가리켜요. 누가 들어오면 꼬리가 그 캐릭터로 옮겨가요. 4·5번만 둥근 모서리예요.</p>
+        <p class="not-code"><b>제안</b>코드에 없음 · 문구도 새로 씀</p>
+        <figure><figcaption>7명 · 1920</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb4-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="bub" data-doan-id="bb4-bubble" style="--tail:22px">7명이 같이 읽어요</p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>혼자</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb4-corner-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="bub" data-doan-id="bb4-bubble-alone" style="--tail:22px">혼자 읽는 중이에요</p><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.86s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+      </div>
+      <div class="bb-alt bb5" data-doan-id="bb5">
+        <h3><span>5</span>생각 구름</h3>
+        <p>말풍선 대신 <b>뭉게뭉게 생각 구름</b>. 꼬리 자리에 작은 동그라미 두 개가 캐릭터 머리 위로 이어져, 다들 책을 읽으며 생각에 잠긴 것처럼 보여요. 문구는 지금 그대로예요.</p>
+        <p class="not-code"><b>코드에 반영됨</b>reading-room.tsx · 폭 1600~1680에서는 구름을 통째로 줄임(약 0.71배)</p>
+        <figure><figcaption>7명 · 1920</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb5-corner" role="img" aria-label="지금 7명이 같이 보고 있어요"><p class="bub" data-doan-id="bb5-bubble"><svg class="cloud" viewBox="0 0 186 64" width="186" height="64" aria-hidden="true"><g class="cl-ink"><circle cx="24" cy="30" r="19"/><circle cx="52" cy="24" r="21"/><circle cx="86" cy="22" r="21"/><circle cx="120" cy="23" r="21"/><circle cx="150" cy="27" r="19"/><circle cx="166" cy="35" r="17"/><circle cx="34" cy="47" r="16"/><circle cx="68" cy="48" r="16"/><circle cx="104" cy="48" r="16"/><circle cx="138" cy="47" r="16"/><rect x="18" y="22" width="152" height="30" rx="15"/></g><g class="cl-pap"><circle cx="24" cy="30" r="17"/><circle cx="52" cy="24" r="19"/><circle cx="86" cy="22" r="19"/><circle cx="120" cy="23" r="19"/><circle cx="150" cy="27" r="17"/><circle cx="166" cy="35" r="15"/><circle cx="34" cy="47" r="14"/><circle cx="68" cy="48" r="14"/><circle cx="104" cy="48" r="14"/><circle cx="138" cy="47" r="14"/><rect x="20" y="24" width="148" height="26" rx="13"/></g></svg><span>같이 읽는 중<b>7명</b></span></p><div class="rr-shelf"><span class="seat" style="width:56px;height:60px;--glow:#f8f828;--ds:-1.24s;--db:-0.81s;"><span class="pal"><img src="../assets/reading-room/24-yellow-duck.png" width="51" height="46" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f83898;--ds:-2.18s;--db:-0.05s;"><span class="pal"><img src="../assets/reading-room/10-hotpink-bear.png" width="46" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#a8d818;--ds:-2.13s;--db:-0.18s;"><span class="pal"><img src="../assets/reading-room/20-green-croc.png" width="56" height="48" alt=""></span></span></div><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.85s;--db:-0.64s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#f8f808;--ds:-1.14s;--db:-1.67s;"><span class="pal"><img src="../assets/reading-room/03-yellow-lion.png" width="58" height="59" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#b0b0b0;--ds:-3.31s;--db:-1.94s;"><span class="pal"><img src="../assets/reading-room/12-black-cat.png" width="55" height="56" alt=""></span></span><span class="seat" style="width:56px;height:60px;--glow:#c8c8c8;--ds:-1.98s;--db:-0.91s;"><span class="pal"><img src="../assets/reading-room/14-grey-mouse.png" width="52" height="52" alt=""></span></span></div></div></div></figure>
+        <figure><figcaption>혼자</figcaption><div class="st-box vb"><div class="rr-corner" style="width:236px" data-doan-id="bb5-corner-alone" role="img" aria-label="지금 1명이 같이 보고 있어요"><p class="bub" data-doan-id="bb5-bubble-alone"><svg class="cloud" viewBox="0 0 186 64" width="186" height="64" aria-hidden="true"><g class="cl-ink"><circle cx="24" cy="30" r="19"/><circle cx="52" cy="24" r="21"/><circle cx="86" cy="22" r="21"/><circle cx="120" cy="23" r="21"/><circle cx="150" cy="27" r="19"/><circle cx="166" cy="35" r="17"/><circle cx="34" cy="47" r="16"/><circle cx="68" cy="48" r="16"/><circle cx="104" cy="48" r="16"/><circle cx="138" cy="47" r="16"/><rect x="18" y="22" width="152" height="30" rx="15"/></g><g class="cl-pap"><circle cx="24" cy="30" r="17"/><circle cx="52" cy="24" r="19"/><circle cx="86" cy="22" r="19"/><circle cx="120" cy="23" r="19"/><circle cx="150" cy="27" r="17"/><circle cx="166" cy="35" r="15"/><circle cx="34" cy="47" r="14"/><circle cx="68" cy="48" r="14"/><circle cx="104" cy="48" r="14"/><circle cx="138" cy="47" r="14"/><rect x="20" y="24" width="148" height="26" rx="13"/></g></svg><span>혼자 읽는 중<b>1명</b></span></p><div class="rr-shelf"><span class="seat me" style="width:56px;height:60px;--glow:#4898e8;--ds:-0.86s;--db:-2.12s;"><span class="pal"><img src="../assets/reading-room/06-blue-bunny.png" width="43" height="58" alt=""></span></span></div></div></div></figure>
+      </div>
     </div>
   </section>
 
