@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="theme-toggle-drafts">
+<meta name="doan:width" content="1960">
+<title>화면 모드 버튼 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* ───────── 보드 (footer-drafts·login-b-drafts와 같은 틀) ───────── */
+:root {
+  --board-bg: #e7e5e0;
+  --board-ink: #1c1c1c;
+  --board-ink2: #5d5a55;
+  --board-line: #d2cfc8;
+  --board-paper: #ffffff;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--board-bg); color: var(--board-ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+.board { width: 1960px; padding: 96px; display: flex; flex-direction: column; gap: 120px; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, p { margin: 0; }
+code { font: 500 13px/22px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--board-ink); }
+.frames { display: flex; flex-wrap: wrap; gap: 64px; align-items: flex-start; }
+.frame-wrap { display: flex; flex-direction: column; gap: 12px; }
+.frame-cap { font: 600 14px/20px var(--sans); color: var(--board-ink2); }
+.frame-cap span { font-weight: 400; }
+.frame { position: relative; padding: 32px; background: var(--board-paper); box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08); }
+
+/* 개요 */
+.brief { width: 1768px; padding: 56px 64px; background: var(--board-paper); border-radius: 16px; }
+.brief h1 { font: 800 48px/56px var(--sans); letter-spacing: -0.02em; }
+.brief-lead { margin-top: 14px; max-width: 80ch; font: 400 18px/30px var(--sans); color: var(--board-ink2); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 48px; }
+.brief-cols h3 { font: 700 15px/22px var(--sans); margin-bottom: 10px; }
+.brief-cols p { font: 400 14px/23px var(--sans); color: var(--board-ink2); }
+.brief-cols p + p { margin-top: 10px; }
+.brief-cols p b { color: var(--board-ink); }
+.pick li { padding: 10px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.pick li b { color: var(--board-ink); }
+.not-code { margin-top: 28px; display: inline-flex; gap: 8px; padding: 8px 14px; border-radius: 8px; background: #fff4d6; font: 500 13px/20px var(--sans); color: #6b4e00; }
+.not-code b { color: #3d2c00; }
+.not-code code { font-size: 12px; line-height: 20px; color: #3d2c00; }
+
+/* 그림 견본: 선 아이콘 · 이모지 */
+.glyphs { display: grid; gap: 0; }
+.glyph-row { display: grid; grid-template-columns: 76px auto 1fr; gap: 16px; align-items: center; padding: 12px 0; border-top: 1px solid var(--board-line); }
+.glyph-lab { font: 700 14px/20px var(--sans); }
+.glyph-tiles { display: flex; gap: 8px; }
+.glyph-tiles .vb { display: flex; gap: 10px; align-items: center; padding: 8px 10px; outline: 1px solid var(--board-line); }
+.glyph-tiles .ic { width: 18px; height: 18px; }
+.emoji { font: 400 17px/18px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.glyph-note { font: 400 13px/20px var(--sans); color: var(--board-ink2); }
+
+/* 시안 묶음 머리 */
+.page { display: flex; flex-direction: column; gap: 28px; }
+.page-top { display: grid; grid-template-columns: 96px 440px 1fr; gap: 32px; align-items: end; padding-bottom: 20px; border-bottom: 1px solid var(--board-line); }
+.page-top .no { font: 800 64px/64px var(--sans); letter-spacing: -0.04em; color: var(--board-ink2); }
+.page-top h2 { font: 800 36px/44px var(--sans); letter-spacing: -0.02em; }
+.page-top .route { margin-top: 6px; font: 500 14px/20px var(--sans); color: var(--board-ink2); }
+.badge { display: inline-block; margin-left: 10px; padding: 1px 9px; border-radius: 999px; background: #fff4d6; color: #6b4e00; font: 600 12px/20px var(--sans); vertical-align: 6px; }
+.page-top .notes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.page-top .notes b { display: block; margin-bottom: 4px; color: var(--board-ink); }
+.left-out { font: 400 13px/20px var(--sans); color: var(--board-ink2); }
+
+/* 상태 칸 배치 */
+.row { display: flex; flex-wrap: wrap; gap: 28px 24px; align-items: flex-start; }
+.row + .row { margin-top: 28px; }
+.cell { display: flex; flex-direction: column; gap: 8px; }
+.cell-cap { font: 600 12px/16px var(--sans); color: var(--board-ink); }
+.cell-cap span { font-weight: 400; color: var(--board-ink2); }
+
+/* ───────── B · 시간표 토큰 (globals.css :root · 어두운 화면 값 그대로) ───────── */
+.vb {
+  --b-bg: #ffffff; --b-ink: #111111; --b-ink2: #5c5c5c; --b-rule: #d9d9d9;
+  --b-fill: #f2f2f2; --b-past: #c9c9c9; --b-red: #d0281b; --b-on: #ffffff;
+  background: var(--b-bg); color: var(--b-ink); font-family: var(--sans);
+}
+.vb.dk {
+  --b-bg: #121212; --b-ink: #ededed; --b-ink2: #a3a3a3; --b-rule: #383838;
+  --b-fill: #1d1d1d; --b-past: #4d4d4d; --b-red: #ff6b5e; --b-on: #121212;
+}
+.vb a { color: inherit; text-decoration: none; }
+.vb .u { text-decoration: underline; text-underline-offset: 3px; }
+/* 앱의 선 아이콘과 같은 결: 24 격자, 2px 선, 둥근 끝, 글자색 */
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 데스크톱: 왼쪽 목차 아래쪽 (앱 .nav · .who와 같은 크기) */
+.sd { position: relative; width: 232px; height: 214px; display: flex; flex-direction: column; border-right: 2px solid var(--b-ink); outline: 1px solid var(--board-line); }
+.sd-nav { display: flex; flex-direction: column; }
+.sd-nav a { display: flex; align-items: center; height: 44px; padding: 0 24px; border-top: 1px solid var(--b-rule); font: 600 15px/1 var(--sans); }
+.sd-who { margin-top: auto; padding: 16px 24px 24px; border-top: 2px solid var(--b-ink); font: 400 13px/20px var(--sans); color: var(--b-ink2); }
+.sd-who b { display: block; font: 700 15px/22px var(--sans); color: var(--b-ink); }
+.acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; min-height: 28px; }
+.acts.now { min-height: 20px; }
+
+/* 모바일: 위 막대 (앱 .appbar와 같은 크기) */
+.mb { position: relative; width: 390px; height: 104px; outline: 1px solid var(--board-line); }
+.mb.tall { height: 204px; }
+.mb.tip-room { height: 124px; }
+.mb-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 56px; padding: 0 20px; border-bottom: 2px solid var(--b-ink); }
+.mb-bar > b { font: 800 20px/1 var(--sans); letter-spacing: -0.03em; }
+.mb-right { display: flex; align-items: center; gap: 12px; font: 500 13px/18px var(--sans); color: var(--b-ink2); }
+.mono { display: grid; place-items: center; width: 32px; height: 32px; background: var(--b-ink); color: var(--b-on); font: 700 14px/1 var(--sans); }
+.mb-body { padding: 14px 20px; }
+.mb-h { font: 800 26px/32px var(--sans); letter-spacing: -0.03em; }
+
+/* 버튼 공통 상태: 올림은 옅은 칠, 키보드 초점은 앱과 같은 빨간 2px 테두리 */
+.ctl { position: relative; display: inline-flex; }
+.hover { background: var(--b-fill); }
+.focus { outline: 2px solid var(--b-red); outline-offset: 2px; }
+.tip { position: absolute; z-index: 2; right: 0; bottom: calc(100% + 8px); padding: 6px 8px; background: var(--b-ink); color: var(--b-on); font: 600 12px/16px var(--sans); white-space: nowrap; }
+.mb .tip { right: auto; left: 0; bottom: auto; top: calc(100% + 10px); }
+/* 데스크톱: 이름을 가리지 않게 목차 오른쪽(본문 쪽)으로 띄운다. 칸 오른쪽에 그 자리를 비워 둔다 */
+.sd .tip { right: auto; bottom: auto; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
+.cell.tip-right { padding-right: 180px; }
+
+/* A · 한 칸 */
+.ta { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--b-ink); color: var(--b-ink); }
+.mb .ta { width: 32px; height: 32px; }
+
+/* B · 세 칸 */
+.tb { display: inline-flex; border: 1px solid var(--b-ink); }
+.tb > span { display: grid; place-items: center; width: 28px; height: 26px; color: var(--b-ink); }
+.tb > span + span { border-left: 1px solid var(--b-ink); }
+.tb > [aria-checked="true"] { background: var(--b-ink); color: var(--b-on); }
+.tb > .focus { position: relative; z-index: 1; }
+.mb .tb > span { width: 32px; height: 30px; }
+
+/* C · 메뉴 */
+.tc { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 5px 0 6px; border: 1px solid var(--b-ink); color: var(--b-ink); }
+.tc .chev { width: 12px; height: 12px; }
+.mb .tc { height: 32px; padding: 0 7px 0 8px; }
+.tc.open { background: var(--b-ink); color: var(--b-on); }
+.tc.open .chev { transform: rotate(180deg); }
+.menu { position: absolute; z-index: 2; right: 0; bottom: calc(100% + 6px); width: 168px; background: var(--b-bg); border: 2px solid var(--b-ink); }
+.mb .menu { bottom: auto; top: calc(100% + 10px); }
+.menu li { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px; font: 600 13px/1 var(--sans); color: var(--b-ink); }
+.menu li + li { border-top: 1px solid var(--b-rule); }
+.menu li[aria-checked="true"] { background: var(--b-ink); color: var(--b-on); }
+.menu .ck { margin-left: auto; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 앱 icon.tsx에 아직 없는 그림. lucide 결(24 격자, 2px 선)로 그렸어요 -->
+  <symbol id="i-sys" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+<div class="board">
+
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 화면 모드 버튼 시안">
+    <h1>화면 모드 버튼 시안</h1>
+    <p class="brief-lead">지금은 왼쪽 아래 이름 칸과 모바일 위 막대에 <b>기기 설정 · 밝은 화면 · 어두운 화면</b> 글자 버튼이 있어요. 글자만 보고는 화면 모드 버튼인지 알기 어려워서, 그림 버튼으로 바꾸는 세 가지 방식을 그렸어요. 자리와 그림은 셋 다 같고, <b>누르는 방식</b>만 달라요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>그대로 지킨 것</h3>
+        <p>흰 바탕에 검은 잉크, Pretendard 한 서체, 직각 모서리에 그림자 없음, 1px 검은 테두리. 지금 상태는 검게 뒤집고, 키보드 초점은 앱과 같은 빨간 2px 테두리예요. 그림은 앱 아이콘과 같은 2px 선 아이콘(16px)이에요.</p>
+        <p><b>자리.</b> 데스크톱은 이름 칸 맨 아랫줄 오른쪽(로그아웃과 같은 줄), 모바일은 위 막대의 로그아웃 왼쪽이에요. 지금 글자 버튼이 있는 자리 그대로예요.</p>
+        <p><b>세 모드 그림.</b> 기기 설정은 모니터, 밝은 화면은 해, 어두운 화면은 달.</p>
+      </div>
+      <div>
+        <h3>세 시안</h3>
+        <ul class="pick">
+          <li><b>A · 한 칸 돌기</b> — 아이콘 한 칸. 누를 때마다 다음 모드로. 가장 작지만 다음 모드가 안 보여요.</li>
+          <li><b>B · 세 칸 고르기</b> — 세 칸을 늘어놓고 지금 모드를 검게 뒤집어요. 한 번에 고르지만 가장 넓어요.</li>
+          <li><b>C · 메뉴로 열기</b> — 아이콘 버튼이 이름 붙은 메뉴를 열어요. 뜻이 가장 분명하지만 늘 두 번 눌러요.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>그림: 선 아이콘 · 이모지</h3>
+        <div class="glyphs" data-doan-id="glyph-compare">
+          <div class="glyph-row"><span class="glyph-lab">선 아이콘</span><span class="glyph-tiles"><span class="vb"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span><span class="vb dk"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span><span class="glyph-note">글자색을 따라가서 어두운 화면에서도 저절로 맞아요. 세 시안 모두 이걸로 그렸어요.</span></div>
+          <div class="glyph-row"><span class="glyph-lab">이모지</span><span class="glyph-tiles"><span class="vb"><span class="emoji">🖥️</span><span class="emoji">☀️</span><span class="emoji">🌙</span></span><span class="vb dk"><span class="emoji">🖥️</span><span class="emoji">☀️</span><span class="emoji">🌙</span></span></span><span class="glyph-note">색이 있어서(노란 해), 빨강만 쓰는 B 규칙과 부딪혀요. 맥·윈도우·안드로이드마다 모양이 다르고, 어두운 화면에서도 색이 그대로예요. 원하면 어느 시안이든 그림만 이모지로 바꿔 끼울 수 있어요.</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="not-code"><b>코드에 없음</b> 세 시안 모두 제안이에요. 지금 코드는 글자 버튼(<code>src/components/app-shell.tsx</code>의 <code>.theme-toggle</code>)이고, 모니터·해·달 아이콘은 <code>src/components/icon.tsx</code>에 아직 없어요. 화면 색이 바뀌는 순간의 움직임은 그리지 않았어요(색이 바로 바뀌어요).</p>
+  </section>
+
+
+  <!-- ───────── 지금 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">0</span>
+      <div><h2>지금 · 글자 버튼</h2><p class="route">비교용. 코드에 있는 그대로</p></div>
+      <div class="notes"><div><b>누르는 법</b>누를 때마다 기기 설정 → 밝은 화면 → 어두운 화면. 글자가 지금 모드를 보여 줘요.</div><div><b>아쉬운 점</b>'기기 설정'만 보고는 화면 모드 버튼인지 알기 어려워요.</div></div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">지금 코드</p>
+        <div class="frame" data-doan-frame="now" data-doan-title="지금 · 글자 버튼" data-doan-implements="src/components/app-shell.tsx"><div class="row"><div class="cell"><p class="cell-cap">데스크톱 · 왼쪽 목차 아래 이름 칸</p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts now"><span><a class="u">로그아웃</a> · <a class="u">기기 설정</a></span></div></div></div></div><div class="cell"><p class="cell-cap">모바일 · 위 막대</p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><a class="u">기기 설정</a></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div></div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ───────── A · 한 칸 돌기 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">A</span>
+      <div><h2>한 칸 돌기<span class="badge">코드에 없음</span></h2><p class="route">아이콘 한 칸이 지금 모드를 보여 주고, 누를 때마다 다음 모드로</p></div>
+      <div class="notes"><div><b>누르는 법</b>누를 때마다 기기 설정 → 밝은 화면 → 어두운 화면 → 기기 설정. 지금 코드의 <code>nextTheme</code> 순서 그대로예요.</div><div><b>좋은 점</b>가장 작아요. 데스크톱 28px, 모바일 32px 한 칸이라 모바일 위 막대의 이름 첫 글자 칸(32px)과 짝이 맞아요.</div><div><b>아쉬운 점</b>다음 모드가 안 보여서 두 번 눌러야 할 때가 있어요. 모니터 그림만으로는 '기기 설정'이 바로 읽히지 않아 마우스를 올리면 이름을 띄워요.</div><div><b>읽어 주는 말</b>버튼 하나. 이름은 '화면 모드: 기기 설정'처럼 지금 모드를 넣어요.</div></div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 · 왼쪽 목차 아래 이름 칸 <span>· 위: 네 모드 · 아래: 올림·초점</span></p>
+        <div class="frame" data-doan-frame="a-desktop" data-doan-title="A 한 칸 돌기 · 데스크톱"><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 밝음</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 기기 설정" data-doan-id="a-d-sys-l"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 어두움</span></p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 기기 설정" data-doan-id="a-d-sys-d"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">밝은 화면</p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 밝은 화면" data-doan-id="a-d-light"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">어두운 화면</p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 어두운 화면" data-doan-id="a-d-dark"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></div></div></div></div></div><div class="row"><div class="cell tip-right"><p class="cell-cap">마우스를 올렸을 때 <span>· 지금 모드와 다음 모드를 글자로</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta hover" role="button" aria-label="화면 모드: 기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span class="tip">기기 설정 · 누르면 밝은 화면</span></span></div></div></div></div><div class="cell"><p class="cell-cap">키보드로 왔을 때 <span>· 앱과 같은 빨간 테두리</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta focus" role="button" aria-label="화면 모드: 기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span></span></div></div></div></div><div class="cell tip-right"><p class="cell-cap">어두운 화면에서 올렸을 때</p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="ta hover" role="button" aria-label="화면 모드: 어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span><span class="tip">어두운 화면 · 누르면 기기 설정</span></span></div></div></div></div></div></div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 · 위 막대</p>
+        <div class="frame" data-doan-frame="a-mobile" data-doan-title="A 한 칸 돌기 · 모바일"><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 밝음</span></p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 기기 설정" data-doan-id="a-m-sys-l"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 어두움</span></p><div class="vb mb dk"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 기기 설정" data-doan-id="a-m-sys-d"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">밝은 화면</p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 밝은 화면" data-doan-id="a-m-light"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">어두운 화면</p><div class="vb mb dk"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 어두운 화면" data-doan-id="a-m-dark"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">누른 뒤 1.5초 <span>· 바뀐 모드 이름을 잠깐 띄움</span></p><div class="vb mb tip-room"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="ta" role="button" aria-label="화면 모드: 밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span class="tip">밝은 화면</span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div></div>
+        <p class="left-out">모바일은 마우스 올림이 없어서, 누른 뒤 바뀐 모드 이름을 1.5초 띄우는 상태를 대신 그렸어요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── B · 세 칸 고르기 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">B</span>
+      <div><h2>세 칸 고르기<span class="badge">코드에 없음</span></h2><p class="route">세 칸을 늘어놓고 지금 모드를 검게 뒤집기</p></div>
+      <div class="notes"><div><b>누르는 법</b>원하는 칸을 바로 눌러요. 언제나 한 번이면 끝이라 <code>nextTheme</code> 순환은 쓰지 않아요.</div><div><b>좋은 점</b>세 모드가 다 보이고, 지금 모드는 검게 뒤집혀요. 목차의 지금 화면, 홈의 [전체 | 내 요청]과 같은 말투예요.</div><div><b>아쉬운 점</b>가장 넓어요. 데스크톱 86px, 모바일 98px라 모바일 위 막대가 조금 붐벼요.</div><div><b>읽어 주는 말</b>라디오 묶음 '화면 모드' 안에 기기 설정·밝은 화면·어두운 화면 세 개.</div></div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 · 왼쪽 목차 아래 이름 칸 <span>· 위: 네 모드 · 아래: 올림·초점</span></p>
+        <div class="frame" data-doan-frame="b-desktop" data-doan-title="B 세 칸 고르기 · 데스크톱"><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 밝음</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-d-sys-l"><span role="radio" aria-checked="true" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 어두움</span></p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-d-sys-d"><span role="radio" aria-checked="true" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div><div class="cell"><p class="cell-cap">밝은 화면</p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-d-light"><span role="radio" aria-checked="false" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="true" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div><div class="cell"><p class="cell-cap">어두운 화면</p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-d-dark"><span role="radio" aria-checked="false" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="true" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">마우스를 올렸을 때 <span>· 고를 수 있는 칸만 옅게</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드"><span role="radio" aria-checked="true" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면" class="hover"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div><div class="cell"><p class="cell-cap">키보드로 왔을 때 <span>· ←→로 칸 이동</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드"><span role="radio" aria-checked="true" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면" class="focus"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div><div class="cell"><p class="cell-cap">어두운 화면에서 올렸을 때</p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드"><span role="radio" aria-checked="false" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면" class="hover"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="true" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span></div></div></div></div></div></div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 · 위 막대</p>
+        <div class="frame" data-doan-frame="b-mobile" data-doan-title="B 세 칸 고르기 · 모바일"><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 밝음</span></p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-m-sys-l"><span role="radio" aria-checked="true" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 어두움</span></p><div class="vb mb dk"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-m-sys-d"><span role="radio" aria-checked="true" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">밝은 화면</p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-m-light"><span role="radio" aria-checked="false" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="true" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="false" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">어두운 화면</p><div class="vb mb dk"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tb" role="radiogroup" aria-label="화면 모드" data-doan-id="b-m-dark"><span role="radio" aria-checked="false" aria-label="기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg></span><span role="radio" aria-checked="false" aria-label="밝은 화면"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span role="radio" aria-checked="true" aria-label="어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div></div>
+        <p class="left-out">모바일은 마우스 올림·키보드 상태가 없어서 네 모드만 그렸어요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── C · 메뉴로 열기 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <span class="no">C</span>
+      <div><h2>메뉴로 열기<span class="badge">코드에 적용</span></h2><p class="route">아이콘 버튼 하나 · 누르면 이름이 붙은 세 줄 메뉴</p></div>
+      <div class="notes"><div><b>누르는 법</b>버튼을 누르면 메뉴가 열리고, 한 줄을 고르면 닫혀요. 언제나 두 번 눌러요.</div><div><b>좋은 점</b>메뉴에 글자가 붙어 있어 그림 뜻을 몰라도 돼요. 닫혀 있을 땐 A와 거의 같은 크기(40px)예요.</div><div><b>아쉬운 점</b>늘 두 번 눌러야 하고, 바깥을 누르면 닫기·Esc·화살표 이동 같은 메뉴 코드가 더 필요해요.</div><div><b>읽어 주는 말</b>메뉴 버튼 '화면 모드: 기기 설정'. 메뉴 안은 고르는 항목 세 개.</div></div>
+    </div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <p class="frame-cap">데스크톱 · 왼쪽 목차 아래 이름 칸 <span>· 위: 네 모드 · 아래: 올림·초점·메뉴</span></p>
+        <div class="frame" data-doan-frame="c-desktop" data-doan-implements="src/components/theme-menu.tsx" data-doan-title="C 메뉴로 열기 · 데스크톱"><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 밝음</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 기기 설정" data-doan-id="c-d-sys-l"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 어두움</span></p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 기기 설정" data-doan-id="c-d-sys-d"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">밝은 화면</p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 밝은 화면" data-doan-id="c-d-light"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">어두운 화면</p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 어두운 화면" data-doan-id="c-d-dark"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span></div></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">마우스를 올렸을 때</p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc hover" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">키보드로 왔을 때</p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc focus" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span></div></div></div></div><div class="cell"><p class="cell-cap">눌러서 연 메뉴 <span>· 위로 열림</span></p><div class="vb sd"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc open" role="button" aria-haspopup="menu" aria-expanded="true" aria-label="화면 모드: 기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span><ul class="menu" role="menu" aria-label="화면 모드"><li role="menuitemradio" aria-checked="true"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg>기기 설정<svg class="ic ck" aria-hidden="true"><use href="#i-check"/></svg></li><li role="menuitemradio" aria-checked="false"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg>밝은 화면</li><li role="menuitemradio" aria-checked="false"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg>어두운 화면</li></ul></span></div></div></div></div><div class="cell"><p class="cell-cap">어두운 화면에서 연 메뉴</p><div class="vb sd dk"><nav class="sd-nav"><a>내 기록</a><a>벌점</a></nav><div class="sd-who"><b>김하늘</b>총무<div class="acts"><a class="u">로그아웃</a><span class="ctl"><span class="tc open" role="button" aria-haspopup="menu" aria-expanded="true" aria-label="화면 모드: 어두운 화면"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span><ul class="menu" role="menu" aria-label="화면 모드"><li role="menuitemradio" aria-checked="false"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg>기기 설정</li><li role="menuitemradio" aria-checked="false"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg>밝은 화면</li><li role="menuitemradio" aria-checked="true"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg>어두운 화면<svg class="ic ck" aria-hidden="true"><use href="#i-check"/></svg></li></ul></span></div></div></div></div></div></div>
+      </div>
+      <div class="frame-wrap">
+        <p class="frame-cap">모바일 · 위 막대</p>
+        <div class="frame" data-doan-frame="c-mobile" data-doan-implements="src/components/theme-menu.tsx" data-doan-title="C 메뉴로 열기 · 모바일"><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 밝음</span></p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 기기 설정" data-doan-id="c-m-sys-l"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">기기 설정 <span>· 기기가 어두움</span></p><div class="vb mb dk"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 기기 설정" data-doan-id="c-m-sys-d"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">밝은 화면</p><div class="vb mb"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 밝은 화면" data-doan-id="c-m-light"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">어두운 화면</p><div class="vb mb dk"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tc" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="화면 모드: 어두운 화면" data-doan-id="c-m-dark"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div><div class="row"><div class="cell"><p class="cell-cap">눌러서 연 메뉴 <span>· 아래로 열림</span></p><div class="vb mb tall"><div class="mb-bar"><b>시끌북적</b><div class="mb-right"><span class="ctl"><span class="tc open" role="button" aria-haspopup="menu" aria-expanded="true" aria-label="화면 모드: 기기 설정"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span><ul class="menu" role="menu" aria-label="화면 모드"><li role="menuitemradio" aria-checked="true"><svg class="ic" aria-hidden="true"><use href="#i-sys"/></svg>기기 설정<svg class="ic ck" aria-hidden="true"><use href="#i-check"/></svg></li><li role="menuitemradio" aria-checked="false"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg>밝은 화면</li><li role="menuitemradio" aria-checked="false"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg>어두운 화면</li></ul></span><a class="u">로그아웃</a><span class="mono">하</span></div></div><div class="mb-body"><p class="mb-h">홈</p></div></div></div></div></div>
+        <p class="left-out">모바일은 마우스 올림·키보드 상태가 없어서 네 모드와 연 메뉴만 그렸어요.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
