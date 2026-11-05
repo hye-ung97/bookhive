@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  cloudScale, cornerRoom, fitSeats, mergeSeats, pickAvatar, presenceSeats, shouldRepick, takenAvatars, turnDelay,
+  cloudScale, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
   type PresenceState, type Seat,
 } from "@/lib/reading-room";
 
@@ -75,10 +75,13 @@ describe("같이 읽는 중 선반 크기", () => {
     expect(cloudScale(free(1600))).toBeGreaterThan(0.8);
   });
 
-  it("책장 넘기는 시작 시점은 키마다 같고 한 바퀴 안", () => {
-    const d = turnDelay("abc");
-    expect(turnDelay("abc")).toBe(d);
-    expect(d).toBeGreaterThanOrEqual(0);
-    expect(d).toBeLessThan(1.76);
+  it("움직임 시작 시점은 키마다 같고 범위 안", () => {
+    const d = motionDelays("abc");
+    expect(motionDelays("abc")).toEqual(d);
+    expect(d.sway).toBeGreaterThanOrEqual(0);
+    expect(d.sway).toBeLessThan(3.6);
+    expect(d.breathe).toBeLessThan(2.6);
+    expect(d.turn).toBeGreaterThanOrEqual(0);
+    expect(d.turn).toBeLessThan(1.76);
   });
 });

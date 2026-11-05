@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  cloudScale, CLOUD_H, CLOUD_W, cornerRoom, fitSeats, mergeSeats, pickAvatar, presenceSeats, shouldRepick, takenAvatars, turnDelay,
+  cloudScale, CLOUD_H, CLOUD_W, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
   type PresenceState, type ReaderMeta, type Seat,
 } from "@/lib/reading-room";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -238,7 +238,8 @@ export function ReadingRoom() {
       <div className="rr-seats" style={{ width: room.width }}>
         {shown.map((s) => {
           const r = READERS[s.avatar] ?? READERS[0];
-          const style = { "--glow": r.glow, "--dt": `-${turnDelay(s.key)}s` } as CSSProperties;
+          const d = motionDelays(s.key);
+          const style = { "--glow": r.glow, "--ds": `-${d.sway}s`, "--db": `-${d.breathe}s`, "--dt": `-${d.turn}s` } as CSSProperties;
           // 띠 파일은 2배 크기라 한 장 = 너비 ÷ 장 수 ÷ 2. 창(rr-win)으로 한 장만 보이고 띠를 왼쪽으로 민다
           const w = r.img.width / FRAMES / 2;
           const h = r.img.height / 2;

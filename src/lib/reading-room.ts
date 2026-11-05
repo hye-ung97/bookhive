@@ -86,9 +86,9 @@ export function fitSeats(seats: Seat[], room: Room): { shown: Seat[]; more: numb
 /** 책장 넘기기 한 바퀴(ms). GIF 8장 × 0.22초, globals.css의 rr-turn 1.76s와 같은 값 */
 const TURN_MS = 1760;
 
-/** 사람마다 책장 넘기는 시작 시점(초)을 어긋나게 한다. 다 같이 넘기지 않고 각자 읽는 것처럼 (같은 키는 늘 같은 값) */
-export function turnDelay(key: string): number {
+/** 사람마다 흔들림·들썩임·책장 넘기는 시작 시점(초)을 어긋나게 한다. 다 같이 움직이지 않고 각자 읽는 것처럼 (같은 키는 늘 같은 값) */
+export function motionDelays(key: string): { sway: number; breathe: number; turn: number } {
   let h = 0;
   for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return (h % TURN_MS) / 1000;
+  return { sway: (h % 3600) / 1000, breathe: ((h >>> 12) % 2600) / 1000, turn: ((h >>> 6) % TURN_MS) / 1000 };
 }
