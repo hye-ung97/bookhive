@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  cloudScale, CLOUD_W, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
+  cloudScale, CLOUD_H, CLOUD_W, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
   type PresenceState, type ReaderMeta, type Seat,
 } from "@/lib/reading-room";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -67,26 +67,35 @@ function saveAvatar(n: number) {
   } catch {}
 }
 
-/** 생각 구름: 겹친 동그라미를 검정(반지름 +2)으로 한 번, 바탕색으로 한 번 그려 2px 테두리를 만든다 */
-const CLOUD_TOP = [[24, 30, 17], [52, 24, 19], [86, 22, 19], [120, 23, 19], [150, 27, 17], [166, 35, 15]] as const;
-const CLOUD_BOTTOM = [[34, 47, 14], [68, 48, 14], [104, 48, 14], [138, 47, 14]] as const;
-
-function CloudLayer({ className, grow }: { className: string; grow: number }) {
-  return (
-    <g className={className}>
-      {[...CLOUD_TOP, ...CLOUD_BOTTOM].map(([cx, cy, r]) => (
-        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r + grow} />
-      ))}
-      <rect x={20 - grow} y={24 - grow} width={148 + grow * 2} height={26 + grow * 2} rx={13 + grow} />
-    </g>
-  );
-}
+/**
+ * 생각 구름: 몸통 타원 둘레에 큰 동그라미를 겹쳐 검게 채우고, 왼쪽 아래로 작은 동그라미 두 개가 이어진다.
+ * 좌표는 viewBox(620 150 810 720) 기준. 동그라미마다 박자를 어긋나게 부풀려 뭉게뭉게 움직인다
+ */
+const CLOUD_PUFFS = [
+  [1200, 360, 112], [1035, 318, 142], [855, 352, 122], [755, 470, 108],
+  [825, 610, 112], [995, 648, 118], [1168, 622, 110], [1288, 498, 116],
+] as const;
+const CLOUD_DOTS = [[735, 760, 40], [658, 836, 25]] as const;
+/** 동그라미마다 부푸는 시작점(초). 이웃끼리 겹치지 않게 섞었다 */
+const PUFF_DELAYS = [0, 1.7, 0.6, 2.2, 1.1, 2.6, 1.4, 0.3] as const;
 
 function ThoughtCloud() {
   return (
-    <svg className="rr-cloud" viewBox={`0 0 ${CLOUD_W} 64`} width={CLOUD_W} height={64} aria-hidden="true">
-      <CloudLayer className="rr-cloud-ink" grow={2} />
-      <CloudLayer className="rr-cloud-pap" grow={0} />
+    <svg className="rr-cloud" viewBox="620 150 810 720" width={CLOUD_W} height={CLOUD_H} aria-hidden="true">
+      <ellipse className="rr-cloud-ink" cx={1020} cy={490} rx={270} ry={170} />
+      {CLOUD_PUFFS.map(([cx, cy, r], i) => (
+        <circle
+          key={`${cx}-${cy}`}
+          className="rr-cloud-ink rr-puff"
+          cx={cx}
+          cy={cy}
+          r={r}
+          style={{ animationDelay: `-${PUFF_DELAYS[i]}s` }}
+        />
+      ))}
+      {CLOUD_DOTS.map(([cx, cy, r], i) => (
+        <circle key={`${cx}-${cy}`} className="rr-cloud-ink rr-dot" cx={cx} cy={cy} r={r} style={{ animationDelay: `-${0.6 + i * 0.6}s` }} />
+      ))}
     </svg>
   );
 }

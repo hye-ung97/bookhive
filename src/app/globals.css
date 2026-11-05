@@ -969,16 +969,15 @@ html:has(> body > .login), body:has(> .login) { height: 100%; }
 /* ───────── 같이 읽는 중: 본문 오른쪽 빈칸 바닥에 지금 보고 있는 멤버 수만큼 동물이 앉는다 ───────── */
 /* 한 칸 56 × 선반 66. 맨 아래에만 굵은 검은 선반(위 선반 사이에는 줄을 긋지 않는다). 클릭은 그대로 아래로 지나간다 */
 .rr { position: fixed; right: 24px; bottom: 24px; z-index: 3; pointer-events: none; user-select: none; }
-/* 선반 위 생각 구름(186 × 64) + 왼쪽 아래로 이어지는 작은 동그라미 두 개 */
-.rr-t { position: relative; display: flex; align-items: center; justify-content: center; width: 186px; height: 64px; margin-bottom: 26px; font: 600 12px/16px var(--font-sans); color: var(--ink2); }
-.rr-t > span { position: relative; margin-top: 6px; white-space: nowrap; }
-.rr-t b { margin-left: 4px; font: 800 15px/20px var(--font-sans); color: var(--ink); }
-.rr-cloud { position: absolute; inset: 0; }
+/* 선반 위 검은 생각 구름(150 × 134, 왼쪽 아래 작은 동그라미까지). 글자는 흰색(--on)으로, 두 줄을 가운데 맞춤 */
+.rr-t { position: relative; width: 150px; height: 134px; margin: 0 0 4px; animation: rr-float 8s ease-in-out infinite; }
+.rr-t > span { position: absolute; left: 0; right: 0; top: 63px; display: flex; flex-direction: column; align-items: center; transform: translateY(-50%); text-align: center; white-space: nowrap; font: 600 12px/16px var(--font-sans); color: var(--on); }
+.rr-t b { font: 800 24px/28px var(--font-sans); color: var(--on); }
+.rr-cloud { position: absolute; inset: 0; overflow: visible; }
 .rr-cloud-ink { fill: var(--ink); }
-.rr-cloud-pap { fill: var(--bg); }
-.rr-t::before, .rr-t::after { content: ""; position: absolute; border: 2px solid var(--ink); border-radius: 50%; background: var(--bg); }
-.rr-t::before { left: 30px; top: 100%; width: 12px; height: 12px; }
-.rr-t::after { left: 26px; top: calc(100% + 15px); width: 8px; height: 8px; }
+/* 바깥 동그라미 하나하나가 제자리에서 부풀었다 줄어들고, 작은 동그라미는 한 박자 늦게 들썩인다 */
+.rr-puff { transform-box: fill-box; transform-origin: center; animation: rr-puff 2.8s ease-in-out infinite; }
+.rr-dot { transform-box: fill-box; transform-origin: center; animation: rr-bob 2.8s ease-in-out infinite; }
 .rr-seats {
   display: flex; flex-wrap: wrap-reverse; align-items: flex-end; column-gap: 4px; border-bottom: 2px solid var(--ink);
 }
@@ -993,6 +992,9 @@ html:has(> body > .login), body:has(> .login) { height: 100%; }
 @keyframes rr-leave { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(4px) scale(0.85); } }
 @keyframes rr-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
 @keyframes rr-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.035); } }
+@keyframes rr-puff { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+@keyframes rr-bob { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-14px) scale(1.1); } }
+@keyframes rr-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 @keyframes rr-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rr-fade-out { from { opacity: 1; } to { opacity: 0; } }
 /* 어두운 화면에서는 검은 테두리가 묻히지 않게 몸 색으로 빛을 번지게 한다 */
@@ -1005,7 +1007,7 @@ html:has(> body > .login), body:has(> .login) { height: 100%; }
   * { scroll-behavior: auto !important; transition: none !important; }
   .skel { animation: none; }
   /* 같이 읽는 중: 멈춘 그림. 앉고 일어날 때 흐려지기만 */
-  .rr-pal, .rr-pal img { animation: none; }
+  .rr-pal, .rr-pal img, .rr-t, .rr-puff, .rr-dot { animation: none; }
   .rr-seat { animation: rr-fade 200ms ease-out both; }
   .rr-seat.out { animation: rr-fade-out 200ms ease-in both; }
 }

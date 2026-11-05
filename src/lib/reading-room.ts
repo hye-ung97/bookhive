@@ -7,12 +7,13 @@ export type PresenceState = Record<string, ReaderMeta[]>;
 
 export type Seat = { key: string; avatar: number; at: number; me: boolean; out?: boolean };
 
-/** 한 칸 56 + 사이 4, 선반 높이 66, 선반 위 생각 구름 90 (구름 64 + 작은 동그라미 26) */
+/** 한 칸 56 + 사이 4, 선반 높이 66, 선반 위 생각 구름 138 (작은 동그라미까지 134 + 선반과 틈 4) */
 const PITCH = 60;
 const SHELF = 66;
-const LABEL = 90;
+const LABEL = 138;
 /** 생각 구름 원래 폭과, 위젯이 화면 오른쪽에서 떨어진 거리 + 왼쪽 숨 쉴 틈 */
-export const CLOUD_W = 186;
+export const CLOUD_W = 150;
+export const CLOUD_H = 134;
 const CLOUD_GAP = 32;
 
 /** 같은 브라우저의 탭이 여럿이면 먼저 앉은 탭 하나만 */
