@@ -15,6 +15,9 @@ export function SiteFooter({ contact = true }: { contact?: boolean }) {
               <b>Doan</b>
             </a>
           </span>
+          <span>
+            Detail by <b>NKLee</b>
+          </span>
           {contact && (
             <span>
               Made by <a href={`mailto:${DEV_MAIL}?subject=${encodeURIComponent("[시끌북적] ")}`}>{DEV_MAIL}</a>
