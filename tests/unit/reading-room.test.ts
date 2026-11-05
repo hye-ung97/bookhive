@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
+  cloudScale, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
   type PresenceState, type Seat,
 } from "@/lib/reading-room";
 
@@ -52,7 +52,7 @@ describe("같이 읽는 중 선반 크기", () => {
   const free = (vw: number) => Math.max(0, (vw - 232 - 1136) / 2) + 48;
 
   it("화면 폭에 따라 한 줄 수가 바뀌고, 두 마리도 안 되면 숨긴다", () => {
-    expect(cornerRoom(free(1920), 1080)).toEqual({ cols: 4, maxRows: 7, width: 236 });
+    expect(cornerRoom(free(1920), 1080)).toEqual({ cols: 4, maxRows: 6, width: 236 });
     expect(cornerRoom(free(1728), 1117).cols).toBe(3);
     expect(cornerRoom(free(1600), 900).cols).toBe(2);
     expect(cornerRoom(free(1512), 982).cols).toBe(0);
@@ -62,10 +62,17 @@ describe("같이 읽는 중 선반 크기", () => {
   it("선반은 화면 높이의 절반까지. 넘치면 마지막 칸이 +N", () => {
     const seats = Array.from({ length: 23 }, (_, i) => seat(`k${i}`, i, i === 0));
     expect(fitSeats(seats, cornerRoom(free(1920), 1080))).toMatchObject({ more: 0 });
-    const tight = fitSeats(seats, cornerRoom(free(1600), 900)); // 2마리 × 6줄
-    expect(tight.shown).toHaveLength(11);
-    expect(tight.more).toBe(12);
+    const tight = fitSeats(seats, cornerRoom(free(1600), 900)); // 2마리 × 5줄
+    expect(tight.shown).toHaveLength(9);
+    expect(tight.more).toBe(14);
     expect(tight.shown[0].me).toBe(true);
+  });
+
+  it("생각 구름은 빈칸이 좁을 때만 줄어든다", () => {
+    expect(cloudScale(free(1920))).toBe(1);
+    expect(cloudScale(free(1728))).toBe(1);
+    expect(cloudScale(free(1600))).toBeCloseTo(132 / 186);
+    expect(cloudScale(free(1600))).toBeGreaterThan(0.7);
   });
 
   it("움직임 시작 시점은 키마다 같고 범위 안", () => {

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
+  cloudScale, CLOUD_W, cornerRoom, fitSeats, mergeSeats, motionDelays, pickAvatar, presenceSeats, shouldRepick, takenAvatars,
   type PresenceState, type ReaderMeta, type Seat,
 } from "@/lib/reading-room";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -65,6 +65,30 @@ function saveAvatar(n: number) {
   try {
     sessionStorage.setItem("rr-avatar", String(n));
   } catch {}
+}
+
+/** 생각 구름: 겹친 동그라미를 검정(반지름 +2)으로 한 번, 바탕색으로 한 번 그려 2px 테두리를 만든다 */
+const CLOUD_TOP = [[24, 30, 17], [52, 24, 19], [86, 22, 19], [120, 23, 19], [150, 27, 17], [166, 35, 15]] as const;
+const CLOUD_BOTTOM = [[34, 47, 14], [68, 48, 14], [104, 48, 14], [138, 47, 14]] as const;
+
+function CloudLayer({ className, grow }: { className: string; grow: number }) {
+  return (
+    <g className={className}>
+      {[...CLOUD_TOP, ...CLOUD_BOTTOM].map(([cx, cy, r]) => (
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r + grow} />
+      ))}
+      <rect x={20 - grow} y={24 - grow} width={148 + grow * 2} height={26 + grow * 2} rx={13 + grow} />
+    </g>
+  );
+}
+
+function ThoughtCloud() {
+  return (
+    <svg className="rr-cloud" viewBox={`0 0 ${CLOUD_W} 64`} width={CLOUD_W} height={64} aria-hidden="true">
+      <CloudLayer className="rr-cloud-ink" grow={2} />
+      <CloudLayer className="rr-cloud-pap" grow={0} />
+    </svg>
+  );
 }
 
 /** 지금 보고 있는 멤버 수만큼 본문 오른쪽 빈칸 바닥 선반에 동물을 앉힌다. 모바일은 연결도 하지 않는다 */
@@ -193,9 +217,13 @@ export function ReadingRoom() {
   const { shown, more } = fitSeats(seats, room);
   return (
     <div className="rr" role="img" aria-label={`지금 ${present}명이 같이 보고 있어요`}>
-      <p className="rr-t">
-        {present === 1 ? "혼자 읽는 중" : "같이 읽는 중"}
-        <b>{present}명</b>
+      {/* 생각 구름. 빈칸이 좁으면 zoom으로 통째로 줄여 자리도 같이 줄인다 */}
+      <p className="rr-t" style={{ zoom: cloudScale(free) }}>
+        <ThoughtCloud />
+        <span>
+          {present === 1 ? "혼자 읽는 중" : "같이 읽는 중"}
+          <b>{present}명</b>
+        </span>
       </p>
       {/* 한 목록을 아래에서 위로 감싼다: 첫 줄(나 포함)이 맨 아래 선반. 줄이 바뀌어도 다시 그리지 않는다 */}
       <div className="rr-seats" style={{ width: room.width }}>
