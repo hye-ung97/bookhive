@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="favicon-drafts">
+<meta name="doan:width" content="1960">
+<title>파비콘 시안</title>
+<style>
+@font-face { font-family: "Pretendard Variable"; src: url("../../src/app/fonts/PretendardVariable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
+/* ───────── 보드 (theme-toggle-drafts·footer-drafts와 같은 틀) ───────── */
+:root {
+  --board-bg: #e7e5e0;
+  --board-ink: #1c1c1c;
+  --board-ink2: #5d5a55;
+  --board-line: #d2cfc8;
+  --board-paper: #ffffff;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  /* B 시간표 토큰 (globals.css :root · 어두운 화면 값 그대로) */
+  --b-bg: #ffffff; --b-ink: #111111; --b-red: #d0281b;
+  --d-bg: #121212; --d-ink: #ededed;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--board-bg); color: var(--board-ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+.board { width: 1960px; padding: 96px; display: flex; flex-direction: column; gap: 120px; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+h1, h2, h3, p { margin: 0; }
+code { font: 500 13px/22px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--board-ink); }
+.frame { position: relative; padding: 40px; background: var(--board-paper); box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08); }
+
+/* 개요 */
+.brief { width: 1768px; padding: 56px 64px; background: var(--board-paper); border-radius: 16px; }
+.brief h1 { font: 800 48px/56px var(--sans); letter-spacing: -0.02em; }
+.brief-lead { margin-top: 14px; max-width: 84ch; font: 400 18px/30px var(--sans); color: var(--board-ink2); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 48px; }
+.brief-cols h3 { font: 700 15px/22px var(--sans); margin-bottom: 10px; }
+.brief-cols p { font: 400 14px/23px var(--sans); color: var(--board-ink2); }
+.brief-cols p + p { margin-top: 10px; }
+.brief-cols p b { color: var(--board-ink); }
+.pick li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--board-line); font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.pick li b { color: var(--board-ink); }
+.pick img, .pick .cat { width: 28px; height: 28px; }
+.rec { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px; background: var(--board-ink); color: var(--board-paper); font: 700 11px/20px var(--sans); vertical-align: 1px; }
+.not-code { margin-top: 28px; display: inline-flex; gap: 8px; padding: 8px 14px; border-radius: 8px; background: #fff4d6; font: 500 13px/20px var(--sans); color: #6b4e00; }
+.not-code b { color: #3d2c00; }
+.not-code code { font-size: 12px; line-height: 20px; color: #3d2c00; }
+
+/* 묶음 머리 */
+.page { display: flex; flex-direction: column; gap: 28px; }
+.page-top { display: grid; grid-template-columns: 96px 520px 1fr; gap: 32px; align-items: end; padding-bottom: 20px; border-bottom: 1px solid var(--board-line); }
+.page-top .no { font: 800 64px/64px var(--sans); letter-spacing: -0.04em; color: var(--board-ink2); }
+.page-top h2 { font: 800 36px/44px var(--sans); letter-spacing: -0.02em; }
+.page-top .sub { margin-top: 6px; font: 500 14px/20px var(--sans); color: var(--board-ink2); }
+.page-top .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.page-top .notes b { display: block; margin-bottom: 4px; color: var(--board-ink); }
+.page-top .notes code { font-size: 12px; line-height: 20px; }
+
+/* 칸 배치 */
+.row { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+.cell { display: flex; flex-direction: column; gap: 10px; }
+.cell-cap { font: 600 12px/16px var(--sans); color: var(--board-ink); }
+.cell-cap span { font-weight: 400; color: var(--board-ink2); }
+
+/* 큰 그림 */
+.big { display: block; width: 256px; height: 256px; outline: 1px solid var(--board-line); }
+/* 1배 화면 16px: 16칸 그대로 8배로 키우고 모눈을 얹는다 */
+.px { position: relative; width: 128px; height: 128px; outline: 1px solid var(--board-line); }
+.px canvas { display: block; width: 128px; height: 128px; image-rendering: pixelated; }
+.px::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(to right, rgb(128 128 128 / 0.35) 1px, transparent 1px), linear-gradient(to bottom, rgb(128 128 128 / 0.35) 1px, transparent 1px);
+  background-size: 8px 8px; }
+
+/* 실제 크기 사다리: 48 · 32 · 16 */
+.ladder { display: flex; align-items: flex-end; gap: 16px; padding: 16px 20px; }
+.ladder.lt { background: #f1f3f4; }
+.ladder.dk { background: #202124; }
+.ladder img, .ladder .cat { display: block; }
+
+/* 고양이(D): 스티커를 흰 칸 가운데에 */
+.cat { display: block; background: var(--b-bg) url("../assets/reading-room/12-black-cat.png") center / 88% auto no-repeat; }
+.big.cat { background-size: 84% auto; }
+
+/* ───────── 브라우저 탭 모형 (특정 브라우저가 아닌 일반 모양) ───────── */
+.tabs-grid { display: grid; grid-template-columns: 80px 600px 600px; gap: 20px 32px; align-items: center; }
+.tabs-grid .th { font: 700 13px/18px var(--sans); color: var(--board-ink2); }
+.tabs-grid .lab { font: 800 22px/28px var(--sans); }
+.tabs-grid .lab span { display: block; font: 500 12px/16px var(--sans); color: var(--board-ink2); }
+.strip { display: flex; align-items: flex-end; gap: 2px; height: 46px; padding: 8px 10px 0; }
+.strip.lt { background: #dfe1e5; color: #3c4043; }
+.strip.dk { background: #202124; color: #bdc1c6; }
+.tab { display: flex; align-items: center; gap: 8px; width: 196px; height: 38px; padding: 0 12px; border-radius: 8px 8px 0 0; font: 400 12px/1 var(--sans); white-space: nowrap; overflow: hidden; }
+.tab img, .tab .cat, .tab .other { flex: none; width: 16px; height: 16px; }
+.tab .t { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.tab .x { flex: none; font-size: 13px; opacity: 0.6; }
+.strip.lt .tab.on { background: #ffffff; color: #202124; }
+.strip.dk .tab.on { background: #35363a; color: #e8eaed; }
+.strip.lt .other { background: #9aa0a6; border-radius: 3px; }
+.strip.dk .other { background: #5f6368; border-radius: 3px; }
+
+/* ───────── 휴대폰 홈 화면 ───────── */
+.phone { width: 390px; padding: 64px 28px 48px; border-radius: 44px; background: linear-gradient(160deg, #c9d3cf, #9fb1ae 55%, #7f938f); }
+.apps { display: grid; grid-template-columns: repeat(4, 64px); justify-content: space-between; row-gap: 26px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 500 11px/14px var(--sans); color: #ffffff; text-shadow: 0 1px 2px rgb(0 0 0 / 0.35); }
+.app i { display: block; width: 64px; height: 64px; border-radius: 14px; background: rgb(255 255 255 / 0.35); }
+.tile { position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 14px; overflow: hidden; background: var(--b-bg); }
+.tile.ink { background: var(--b-ink); }
+.tile img { width: 44px; height: 44px; }
+.tile .cat { width: 64px; height: 64px; background-size: 74% auto; }
+.tile.big-tile { width: 180px; height: 180px; border-radius: 40px; box-shadow: 0 0 0 1px var(--board-line); }
+.tile.big-tile img { width: 124px; height: 124px; }
+.tile.big-tile .cat { width: 180px; height: 180px; }
+.home-cols { display: flex; gap: 64px; align-items: flex-start; }
+.home-notes { width: 520px; display: grid; gap: 12px; font: 400 14px/22px var(--sans); color: var(--board-ink2); }
+.home-notes b { color: var(--board-ink); }
+.apple-row { display: flex; gap: 24px; }
+.apple-row .cell-cap { text-align: center; }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ───────── 개요 ───────── -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 파비콘 시안">
+    <h1>파비콘 시안</h1>
+    <p class="brief-lead">바꾸기 전 탭에는 Next.js 기본 아이콘이 떴어요. 시끌북적만의 작은 표지를 네 가지로 그려 봤어요. A·B·C는 <b>16칸 모눈 위에 직각으로만</b> 그려서, 탭 크기(16px)에서도 번지지 않고 점 하나하나가 그대로 찍혀요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>어디에 보이나</h3>
+        <p><b>브라우저 탭·북마크</b> 16px(레티나 32px). 탭을 여러 개 열어 둔 사람에게는 이게 시끌북적의 얼굴이에요.</p>
+        <p><b>어두운 탭</b> 다크 모드 브라우저의 검은 탭 줄 위.</p>
+        <p><b>휴대폰 홈 화면</b> "홈 화면에 추가"를 하면 180px 아이콘으로 보여요.</p>
+      </div>
+      <div>
+        <h3>공통 규칙</h3>
+        <p><b>정사각 한 칸을 꽉 채운다</b> B 시간표의 칸처럼. 바탕이 투명하지 않아서 어떤 탭 색 위에서도 모양이 같아요.</p>
+        <p><b>잉크·종이·빨강 세 가지</b> 화면과 같은 값(<code>#111</code> <code>#fff</code> <code>#d0281b</code>). 빨강은 한 군데에만.</p>
+        <p><b>어두운 탭에서는 뒤집는다</b> SVG 안에서 다크 모드를 알아채 잉크와 종이를 바꿔요(<code>prefers-color-scheme</code>). 이걸 모르는 브라우저는 밝은 판을 그대로 보여 줘요.</p>
+      </div>
+      <div>
+        <h3>네 가지</h3>
+        <ul class="pick">
+          <li><img src="../assets/favicon/a-book-letter-light.svg" alt=""><span><b>A 북 칸</b><span class="rec">채택</span> 이름의 말장난 '북'(book)을 검은 칸에 흰 글자로. 넷 중 16px에서 가장 또렷해요.</span></li>
+          <li><img src="../assets/favicon/b-open-book-light.svg" alt=""><span><b>B 시끌한 책</b> 펼친 책 위로 빨간 소리 표시. 글을 몰라도 '책 + 시끌시끌'이 읽혀요.</span></li>
+          <li><img src="../assets/favicon/c-shelf-light.svg" alt=""><span><b>C 책 더미</b> 쌓인 책 네 권 중 한 권만 빨강. 16px에서도 바로 책으로 보여요.</span></li>
+          <li><span class="cat"></span><span><b>D 검은 고양이</b> 같이 읽는 중의 고양이 스티커를 그대로. 홈 화면에서 가장 귀여워요.</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="not-code"><b>A로 정함</b> A는 <code>src/app/icon.svg</code>(어두운 탭에서 뒤집힘) · <code>src/app/favicon.ico</code>(16·32·48) · <code>src/app/apple-icon.png</code>(180)로 들어갔어요. "이전"은 바꾸기 전 기본 아이콘, B·C·D는 처음 시안 그대로 남겨 둔 것이고 코드에 없어요.</p>
+  </section>
+
+  <!-- ───────── 탭에서 보면 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <div class="no">↳</div>
+      <div><h2>탭에서 보면</h2><p class="sub">실제 크기 16px · 탭 세 개 중 둘이 시끌북적</p></div>
+      <div class="notes">
+        <div><b>무엇을 보나</b>다른 탭 사이에서 한눈에 찾아지는지. 회색 칸은 다른 사이트 자리예요.</div>
+        <div><b>레티나 화면</b>이 보드는 화면 배율대로 그려져요. 1배 화면에서 찍히는 점은 각 안의 "1배 화면 16px" 칸에서 봐요.</div>
+        <div><b>이전</b>Next.js를 처음 만들 때 들어 있던 기본 아이콘이에요.</div>
+      </div>
+    </div>
+    <div class="frame" data-doan-frame="tabs" data-doan-title="탭에서 보면 · 실제 크기">
+      <div class="tabs-grid">
+        <span></span><span class="th">밝은 탭</span><span class="th">어두운 탭</span>
+
+        <div class="lab">이전<span>기본 아이콘</span></div>
+        <div class="strip lt"><div class="tab on"><img src="../assets/favicon/now.png" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/now.png" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+        <div class="strip dk"><div class="tab on"><img src="../assets/favicon/now.png" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/now.png" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+
+        <div class="lab">A<span>북 칸</span></div>
+        <div class="strip lt" data-doan-id="tabs-a-light"><div class="tab on"><img src="../assets/favicon/a-book-letter-light.svg" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/a-book-letter-light.svg" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+        <div class="strip dk" data-doan-id="tabs-a-dark"><div class="tab on"><img src="../assets/favicon/a-book-letter-dark.svg" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/a-book-letter-dark.svg" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+
+        <div class="lab">B<span>시끌한 책</span></div>
+        <div class="strip lt" data-doan-id="tabs-b-light"><div class="tab on"><img src="../assets/favicon/b-open-book-light.svg" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/b-open-book-light.svg" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+        <div class="strip dk" data-doan-id="tabs-b-dark"><div class="tab on"><img src="../assets/favicon/b-open-book-dark.svg" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/b-open-book-dark.svg" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+
+        <div class="lab">C<span>책 더미</span></div>
+        <div class="strip lt" data-doan-id="tabs-c-light"><div class="tab on"><img src="../assets/favicon/c-shelf-light.svg" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/c-shelf-light.svg" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+        <div class="strip dk" data-doan-id="tabs-c-dark"><div class="tab on"><img src="../assets/favicon/c-shelf-dark.svg" alt=""><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><img src="../assets/favicon/c-shelf-dark.svg" alt=""><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+
+        <div class="lab">D<span>검은 고양이</span></div>
+        <div class="strip lt" data-doan-id="tabs-d-light"><div class="tab on"><span class="cat"></span><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="cat"></span><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+        <div class="strip dk" data-doan-id="tabs-d-dark"><div class="tab on"><span class="cat"></span><span class="t">홈 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="cat"></span><span class="t">구매 요청 · 시끌북적</span><span class="x">×</span></div><div class="tab"><span class="other"></span><span class="t">다른 사이트</span><span class="x">×</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── A 북 칸 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <div class="no">A</div>
+      <div><h2>북 칸</h2><p class="sub">검은 칸 + 흰 '북' · 16칸 모눈 글자</p></div>
+      <div class="notes">
+        <div><b>좋은 점</b>시끌<u>북</u>적의 말장난을 그대로 담아요. 지금 화면·지금 단계를 검게 뒤집는 B 시간표 말투와 같고, 넷 중 16px에서 가장 또렷해요.</div>
+        <div><b>아쉬운 점</b>한글을 모르는 사람에겐 그냥 글자예요. 모바일 위 막대의 내 이니셜 칸(<code>.mono</code>)과 모양이 같아서, 둘을 나란히 두면 헷갈릴 수 있어요.</div>
+        <div><b>왜 글꼴이 아니라 칸으로</b>SVG 파비콘은 웹 글꼴을 불러오지 못해서 Pretendard로 쓰면 기기마다 다른 글꼴로 나와요. 그래서 '북'을 16칸 모눈에 직접 지었어요.</div>
+      </div>
+    </div>
+    <div class="frame" data-doan-frame="a" data-doan-title="A 북 칸" data-doan-implements="src/app/icon.svg">
+      <div class="row">
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 밝은 탭</span></p><img class="big" data-doan-id="a-big-light" src="../assets/favicon/a-book-letter-light.svg" alt="A 북 칸"></div>
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 어두운 탭 (뒤집힘)</span></p><img class="big" data-doan-id="a-big-dark" src="../assets/favicon/a-book-letter-dark.svg" alt=""></div>
+        <div class="cell"><p class="cell-cap">1배 화면 16px <span>· 8배 확대</span></p><div class="px"><canvas data-px="../assets/favicon/a-book-letter-light.svg"></canvas></div></div>
+        <div class="cell"><p class="cell-cap">실제 크기 <span>48 · 32 · 16</span></p>
+          <div class="ladder lt"><img src="../assets/favicon/a-book-letter-light.svg" width="48" height="48" alt=""><img src="../assets/favicon/a-book-letter-light.svg" width="32" height="32" alt=""><img src="../assets/favicon/a-book-letter-light.svg" width="16" height="16" alt=""></div>
+          <div class="ladder dk"><img src="../assets/favicon/a-book-letter-dark.svg" width="48" height="48" alt=""><img src="../assets/favicon/a-book-letter-dark.svg" width="32" height="32" alt=""><img src="../assets/favicon/a-book-letter-dark.svg" width="16" height="16" alt=""></div>
+        </div>
+        <div class="cell"><p class="cell-cap">홈 화면 180 <span>· 검은 바탕 가운데 '북'</span></p><div class="tile ink big-tile" data-doan-id="a-apple"><img src="../assets/favicon/a-book-letter-light.svg" alt=""></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── B 시끌한 책 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <div class="no">B</div>
+      <div><h2>시끌한 책</h2><p class="sub">펼친 책 + 빨간 소리 표시</p></div>
+      <div class="notes">
+        <div><b>좋은 점</b>글자 없이 '책 + 시끌시끌'이 읽혀요. 탭 줄에서 빨강이 작게 반짝여서 눈에 띄어요.</div>
+        <div><b>아쉬운 점</b>선이 1px이라 넷 중 가장 가늘어요. 16px에서 소리 표시는 점 몇 개로 줄어서, "새 알림"처럼 보일 수도 있어요.</div>
+        <div><b>빨강</b>"마감과 해야 할 일에만 빨강" 규칙에서 살짝 벗어나요. 소리 표시를 잉크색으로 바꾸면 규칙 안으로 들어와요.</div>
+      </div>
+    </div>
+    <div class="frame" data-doan-frame="b" data-doan-title="B 시끌한 책">
+      <div class="row">
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 밝은 탭</span></p><img class="big" data-doan-id="b-big-light" src="../assets/favicon/b-open-book-light.svg" alt="B 시끌한 책"></div>
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 어두운 탭 (뒤집힘)</span></p><img class="big" data-doan-id="b-big-dark" src="../assets/favicon/b-open-book-dark.svg" alt=""></div>
+        <div class="cell"><p class="cell-cap">1배 화면 16px <span>· 8배 확대</span></p><div class="px"><canvas data-px="../assets/favicon/b-open-book-light.svg"></canvas></div></div>
+        <div class="cell"><p class="cell-cap">실제 크기 <span>48 · 32 · 16</span></p>
+          <div class="ladder lt"><img src="../assets/favicon/b-open-book-light.svg" width="48" height="48" alt=""><img src="../assets/favicon/b-open-book-light.svg" width="32" height="32" alt=""><img src="../assets/favicon/b-open-book-light.svg" width="16" height="16" alt=""></div>
+          <div class="ladder dk"><img src="../assets/favicon/b-open-book-dark.svg" width="48" height="48" alt=""><img src="../assets/favicon/b-open-book-dark.svg" width="32" height="32" alt=""><img src="../assets/favicon/b-open-book-dark.svg" width="16" height="16" alt=""></div>
+        </div>
+        <div class="cell"><p class="cell-cap">홈 화면 180 <span>· 흰 바탕</span></p><div class="tile big-tile" data-doan-id="b-apple"><img src="../assets/favicon/b-open-book-light.svg" alt=""></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── C 책 더미 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <div class="no">C</div>
+      <div><h2>책 더미</h2><p class="sub">쌓인 책 네 권 · 한 권만 빨강</p></div>
+      <div class="notes">
+        <div><b>좋은 점</b>책등(왼쪽·오른쪽 굵은 칸)과 흰 책장 줄 덕분에 16px에서도 바로 책으로 보여요. 칸 하나만 빨강이라 B 시간표 규칙과 닮았어요.</div>
+        <div><b>아쉬운 점</b>이름과의 연결은 약해요. 쌓인 책은 흔한 모양이라 다른 독서 서비스와 겹칠 수 있어요.</div>
+        <div><b>처음 그림에서 바꾼 것</b>책을 세워 꽂은 책장도 그려 봤는데, 16px에서 막대그래프처럼 보여서 눕혔어요.</div>
+      </div>
+    </div>
+    <div class="frame" data-doan-frame="c" data-doan-title="C 책 더미">
+      <div class="row">
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 밝은 탭</span></p><img class="big" data-doan-id="c-big-light" src="../assets/favicon/c-shelf-light.svg" alt="C 책 더미"></div>
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 어두운 탭 (뒤집힘)</span></p><img class="big" data-doan-id="c-big-dark" src="../assets/favicon/c-shelf-dark.svg" alt=""></div>
+        <div class="cell"><p class="cell-cap">1배 화면 16px <span>· 8배 확대</span></p><div class="px"><canvas data-px="../assets/favicon/c-shelf-light.svg"></canvas></div></div>
+        <div class="cell"><p class="cell-cap">실제 크기 <span>48 · 32 · 16</span></p>
+          <div class="ladder lt"><img src="../assets/favicon/c-shelf-light.svg" width="48" height="48" alt=""><img src="../assets/favicon/c-shelf-light.svg" width="32" height="32" alt=""><img src="../assets/favicon/c-shelf-light.svg" width="16" height="16" alt=""></div>
+          <div class="ladder dk"><img src="../assets/favicon/c-shelf-dark.svg" width="48" height="48" alt=""><img src="../assets/favicon/c-shelf-dark.svg" width="32" height="32" alt=""><img src="../assets/favicon/c-shelf-dark.svg" width="16" height="16" alt=""></div>
+        </div>
+        <div class="cell"><p class="cell-cap">홈 화면 180 <span>· 흰 바탕</span></p><div class="tile big-tile" data-doan-id="c-apple"><img src="../assets/favicon/c-shelf-light.svg" alt=""></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── D 검은 고양이 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <div class="no">D</div>
+      <div><h2>검은 고양이</h2><p class="sub">같이 읽는 중 12번 스티커 · 흰 칸 위</p></div>
+      <div class="notes">
+        <div><b>좋은 점</b>같이 읽는 중에서 만난 친구를 탭에서도 다시 만나요. 홈 화면 180px에서는 넷 중 가장 귀엽고 따뜻해요.</div>
+        <div><b>아쉬운 점</b>16px에서는 초록 눈과 표정이 사라지고 검은 덩어리 + 주황 책만 남아요. 흑백·빨강뿐인 화면에서 유일하게 다른 색(주황·초록)을 써요.</div>
+        <div><b>파일</b>그림이라 SVG가 아니라 PNG로만 만들어요. 고양이가 검어서 어두운 탭에서도 흰 칸을 그대로 둬요(뒤집지 않음).</div>
+      </div>
+    </div>
+    <div class="frame" data-doan-frame="d" data-doan-title="D 검은 고양이">
+      <div class="row">
+        <div class="cell"><p class="cell-cap">큰 그림 <span>· 밝은 탭</span></p><span class="big cat" data-doan-id="d-big" role="img" aria-label="D 검은 고양이"></span></div>
+        <div class="cell"><p class="cell-cap">1배 화면 16px <span>· 8배 확대</span></p><div class="px"><canvas data-px="../assets/reading-room/12-black-cat.png" data-bg="#ffffff" data-fit="0.88"></canvas></div></div>
+        <div class="cell"><p class="cell-cap">실제 크기 <span>48 · 32 · 16</span></p>
+          <div class="ladder lt"><span class="cat" style="width:48px;height:48px"></span><span class="cat" style="width:32px;height:32px"></span><span class="cat" style="width:16px;height:16px"></span></div>
+          <div class="ladder dk"><span class="cat" style="width:48px;height:48px"></span><span class="cat" style="width:32px;height:32px"></span><span class="cat" style="width:16px;height:16px"></span></div>
+        </div>
+        <div class="cell"><p class="cell-cap">홈 화면 180 <span>· 흰 바탕</span></p><div class="tile big-tile" data-doan-id="d-apple"><span class="cat"></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 휴대폰 홈 화면 ───────── -->
+  <section class="page">
+    <div class="page-top">
+      <div class="no">↳</div>
+      <div><h2>휴대폰 홈 화면</h2><p class="sub">"홈 화면에 추가" · apple-icon 180px</p></div>
+      <div class="notes">
+        <div><b>모서리</b>휴대폰이 알아서 둥글게 잘라요. 파일은 직각 정사각으로 만들고, 그림은 가운데 70% 안에 둬요.</div>
+        <div><b>바탕</b>투명하면 휴대폰이 검게 채워요. 그래서 네 안 모두 칸 색(A 검정, B·C·D 흰색)으로 꽉 채워요.</div>
+        <div><b>이름</b>아이콘 아래 이름은 사이트 제목 "시끌북적"이 들어가요.</div>
+      </div>
+    </div>
+    <div class="frame" data-doan-frame="home-screen" data-doan-title="휴대폰 홈 화면 · 180">
+      <div class="home-cols">
+        <div class="phone">
+          <div class="apps">
+            <div class="app"><i></i>메모</div>
+            <div class="app"><i></i>사진</div>
+            <div class="app"><i></i>지도</div>
+            <div class="app"><i></i>날씨</div>
+            <div class="app"><div class="tile ink"><img src="../assets/favicon/a-book-letter-light.svg" alt=""></div>A</div>
+            <div class="app"><div class="tile"><img src="../assets/favicon/b-open-book-light.svg" alt=""></div>B</div>
+            <div class="app"><div class="tile"><img src="../assets/favicon/c-shelf-light.svg" alt=""></div>C</div>
+            <div class="app"><div class="tile"><span class="cat"></span></div>D</div>
+            <div class="app"><i></i>음악</div>
+            <div class="app"><i></i>시계</div>
+            <div class="app"><i></i>계산기</div>
+            <div class="app"><i></i>설정</div>
+          </div>
+        </div>
+        <div class="home-notes">
+          <p><b>A</b> 회색·사진 아이콘 사이에서 검은 칸이 가장 먼저 눈에 들어와요.</p>
+          <p><b>B·C</b> 흰 칸이라 밝은 배경화면에서는 테두리가 흐려져요. 그림 자체는 또렷해요.</p>
+          <p><b>D</b> 이 크기에서는 표정까지 보여서 넷 중 가장 친근해요. 탭(16px)과 홈 화면(180px)의 인상이 가장 많이 달라요.</p>
+          <p><b>섞어 쓰기</b> 탭은 A, 홈 화면은 D처럼 크기마다 다른 그림을 쓸 수도 있어요. 다만 같은 서비스로 알아보기는 어려워져요.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script>
+// 1배 화면 16px: 그림을 16×16 캔버스에 실제로 줄여 그린 뒤 CSS로 8배 키운다 (image-rendering: pixelated)
+document.querySelectorAll("canvas[data-px]").forEach((c) => {
+  c.width = 16;
+  c.height = 16;
+  const img = new Image();
+  img.onload = () => {
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    if (c.dataset.bg) {
+      ctx.fillStyle = c.dataset.bg;
+      ctx.fillRect(0, 0, 16, 16);
+    }
+    // 크기 없이 viewBox만 있는 SVG는 naturalWidth가 0일 수 있다
+    const nw = img.naturalWidth || 16, nh = img.naturalHeight || 16;
+    const fit = Number(c.dataset.fit || 1);
+    const scale = Math.min(16 / nw, 16 / nh) * fit;
+    const w = nw * scale, h = nh * scale;
+    ctx.drawImage(img, (16 - w) / 2, (16 - h) / 2, w, h);
+  };
+  img.src = c.dataset.px;
+});
+</script>
+</body>
+</html>
