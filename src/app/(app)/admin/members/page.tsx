@@ -61,7 +61,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         {unlinked > 0 && (
           <p className="note note-warn">
             <Icon name="alert" />
-            <span><b>Slack 미연결 {unlinked}명</b> · 마감 알림에서 멘션되지 않고 이름만 나가요. [연결하기]로 Slack 멤버 ID를 넣어 주세요.</span>
+            <span><b>Slack 미연결 {unlinked}명</b> · 마감 알림에서 멘션되지 않고 이름만 나가요. Slack의 &lsquo;미연결&rsquo;을 눌러 멤버 ID를 넣어 주세요.</span>
           </p>
         )}
 

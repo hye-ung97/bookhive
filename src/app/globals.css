@@ -495,14 +495,9 @@ dialog.dlg::backdrop { background: var(--overlay); }
 /* 한 줄 5칸은 날짜 칸이 좁아지기 전에 3칸으로 */
 @container app (max-width: 1179px) { .mem-form { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .mem-slack { max-width: 420px; }
-/* Slack 칸: 연결이면 상태 + Slack 이름을 한 버튼으로(올리면 연필), 미연결이면 빨간 표시 + [연결하기], 탈퇴는 비움 */
-.slk { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; height: 32px; margin: -6px -8px; padding: 0 8px; border: 0; background: none; color: var(--ink); cursor: pointer; white-space: nowrap; }
-.slk .nm { overflow: hidden; text-overflow: ellipsis; font: 500 13px/18px var(--font-sans); color: var(--ink2); }
-.slk .ic { width: 13px; height: 13px; color: var(--ink2); opacity: 0; }
-.slk:hover, .slk:focus-visible { background: var(--fill); }
-.slk:hover .ic, .slk:focus-visible .ic { opacity: 1; }
-.slk:hover .nm, .slk:focus-visible .nm { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.slk-no { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+/* Slack 칸: 상태(연결·미연결·확인 전)만 보이는 버튼. 누르면 연결 창(Slack 이름·ID·바꾸기). 탈퇴는 비움 */
+.slk { display: inline-flex; align-items: center; height: 32px; margin: -6px -6px; padding: 0 6px; border: 0; background: none; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.slk:hover .mark { text-decoration: underline; text-underline-offset: 3px; }
 .slk-dash { color: var(--past); }
 /* 모바일 줄의 Slack 글자 버튼: 미연결은 빨갛게. 누르기 쉽게 위아래 여백을 넓힌다 */
 .slk-m { display: inline; margin: -6px 0; padding: 6px 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--past); }
@@ -526,6 +521,7 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .slk-cur { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 12px 14px; background: var(--fill); }
 .slk-cur b { font: 800 15px/20px var(--font-sans); }
 .slk-cur .id { font: 500 12px/16px var(--font-sans); letter-spacing: 0.03em; color: var(--ink2); }
+.slk-cur > .msg { flex-basis: 100%; }
 
 /* 설정 (/admin/settings): 왼쪽 회차 목록 220 | 오른쪽 회차 설정·Slack 알림·새 회차. 1023px 이하는 회차 목록을 가로 칸(.m-cyc)으로 */
 .set-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: start; }

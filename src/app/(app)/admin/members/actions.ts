@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { toUserMessage } from "@/lib/errors";
-import { getSlackUser, lookupUserByEmail, slackConfig } from "@/lib/slack";
+import { getSlackUser, lookupUserByEmail, slackConfig, type SlackUserCheck } from "@/lib/slack";
 import { parseSlackId, slackIdError } from "@/lib/slack-id";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -85,6 +85,37 @@ export async function linkSlack(_prev: ActionState, formData: FormData): Promise
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath("/", "layout");
   return { ok: true, message: check.checked ? `Slack 이름 ${check.name ?? check.slackId}` : "확인 전으로 저장했어요" };
+}
+
+export type SlackNameFill = { ok: true; name: string } | { ok: false; message: string | null };
+
+/**
+ * 연결 창을 열 때 Slack 이름이 아직 없으면(예전에 이메일로 자동 연결된 ID) Slack에서 받아 저장한다.
+ * "확인 전" ID도 여기서 확인된다. 봇이 설정 전이면 아무것도 하지 않는다
+ */
+export async function fillSlackName(memberId: string): Promise<SlackNameFill> {
+  await requireAdmin();
+  if (slackConfig().dryRun) return { ok: false, message: null };
+  // 연결 정보는 RLS로 본인만 보이므로 관리자 확인 뒤 secret key로 읽는다
+  const { data: member } = await createAdminClient().from("members").select("slack_user_id").eq("id", memberId).maybeSingle();
+  if (!member?.slack_user_id) return { ok: false, message: null };
+  let user: SlackUserCheck;
+  try {
+    user = await getSlackUser(member.slack_user_id);
+  } catch {
+    return { ok: false, message: "Slack에서 이름을 불러오지 못했어요. 잠시 후 다시 열어 주세요." };
+  }
+  if (user.status !== "ok") {
+    const why = { deleted: "Slack에서 비활성화된 계정이에요.", bot: "봇 계정이에요.", not_found: "Slack에서 이 ID를 찾지 못했어요." }[user.status];
+    return { ok: false, message: `${why} 다른 ID로 바꿔 주세요.` };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_member_slack", {
+    p_id: memberId, p_slack_user_id: member.slack_user_id, p_slack_name: user.name, p_checked: true,
+  });
+  // 저장을 못 해도 창에는 보여 준다 (다음에 열 때 다시 불러온다)
+  if (!error) revalidatePath("/", "layout");
+  return { ok: true, name: user.name || member.slack_user_id };
 }
 
 export type SlackLookup = { ok: true; slackId: string; name: string } | { ok: false; message: string };
