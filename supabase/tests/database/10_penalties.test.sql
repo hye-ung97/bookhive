@@ -1,7 +1,7 @@
 -- 벌점: 멤버 누구나 읽기 (기록한 운영진은 숨김), 추가·삭제는 운영진 함수로만, 지운 기록은 감사 로그에
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(17);
 
 insert into public.members (id, name, email, role, status) values
   ('a0000000-0000-0000-0000-0000000000a1', '운영P', 'padmin@t.test', 'admin', 'active'),
@@ -22,7 +22,7 @@ end;
 $$;
 grant execute on function pg_temp.login(uuid) to authenticated;
 
-select ok(not has_function_privilege('anon', 'public.admin_add_penalty(uuid, date, int, text)', 'execute'), '비로그인은 추가 함수를 못 부름');
+select ok(not has_function_privilege('anon', 'public.admin_add_penalty(uuid, date, numeric, text)', 'execute'), '비로그인은 추가 함수를 못 부름');
 
 -- 일반 멤버: 읽기만
 select pg_temp.login('a0000000-0000-0000-0000-0000000000b2');
@@ -40,9 +40,13 @@ select pg_temp.login('a0000000-0000-0000-0000-0000000000b1');
 select lives_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 2, '  모임 불참 ') $$, '운영진은 벌점을 줌');
 select is(
   (select given_on::text || '/' || points || '/' || reason from public.penalties where reason = '모임 불참'),
-  public.kst_today()::text || '/2/모임 불참', '날짜를 비우면 오늘, 사유는 앞뒤 공백 제거');
+  public.kst_today()::text || '/2.0/모임 불참', '날짜를 비우면 오늘, 사유는 앞뒤 공백 제거');
 select throws_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 4, '사유') $$,
-  'P0001', 'PENALTY_INVALID', '점수는 1~3점');
+  'P0001', 'PENALTY_INVALID', '점수는 3점까지');
+select lives_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 0.5, '지각') $$, '0.5점도 줄 수 있음');
+select is((select points from public.penalties where reason = '지각'), 0.5::numeric, '0.5점이 그대로 남음');
+select throws_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 0.7, '사유') $$,
+  'P0001', 'PENALTY_INVALID', '점수는 0.5점 단위');
 select throws_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 1, '   ') $$,
   'P0001', 'PENALTY_INVALID', '사유는 비울 수 없음');
 select throws_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', public.kst_today() + 1, 1, '사유') $$,

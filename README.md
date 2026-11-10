@@ -103,7 +103,7 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 ```bash
 npm run typecheck && npm run lint
 npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)·벌점 누적·같이 읽는 중 자리 계산
-npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한 (171개)
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한 (174개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 

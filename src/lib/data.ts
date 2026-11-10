@@ -338,7 +338,7 @@ export async function listPenalties(memberId?: string): Promise<PenaltyRow[]> {
   if (memberId) query = query.eq("member_id", memberId);
   const { data, error } = await query;
   if (error) throw error;
-  return data as PenaltyRow[];
+  return (data as PenaltyRow[]).map((p) => ({ ...p, points: Number(p.points) }));
 }
 
 // ───────── 멤버 관리 (관리자) ─────────

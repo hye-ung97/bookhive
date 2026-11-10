@@ -61,7 +61,7 @@ export function AddPenaltyButton({ members, today }: { members: PenaltyMember[];
           <fieldset className="stack" style={{ gap: 6, border: 0, padding: 0, margin: 0 }}>
             <legend className="label">점수</legend>
             <div className="radios">
-              {[1, 2, 3].map((n) => (
+              {[0.5, 1, 2, 3].map((n) => (
                 <label key={n} className="radio">
                   <input type="radio" name="points" value={n} checked={points === n} onChange={() => setPoints(n)} />
                   {n}점

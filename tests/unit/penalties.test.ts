@@ -20,6 +20,14 @@ describe("벌점 누적", () => {
     );
     expect(totals.map((t) => [t.name, t.total])).toEqual([["박서연", 3], ["김민준", 2], ["이도윤", 2], ["정하은", 0]]);
   });
+
+  it("0.5점도 그대로 더한다", () => {
+    const totals = penaltyTotals(
+      [penalty("p1", "m1", 0.5), penalty("p2", "m1", 1), penalty("p3", "m2", 0.5)],
+      [member("m1", "이도윤"), member("m2", "박서연")],
+    );
+    expect(totals.map((t) => [t.name, t.total])).toEqual([["이도윤", 1.5], ["박서연", 0.5]]);
+  });
 });
 
 describe("벌점 표시", () => {
@@ -32,5 +40,12 @@ describe("벌점 표시", () => {
     expect(penaltyStanding(2).badge?.label).toBe("1점 남음");
     expect(penaltyStanding(3)).toMatchObject({ level: 3, badge: { label: "퇴출 대상" } });
     expect(penaltyStanding(5).level).toBe(3);
+  });
+
+  it("0.5점 단위: 1점 이하로 남으면 남은 만큼 배지, 그보다 많으면 안내만", () => {
+    expect(penaltyStanding(0.5)).toMatchObject({ level: 1, badge: null, message: "2.5점 더 받으면 퇴출돼요" });
+    expect(penaltyStanding(1.5)).toMatchObject({ level: 1, badge: null, message: "1.5점 더 받으면 퇴출돼요" });
+    expect(penaltyStanding(2.5)).toMatchObject({ level: 2, badge: { label: "0.5점 남음" }, message: "0.5점 더 받으면 퇴출돼요" });
+    expect(penaltyStanding(3.5).level).toBe(3);
   });
 });

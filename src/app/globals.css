@@ -322,10 +322,11 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .sw-cof { background: repeating-linear-gradient(135deg, var(--ink) 0 2px, var(--fill2) 2px 4px) !important; }
 .sw-pend { background: var(--red) !important; }
 .legend .over { color: var(--red); font-weight: 700; }
-/* 벌점 3칸: 받은 만큼 빨갛게 */
+/* 벌점 3칸: 받은 만큼 빨갛게, 0.5점은 왼쪽 반 칸만 */
 .pips { display: inline-flex; gap: 4px; flex: none; }
 .pips > span { width: 14px; height: 14px; border: 2px solid currentColor; }
 .pips > span.on { background: var(--red); border-color: var(--red); }
+.pips > span.half { background: linear-gradient(90deg, var(--red) 50%, transparent 50%); border-color: var(--red); }
 .pips.md > span { width: 18px; height: 18px; }
 .pips.lg { gap: 6px; }
 .pips.lg > span { width: 28px; height: 28px; }
@@ -778,7 +779,7 @@ a.doc:hover > .ic { color: var(--red); }
 .pen-mine .score { margin-top: 14px; display: flex; align-items: center; gap: 16px; font: 800 48px/1 var(--font-sans); font-variant-numeric: tabular-nums; }
 .pen-mine .score small { font-size: 18px; opacity: 0.7; }
 .pen-mine p { margin-top: 14px; font: 600 15px/22px var(--font-sans); }
-.pen-sum li { display: grid; grid-template-columns: minmax(0, 1fr) auto 40px 74px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--rule); font: 600 15px/20px var(--font-sans); }
+.pen-sum li { display: grid; grid-template-columns: minmax(0, 1fr) auto 48px 74px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--rule); font: 600 15px/20px var(--font-sans); }
 .pen-sum li.is-me, .pen-mrows li.is-me { padding-left: 12px; background: var(--fill); box-shadow: inset 4px 0 0 var(--ink); }
 .pen-sum .n { min-width: 0; overflow-wrap: anywhere; }
 .pen-sum .pts { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -956,7 +957,7 @@ html:has(> body > .login), body:has(> .login) { height: 100%; }
   .pen-grid, .pen-side { gap: 28px; }
   .pen-add { height: 52px; font-size: 16px; }
   .pen-mine .score { font-size: 40px; }
-  .pen-sum li { grid-template-columns: minmax(0, 1fr) auto 36px; }
+  .pen-sum li { grid-template-columns: minmax(0, 1fr) auto 46px; }
   .pen-sum li .mark { grid-column: 1 / -1; }
   .cyc-pick { grid-template-columns: minmax(0, 1fr); }
   .cyc-opt + .cyc-opt { margin-left: 0; margin-top: -1px; }

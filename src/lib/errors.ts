@@ -88,7 +88,7 @@ export function toUserMessage(error: DbError): string {
     case "AI_QUOTA":
       return "오늘 AI 초안 횟수를 모두 썼어요. 내일 다시 쓸 수 있어요.";
     case "PENALTY_INVALID":
-      return "점수(1~3점)·사유(100자까지)·날짜(오늘까지)를 확인해 주세요.";
+      return "점수(0.5~3점, 0.5점 단위)·사유(100자까지)·날짜(오늘까지)를 확인해 주세요.";
     case "PENALTY_NOT_FOUND":
       return "이미 지워진 벌점이에요. 새로고침해 주세요.";
     case "INVALID_SPENT":
