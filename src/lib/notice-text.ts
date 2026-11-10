@@ -5,12 +5,17 @@ import { md, won } from "./format";
 /** round: 회차 이름(12월 회차), label: 묶음 이름(yes24 1차), names: 요청자(중복 허용), count: 책 권수 */
 type Base = { round: string; label: string; names: string[]; count: number };
 
-/** 채널 메시지에는 멘션 없이 인원·권수만. 누구 책인지는 스레드(orderThreadText)에서 멘션한다 (둘 다 하면 알림이 두 번 감) */
+/**
+ * 배송완료(🚚)와 같은 택배 알림 모양으로, 첫 줄을 "📦 주문완료"로 시작해 채널·푸시 알림에서 바로 구분되게 한다.
+ * 채널 메시지에는 멘션 없이 인원·권수만. 누구 책인지는 스레드(orderThreadText)에서 멘션한다 (둘 다 하면 알림이 두 번 감)
+ */
 export function orderNoticeText({ round, label, names, count, eta }: Base & { eta: string | null }): string {
   return [
-    `[${round}] ${label} 주문을 완료했어요.`,
-    eta ? `도착 예정: ${md(eta)}` : null,
-    `${new Set(names).size}명 책 ${count}권이 곧 도착해요. 누구 책인지는 스레드에서 확인해 주세요 👇`,
+    `📦 *주문완료* · [${round}] ${label}`,
+    `주문을 마쳤어요. 책이 도착하면 다시 알려 드릴게요.`,
+    eta ? `• 도착 예정: ${md(eta)}` : null,
+    `• 받는 분: ${new Set(names).size}명 · 책 ${count}권`,
+    `누구 책인지는 스레드에서 확인해 주세요 👇`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -25,19 +30,26 @@ function bookLines(books: { name: string; title: string }[]): string[] {
 }
 
 export function orderThreadText(books: { name: string; title: string }[]): string {
-  return [`📦 이번에 주문한 책 · ${books.length}권`, ...bookLines(books)].join("\n");
+  return [`📚 이번에 주문한 책 · ${books.length}권`, ...bookLines(books)].join("\n");
 }
 
-/** 배송완료도 주문완료처럼 채널 메시지에는 인원·권수만, 누구 책인지는 스레드(deliveryThreadText)에서 멘션한다 */
+/**
+ * 택배 도착 알림처럼: 첫 줄을 "🚚 배송완료"로 시작해 채널·푸시 알림에서 주문완료와 바로 구분되게 한다.
+ * 주문완료처럼 채널 메시지에는 인원·권수만, 누구 책인지는 스레드(deliveryThreadText)에서 멘션한다
+ */
 export function deliveryNoticeText({ round, label, names, count }: Base): string {
   return [
-    `[${round}] ${label} 주문 책이 도착했어요.`,
-    `${new Set(names).size}명 책 ${count}권을 6층 총무 자리 옆에서 찾아가 주세요. 누구 책인지는 스레드에서 확인해 주세요 👇`,
+    `🚚 *배송완료* · [${round}] ${label}`,
+    `띵동! 주문한 책이 도착했어요.`,
+    `• 보관 장소: 6층 총무 자리 옆`,
+    `• 받는 분: ${new Set(names).size}명 · 책 ${count}권`,
+    `누구 책인지는 스레드에서 확인해 주세요 👇`,
   ].join("\n");
 }
 
+/** 채널 메시지의 📦·🚚는 공지 종류, 스레드의 📚는 책 목록. 주문완료 스레드(📚 이번에 주문한 책)와 같은 모양 */
 export function deliveryThreadText(books: { name: string; title: string }[]): string {
-  return [`🚚 *배송완료* (${books.length}건)`, ...bookLines(books)].join("\n");
+  return [`📚 도착한 책 · ${books.length}권`, ...bookLines(books)].join("\n");
 }
 
 // ───────── 총무 DM: 멤버가 책을 요청하거나 일지를 처음 쓸 때 (시트 시절 Slack 워크플로 알림 대신) ─────────
