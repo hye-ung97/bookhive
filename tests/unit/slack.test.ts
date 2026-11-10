@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { postFiles, postMessage, slackConfig } from "@/lib/slack";
+import { getSlackUser, lookupUserByEmail, postFiles, postMessage, slackConfig } from "@/lib/slack";
 
 type Call = { url: string; method?: string; headers?: Record<string, string>; body?: unknown };
 
@@ -81,5 +81,39 @@ describe("Slack 클라이언트", () => {
     await expect(postMessage("x")).rejects.toThrow("not_in_channel");
     mockFetch([{ status: 429, headers: { "retry-after": "30" } }]);
     await expect(postMessage("x")).rejects.toThrow("rate_limited (retry after 30s)");
+  });
+
+  it("멤버 ID 확인(users.info): 사람이면 표시 이름 → 실명 순으로 이름을 받음", async () => {
+    const calls = mockFetch([
+      { json: { ok: true, user: { id: "U05MJ8K2LQP", name: "minji", real_name: "Minji Jung", profile: { display_name: "민지 정", real_name: "Minji Jung" } } } },
+      { json: { ok: true, user: { id: "U05MJ8K2LQP", name: "minji", profile: { display_name: "", real_name: "Minji Jung" } } } },
+    ]);
+    await expect(getSlackUser("U05MJ8K2LQP")).resolves.toEqual({ status: "ok", id: "U05MJ8K2LQP", name: "민지 정" });
+    expect(calls[0].url).toBe("https://slack.com/api/users.info");
+    expect(form(calls[0].body)).toEqual({ user: "U05MJ8K2LQP" });
+    await expect(getSlackUser("U05MJ8K2LQP")).resolves.toEqual({ status: "ok", id: "U05MJ8K2LQP", name: "Minji Jung" });
+  });
+
+  it("멤버 ID 확인: 없는 ID·비활성 계정·봇은 상태로, 토큰 오류는 예외로", async () => {
+    mockFetch([
+      { json: { ok: false, error: "user_not_found" } },
+      { json: { ok: true, user: { id: "U1", deleted: true } } },
+      { json: { ok: true, user: { id: "U2", is_bot: true } } },
+      { json: { ok: false, error: "invalid_auth" } },
+    ]);
+    await expect(getSlackUser("U04AB12CD3X")).resolves.toEqual({ status: "not_found" });
+    await expect(getSlackUser("U1")).resolves.toEqual({ status: "deleted" });
+    await expect(getSlackUser("U2")).resolves.toEqual({ status: "bot" });
+    await expect(getSlackUser("U3")).rejects.toThrow("invalid_auth");
+  });
+
+  it("이메일로 찾기: ID와 이름, 못 찾으면 null", async () => {
+    const calls = mockFetch([
+      { json: { ok: true, user: { id: "U05MJ8K2LQP", profile: { display_name: "민지 정" } } } },
+      { json: { ok: false, error: "users_not_found" } },
+    ]);
+    await expect(lookupUserByEmail("minji.jung@company.com")).resolves.toEqual({ id: "U05MJ8K2LQP", name: "민지 정" });
+    expect(calls[0].url).toBe("https://slack.com/api/users.lookupByEmail");
+    await expect(lookupUserByEmail("nobody@company.com")).resolves.toBeNull();
   });
 });

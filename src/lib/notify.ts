@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "./supabase/admin";
-import { lookupUserIdByEmail, postFiles, postMessage, slackConfig } from "./slack";
+import { getSlackUser, lookupUserByEmail, postFiles, postMessage, slackConfig } from "./slack";
 
 export type NoticeKind = "order_done" | "delivery_done" | "request_reminder" | "journal_reminder" | "new_request" | "new_journal";
 export type NoticeResult = { status: "sent" | "skipped" | "failed" | "already"; error?: string };
@@ -10,19 +10,41 @@ export type NoticeThread = { text: string; fallback: string; button?: { text: st
 /** 공지 기록(message)은 "채널 문구\n└ 스레드 본문". 다시 보낼 때 채널 문구만 꺼낸다 (스레드는 새로 만든다) */
 export const channelTextOf = (message: string) => message.split("\n└ ")[0];
 
-/** "@이름"을 Slack 멘션(<@U…>)으로. Slack ID가 없으면 이메일로 찾아 저장하고, 못 찾으면 이름만 남긴다 */
+type SlackMember = { id: string; email: string; slack_user_id: string | null; slack_name: string | null };
+
+/**
+ * 멤버의 Slack ID (실제로 보낼 때만 부른다).
+ * - ID가 없으면 이메일로 찾아 ID·이름을 저장한다 (멤버 화면 "미연결"의 자동 연결)
+ * - ID만 있고 이름이 없으면("확인 전": 봇 설정 전에 넣은 ID) Slack에서 확인해 이름을 채운다. 없는 계정이면 멘션하지 않는다
+ */
+async function resolveSlackId(db: ReturnType<typeof createAdminClient>, m: SlackMember): Promise<string | null> {
+  if (!m.slack_user_id) {
+    const found = await lookupUserByEmail(m.email);
+    // 같은 Slack 계정이 다른 멤버에 이미 연결돼 있으면 unique 인덱스가 막는다(저장만 안 되고 이번 멘션은 그대로)
+    if (found) await db.from("members").update({ slack_user_id: found.id, slack_name: found.name || null }).eq("id", m.id);
+    return found?.id ?? null;
+  }
+  if (!m.slack_name) {
+    try {
+      const user = await getSlackUser(m.slack_user_id);
+      if (user.status !== "ok") return null;
+      await db.from("members").update({ slack_name: user.name || null }).eq("id", m.id);
+    } catch {
+      // Slack 확인이 잠깐 안 되면 넣어 둔 ID로 그대로 보낸다
+    }
+  }
+  return m.slack_user_id;
+}
+
+/** "@이름"을 Slack 멘션(<@U…>)으로. Slack 계정을 못 찾은 멤버는 이름만 굵게 남긴다 */
 async function toSlackText(text: string): Promise<string> {
   const db = createAdminClient();
-  const { data: members } = await db.from("members").select("id, name, email, slack_user_id").eq("status", "active");
+  const { data: members } = await db.from("members").select("id, name, email, slack_user_id, slack_name").eq("status", "active");
   let out = text;
   // 긴 이름부터 바꿔야 "@김하늘"이 "@김하"로 잘리지 않는다
   for (const m of [...(members ?? [])].sort((a, b) => b.name.length - a.name.length)) {
     if (!out.includes(`@${m.name}`)) continue;
-    let id: string | null = m.slack_user_id;
-    if (!id && !slackConfig().dryRun) {
-      id = await lookupUserIdByEmail(m.email);
-      if (id) await db.from("members").update({ slack_user_id: id }).eq("id", m.id);
-    }
+    const id = slackConfig().dryRun ? m.slack_user_id : await resolveSlackId(db, m);
     out = out.replaceAll(`@${m.name}`, id ? `<@${id}>` : `*${m.name}*`);
   }
   return out;
@@ -33,17 +55,13 @@ async function treasurerSlackIds(): Promise<string[]> {
   const db = createAdminClient();
   const { data: members } = await db
     .from("members")
-    .select("id, email, slack_user_id")
+    .select("id, email, slack_user_id, slack_name")
     .eq("status", "active")
     .eq("role", "admin")
     .ilike("role_title", "%총무%");
   const ids: string[] = [];
   for (const m of members ?? []) {
-    let id: string | null = m.slack_user_id;
-    if (!id) {
-      id = await lookupUserIdByEmail(m.email);
-      if (id) await db.from("members").update({ slack_user_id: id }).eq("id", m.id);
-    }
+    const id = await resolveSlackId(db, m);
     if (id) ids.push(id);
   }
   if (!ids.length) throw new Error(members?.length ? "총무의 Slack 계정을 이메일로 찾지 못했어요" : "직함이 총무인 운영진이 없어요");

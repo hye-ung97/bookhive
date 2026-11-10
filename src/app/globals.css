@@ -494,6 +494,38 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .mem-add-m .mem-submit .btn { height: 52px; font-size: 16px; }
 /* 한 줄 5칸은 날짜 칸이 좁아지기 전에 3칸으로 */
 @container app (max-width: 1179px) { .mem-form { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.mem-slack { max-width: 420px; }
+/* Slack 칸: 연결이면 상태 + Slack 이름을 한 버튼으로(올리면 연필), 미연결이면 빨간 표시 + [연결하기], 탈퇴는 비움 */
+.slk { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; height: 32px; margin: -6px -8px; padding: 0 8px; border: 0; background: none; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.slk .nm { overflow: hidden; text-overflow: ellipsis; font: 500 13px/18px var(--font-sans); color: var(--ink2); }
+.slk .ic { width: 13px; height: 13px; color: var(--ink2); opacity: 0; }
+.slk:hover, .slk:focus-visible { background: var(--fill); }
+.slk:hover .ic, .slk:focus-visible .ic { opacity: 1; }
+.slk:hover .nm, .slk:focus-visible .nm { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.slk-no { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.slk-dash { color: var(--past); }
+/* 모바일 줄의 Slack 글자 버튼: 미연결은 빨갛게. 누르기 쉽게 위아래 여백을 넓힌다 */
+.slk-m { display: inline; margin: -6px 0; padding: 6px 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--past); }
+.slk-m.no { color: var(--red); font-weight: 700; text-decoration-color: currentColor; }
+/* 방금 연결한 줄 */
+.mem-tbl tr.is-new td { background: var(--fill); }
+.mem-tbl tr.is-new td:first-child { box-shadow: inset 4px 0 0 var(--ok); padding-left: 12px; }
+.mem-rows > li.is-new { padding-left: 12px; padding-right: 8px; background: var(--fill); box-shadow: inset 4px 0 0 var(--ok); }
+/* 연결 창 */
+.slk-id { letter-spacing: 0.03em; }
+.slk-how-t { margin-bottom: -8px; font: 700 12px/16px var(--font-sans); color: var(--ink2); }
+.slk-how { border: 1px solid var(--rule); }
+.slk-how li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; padding: 8px 12px; font: 500 13px/19px var(--font-sans); color: var(--ink2); }
+.slk-how li + li { border-top: 1px solid var(--rule); }
+.slk-how li b { font: 800 12px/19px var(--font-sans); color: var(--ink); }
+.slk-how li em { font-style: normal; font-weight: 700; color: var(--ink); }
+.slk-or { display: flex; align-items: center; gap: 12px; font: 600 12px/16px var(--font-sans); color: var(--ink2); }
+.slk-or::before, .slk-or::after { content: ""; flex: 1; border-top: 1px solid var(--rule); }
+.slk-mail { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+.slk-mail > .msg { grid-column: 1 / -1; }
+.slk-cur { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 12px 14px; background: var(--fill); }
+.slk-cur b { font: 800 15px/20px var(--font-sans); }
+.slk-cur .id { font: 500 12px/16px var(--font-sans); letter-spacing: 0.03em; color: var(--ink2); }
 
 /* 설정 (/admin/settings): 왼쪽 회차 목록 220 | 오른쪽 회차 설정·Slack 알림·새 회차. 1023px 이하는 회차 목록을 가로 칸(.m-cyc)으로 */
 .set-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: start; }
@@ -645,6 +677,11 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .slack-thread { display: grid; gap: 4px; margin-top: 6px; padding-left: 12px; border-left: 2px solid var(--rule); }
 .slack-btn { justify-self: start; display: inline-flex; align-items: center; height: 28px; margin-top: 4px; padding: 0 12px; background: var(--ink); color: var(--on); font: 700 13px/1 var(--font-sans); }
 .mention { color: var(--red); font-weight: 700; }
+/* Slack 미연결이라 멘션 없이 굵은 이름으로만 나가는 사람 (미리보기에서 빨간 점선) */
+.slk-plain { font-weight: 700; text-decoration: underline dashed var(--red); text-underline-offset: 3px; }
+/* 설정 알림 대상 칩 안의 미연결·확인 전 표시 */
+.chip .mark { font-size: 12px; }
+.chip .mark::before { width: 6px; height: 6px; }
 .slack-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .slack-files img { width: 112px; height: 84px; object-fit: cover; border: 1px solid var(--rule); background: var(--bg); }
 .slack-file { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 6px 8px; border: 1px solid var(--rule); background: var(--bg); font: 500 12px/16px var(--font-sans); overflow-wrap: anywhere; }

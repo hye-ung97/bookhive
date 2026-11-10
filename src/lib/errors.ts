@@ -53,6 +53,14 @@ export function toUserMessage(error: DbError): string {
       return "마지막 관리자는 바꾸거나 탈퇴 처리할 수 없어요. 다른 관리자를 먼저 지정해 주세요.";
     case "MEMBER_NOT_FOUND":
       return "멤버를 찾을 수 없어요. 새로고침해 주세요.";
+    case "SLACK_ID_INVALID":
+      return "Slack 멤버 ID는 U로 시작하는 영문·숫자예요 (예: U04AB12CD3E).";
+    case "SLACK_ID_TAKEN": {
+      const who = (detail as unknown as { name?: string }).name;
+      return who
+        ? `이 ID는 이미 ${who} 님에게 연결돼 있어요. 잘못 넣었다면 ${who} 님 Slack 칸을 먼저 바꿔 주세요.`
+        : "이 ID는 이미 다른 멤버에게 연결돼 있어요.";
+    }
     case "CYCLE_EXISTS":
       return "이미 만든 회차예요.";
     case "INVALID_TRANSITION":

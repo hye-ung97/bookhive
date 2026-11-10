@@ -350,7 +350,9 @@ export type AdminMember = {
   role: "admin" | "member";
   role_title: string | null;
   status: "active" | "left";
-  slack_linked: boolean;
+  slack_user_id: string | null;
+  /** 저장할 때 Slack에서 확인한 이름. ID만 있고 이름이 없으면 "확인 전" */
+  slack_name: string | null;
   signed_in: boolean;
   joined_on: string | null;
   left_on: string | null;

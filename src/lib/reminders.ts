@@ -10,7 +10,8 @@ import { createAdminClient } from "./supabase/admin";
 // 회차를 다음 단계로 넘기면 대상에서 빠져 자동으로 멈춘다.
 
 export type ReminderKind = "request_reminder" | "journal_reminder";
-export type ReminderTarget = { memberId: string; name: string; slackConnected: boolean };
+/** slackConnected: Slack ID가 있음(멘션됨) · slackChecked: 그 ID를 Slack에서 확인함 (ID만 있고 확인 안 했으면 "확인 전") */
+export type ReminderTarget = { memberId: string; name: string; slackConnected: boolean; slackChecked: boolean };
 export type DueReminder = {
   kind: ReminderKind;
   cycleId: string;
@@ -37,7 +38,7 @@ export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = a
 
   const db = createAdminClient();
   const [{ data: participants }, { data: requests }, { data: journals }] = await Promise.all([
-    db.from("cycle_participants").select("member_id, skip_reminders, members!inner(name, status, slack_user_id)").eq("cycle_id", cycle.id),
+    db.from("cycle_participants").select("member_id, skip_reminders, members!inner(name, status, slack_user_id, slack_name)").eq("cycle_id", cycle.id),
     db.from("purchase_requests").select("member_id").eq("cycle_id", cycle.id).is("cancelled_at", null),
     db.from("journals").select("member_id").eq("cycle_id", cycle.id),
   ]);
@@ -45,11 +46,16 @@ export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = a
   const wrote = new Set((journals ?? []).map((j) => j.member_id as string));
 
   const pending = (participants ?? [])
-    .map((p) => ({ ...p, member: p.members as unknown as { name: string; status: string; slack_user_id: string | null } }))
+    .map((p) => ({ ...p, member: p.members as unknown as { name: string; status: string; slack_user_id: string | null; slack_name: string | null } }))
     .filter((p) => p.member.status === "active")
     .filter((p) => (kind === "request_reminder" ? !requested.has(p.member_id) : requested.has(p.member_id) && !wrote.has(p.member_id)))
     .sort((a, b) => a.member.name.localeCompare(b.member.name, "ko"));
-  const toTarget = (p: (typeof pending)[number]) => ({ memberId: p.member_id as string, name: p.member.name, slackConnected: Boolean(p.member.slack_user_id) });
+  const toTarget = (p: (typeof pending)[number]) => ({
+    memberId: p.member_id as string,
+    name: p.member.name,
+    slackConnected: Boolean(p.member.slack_user_id),
+    slackChecked: Boolean(p.member.slack_user_id && p.member.slack_name),
+  });
   return {
     kind, cycleId: cycle.id, month: cycle.month, deadline,
     targets: pending.filter((p) => !p.skip_reminders).map(toTarget),

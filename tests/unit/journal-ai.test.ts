@@ -96,7 +96,7 @@ describe("공급자 요청 형식", () => {
 describe("마감 알림 문구 (시트 시절 Apps Script 방식)", () => {
   const base = {
     cycleId: "c", month: "2026-12-01", skipped: [],
-    targets: [{ memberId: "1", name: "김하늘", slackConnected: true }, { memberId: "2", name: "박서준", slackConnected: false }],
+    targets: [{ memberId: "1", name: "김하늘", slackConnected: true, slackChecked: true }, { memberId: "2", name: "박서준", slackConnected: false, slackChecked: false }],
   };
   const site = "https://club.example";
 

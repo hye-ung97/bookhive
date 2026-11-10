@@ -45,6 +45,7 @@ npm run dev                 # http://localhost:3000
 - 마감 알림: 매일 오전 9시대(Vercel Cron `0 0 * * *` UTC) `/api/cron/daily`가 마감일이 지난 회차의 미제출자를 동아리 채널에 멘션한다. 요청 마감 알림은 [요청 마감하기], 일지 알림은 [회차 마감하기]를 누르면 멈춘다. 같은 날 두 번 불려도 한 번만 나간다
 - 관리자 > 설정 > Slack 알림: 대상·문구 미리보기, [지금 보내기], 발송 기록
 - 총무 알림: 멤버가 책을 요청하거나 일지를 처음 쓰면 봇이 총무(운영진 중 직함에 "총무"가 들어간 사람)에게 DM을 보낸다(시트 시절 Slack 워크플로 알림 대신). 요청·일지마다 한 번, 응답을 보낸 뒤(`after`) 보내서 멤버는 기다리지 않는다. 일지를 고쳐 써도 다시 보내지 않는다
+- 멤버 Slack 연결: 관리자 > 멤버의 Slack 칸을 눌러 Slack 멤버 ID(U…, 프로필 → ⋮ → 멤버 ID 복사)를 넣는다. 프로필 링크를 붙여 넣어도 된다. 저장할 때 `users.info`로 사람 계정인지 확인하고 Slack 이름(`members.slack_name`)을 같이 남겨 표에 보여 준다. 같은 ID는 두 멤버에 못 넣는다(unique). [이메일로 찾기]는 Google 이메일로 `users.lookupByEmail`. 연결 끊기는 없다: 비어 있으면 알림을 보낼 때 이메일로 찾아 자동 연결하기 때문. 봇이 설정 전이면 형식만 보고 "확인 전"으로 저장하고, 봇 설정 뒤 첫 알림 때 확인해 이름을 채운다(없는 계정이면 멘션하지 않음)
 
 AI 키: `GEMINI_API_KEY`(https://aistudio.google.com/apikey), `GROQ_API_KEY`(https://console.groq.com/keys). 무료 등급은 입력이 학습에 쓰일 수 있어 메모에 개인정보를 넣지 않도록 화면에 안내한다. 로컬 E2E에서는 `AI_FAKE=true`로 가짜 초안을 쓴다(운영에서는 무시).
 
@@ -102,8 +103,8 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 
 ```bash
 npm run typecheck && npm run lint
-npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)·벌점 누적·같이 읽는 중 자리 계산
-npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한 (174개)
+npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·Slack 멤버 ID 입력·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)·벌점 누적·같이 읽는 중 자리 계산
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한·멤버 Slack 연결 (185개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 

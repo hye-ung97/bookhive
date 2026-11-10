@@ -30,6 +30,12 @@ describe("에러 문구", () => {
   it("한도 초과는 남은 금액을 알려줌", () => {
     expect(toUserMessage({ message: "BUDGET_EXCEEDED", details: '{"remaining":4000}' })).toContain("4,000원");
   });
+  it("Slack ID 중복은 이미 연결된 멤버 이름을 알려줌", () => {
+    expect(toUserMessage({ message: "SLACK_ID_TAKEN", details: '{"name":"이서연"}' })).toBe(
+      "이 ID는 이미 이서연 님에게 연결돼 있어요. 잘못 넣었다면 이서연 님 Slack 칸을 먼저 바꿔 주세요.",
+    );
+    expect(toUserMessage({ message: "SLACK_ID_TAKEN" })).toBe("이 ID는 이미 다른 멤버에게 연결돼 있어요.");
+  });
   it("모르는 코드는 일반 문구", () => {
     expect(toUserMessage({ message: "boom" })).toBe("처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { startTransition, useActionState, useRef, type FormEvent } from "react";
 import { Icon } from "@/components/icon";
 import type { AdminMember } from "@/lib/data";
 import { saveMember, setMemberStatus, type ActionState } from "./actions";
@@ -54,6 +54,14 @@ function Fields({ prefix, member, cycles, joinedDefault, grid }: {
           <input className="input" id={`${prefix}-joined`} name="joinedOn" type="date" defaultValue={member ? (member.joined_on ?? "") : joinedDefault} />
         </div>
       </div>
+      {/* Slack은 추가할 때만 받는다. 이미 있는 멤버는 표의 Slack 칸에서 연결·바꾸기 */}
+      {!member && (
+        <div className="field mem-slack">
+          <label className="label" htmlFor={`${prefix}-slack`}>Slack 멤버 ID <small>선택</small></label>
+          <input className="input slk-id" id={`${prefix}-slack`} name="slackId" placeholder="U04AB12CD3E" autoComplete="off" spellCheck={false} />
+          <p className="hint">비워 두면 첫 알림 때 이메일로 찾아요. 나중에 멤버 목록의 Slack에서도 넣을 수 있어요.</p>
+        </div>
+      )}
       {cycles.length > 0 && (
         <div className="mem-cycles">
           <div className="mem-check" role="group" aria-labelledby={`${prefix}-cyc`}>
@@ -80,8 +88,15 @@ export function AddMemberForm({ prefix, cycles, today }: { prefix: string; cycle
     if (result?.ok) form.current?.reset();
     return result;
   }, null);
+  // <form action>으로 넘기면 React가 끝날 때마다 폼을 비워서, Slack ID·이메일 오류 한 번에 적은 칸이 다 지워진다.
+  // 직접 보내고 성공했을 때만 비운다
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(() => action(fd));
+  };
   return (
-    <form ref={form} action={action} className="block mem-add">
+    <form ref={form} onSubmit={submit} className="block mem-add">
       <Fields prefix={prefix} cycles={cycles} joinedDefault={today} grid="mem-form" />
       <div className="row-gap mem-submit">
         <button className="btn btn-primary" type="submit" disabled={pending}>

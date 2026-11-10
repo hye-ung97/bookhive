@@ -186,7 +186,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <span>평일 오전 9시대 · 동아리 채널</span>
             </div>
             {slackConfig().dryRun && (
-              <p className="note note-warn"><Icon name="alert" />Slack이 아직 연결되지 않아 실제로 보내지 않고 기록만 남겨요.</p>
+              <p className="note note-warn"><Icon name="alert" /><span><b>Slack 봇이 아직 설정되지 않아</b> 실제로 보내지 않고 기록만 남겨요. 멤버별 Slack 연결과는 따로예요.</span></p>
             )}
             <p className="note">
               <Icon name="info" />
@@ -285,6 +285,8 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
       : `${md(deadline)}부터 평일 매일 발송 중`;
   // 지금 보낼 수 있는 알림은 오늘 기준, 아직 단계가 안 된 알림은 첫 발송일 기준 미리보기
   const previewDay = active ? today : deadline > today ? deadline : today;
+  // Slack ID가 없어 멘션되지 않는 사람 (보낼 때 이메일로 한 번 더 찾아본다)
+  const unlinked = reminder.targets.filter((t) => !t.slackConnected).map((t) => t.name);
   const message = buildReminderMessage(reminder, previewDay);
 
   const skipped = reminder.skipped.length > 0 && (
@@ -314,7 +316,8 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
             <div className="chips">
               {reminder.targets.map((t) => (
                 <form key={t.memberId} action={toggleReminderSkip} className="chip">
-                  <span>{t.name}{!t.slackConnected && <span className="muted"> · Slack 미연결</span>}</span>
+                  <span>{t.name}</span>
+                  {!t.slackConnected ? <span className="mark no">미연결</span> : !t.slackChecked && <span className="mark off">확인 전</span>}
                   <input type="hidden" name="cycleId" value={cycle.id} />
                   <input type="hidden" name="memberId" value={t.memberId} />
                   <input type="hidden" name="skip" value="1" />
@@ -325,14 +328,26 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
               ))}
             </div>
             <p className="hint">지금 기준 대상이에요. {isRequest ? "요청하면" : "일지를 쓰면"} 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
-            {reminder.targets.some((t) => !t.slackConnected) && (
-              <p className="hint">Slack 미연결 멤버는 보낼 때 이메일로 Slack 계정을 찾아 연결하고, 못 찾으면 이름만 표시돼요.</p>
+            {unlinked.length > 0 && (
+              <p className="note note-warn">
+                <Icon name="alert" />
+                <span>
+                  <b>{unlinked.join("·")}</b> 님은 Slack 미연결이라 멘션 없이 이름만 나가요(보낼 때 이메일로 한 번 더 찾아봐요).{" "}
+                  <Link className="link" href="/admin/members">멤버 화면에서 연결하기 →</Link>
+                </span>
+              </p>
+            )}
+            {reminder.targets.some((t) => t.slackConnected && !t.slackChecked) && (
+              <p className="hint">
+                <b>확인 전</b>: Slack 봇 설정 전에 ID만 넣어 둔 멤버예요. {slackConfig().dryRun ? "봇을 설정한 뒤 첫 알림 때" : "다음 알림 때"} Slack에서 확인해요.
+              </p>
             )}
             {skipped}
           </div>
           <div>
             <p className="hint">{active ? "지금 보내면 나가는 메시지" : `${md(previewDay)} 첫 알림 미리보기`}</p>
-            <SlackPreview text={message.title} thread={{ text: message.text, button: message.button?.text }} />
+            <SlackPreview text={message.title} thread={{ text: message.text, button: message.button?.text }} plain={unlinked} />
+            {unlinked.length > 0 && <p className="hint">빨간 점선 이름은 Slack 미연결이라 @ 없이 굵은 이름으로만 나가요.</p>}
             {active && <SendReminderNow cycleId={cycle.id} count={reminder.targets.length} alreadyToday={alreadyToday} />}
           </div>
         </div>

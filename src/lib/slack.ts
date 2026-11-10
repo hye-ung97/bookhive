@@ -64,11 +64,46 @@ export async function postFiles(files: { name: string; bytes: ArrayBuffer }[], o
   });
 }
 
-export async function lookupUserIdByEmail(email: string): Promise<string | null> {
+type SlackUser = {
+  id?: string;
+  name?: string;
+  real_name?: string;
+  deleted?: boolean;
+  is_bot?: boolean;
+  profile?: { display_name?: string; real_name?: string };
+};
+
+/** 화면에 보일 Slack 이름: 표시 이름 → 실명 → 사용자명 */
+const nameOf = (u: SlackUser) => u.profile?.display_name || u.profile?.real_name || u.real_name || u.name || "";
+
+/** 이메일로 Slack 계정 찾기 (Slack 가입 이메일이 같아야 찾아진다). 못 찾거나 실패하면 null */
+export async function lookupUserByEmail(email: string): Promise<{ id: string; name: string } | null> {
   try {
     const data = await call("users.lookupByEmail", { email });
-    return String((data.user as { id?: string } | undefined)?.id ?? "") || null;
+    const user = (data.user ?? {}) as SlackUser;
+    return user.id ? { id: user.id, name: nameOf(user) } : null;
   } catch {
     return null;
   }
+}
+
+export type SlackUserCheck = { status: "ok"; id: string; name: string } | { status: "not_found" | "deleted" | "bot" };
+
+/**
+ * 멤버 ID가 우리 워크스페이스의 사람 계정인지 확인 (users.info).
+ * 없는 ID·비활성 계정·봇은 상태로 돌려주고, 토큰·네트워크 오류는 예외로 던진다
+ */
+export async function getSlackUser(id: string): Promise<SlackUserCheck> {
+  let data: SlackResponse;
+  try {
+    data = await call("users.info", { user: id });
+  } catch (e) {
+    if (e instanceof Error && e.message === "user_not_found") return { status: "not_found" };
+    throw e;
+  }
+  const user = (data.user ?? {}) as SlackUser;
+  if (!user.id) return { status: "not_found" };
+  if (user.deleted) return { status: "deleted" };
+  if (user.is_bot || user.id === "USLACKBOT") return { status: "bot" };
+  return { status: "ok", id: user.id, name: nameOf(user) };
 }
