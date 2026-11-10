@@ -38,7 +38,7 @@ export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = a
 
   const db = createAdminClient();
   const [{ data: participants }, { data: requests }, { data: journals }] = await Promise.all([
-    db.from("cycle_participants").select("member_id, skip_reminders, members!inner(name, status, slack_user_id, slack_name)").eq("cycle_id", cycle.id),
+    db.from("cycle_participants").select("member_id, skip_reminders, members!inner(name, status, slack_user_id, slack_checked)").eq("cycle_id", cycle.id),
     db.from("purchase_requests").select("member_id").eq("cycle_id", cycle.id).is("cancelled_at", null),
     db.from("journals").select("member_id").eq("cycle_id", cycle.id),
   ]);
@@ -46,7 +46,7 @@ export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = a
   const wrote = new Set((journals ?? []).map((j) => j.member_id as string));
 
   const pending = (participants ?? [])
-    .map((p) => ({ ...p, member: p.members as unknown as { name: string; status: string; slack_user_id: string | null; slack_name: string | null } }))
+    .map((p) => ({ ...p, member: p.members as unknown as { name: string; status: string; slack_user_id: string | null; slack_checked: boolean } }))
     .filter((p) => p.member.status === "active")
     .filter((p) => (kind === "request_reminder" ? !requested.has(p.member_id) : requested.has(p.member_id) && !wrote.has(p.member_id)))
     .sort((a, b) => a.member.name.localeCompare(b.member.name, "ko"));
@@ -54,7 +54,7 @@ export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = a
     memberId: p.member_id as string,
     name: p.member.name,
     slackConnected: Boolean(p.member.slack_user_id),
-    slackChecked: Boolean(p.member.slack_user_id && p.member.slack_name),
+    slackChecked: Boolean(p.member.slack_user_id && p.member.slack_checked),
   });
   return {
     kind, cycleId: cycle.id, month: cycle.month, deadline,

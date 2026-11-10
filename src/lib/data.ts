@@ -351,8 +351,10 @@ export type AdminMember = {
   role_title: string | null;
   status: "active" | "left";
   slack_user_id: string | null;
-  /** 저장할 때 Slack에서 확인한 이름. ID만 있고 이름이 없으면 "확인 전" */
+  /** 저장할 때 Slack에서 받은 이름 (예전에 이메일로 자동 연결된 ID는 다음 알림 때 채워진다) */
   slack_name: string | null;
+  /** ID를 Slack에서 확인했는지. false인 ID는 "확인 전"(봇 설정 전에 형식만 보고 넣음) */
+  slack_checked: boolean;
   signed_in: boolean;
   joined_on: string | null;
   left_on: string | null;

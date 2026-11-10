@@ -33,13 +33,14 @@ export function SlackCell({ member, scope, slackReady }: Props) {
   }
 
   const linked = Boolean(member.slack_user_id);
-  const state = member.slack_name ? "연결" : "확인 전";
+  const state = member.slack_checked ? "연결" : "확인 전";
+  // 이름이 아직 없으면(예전에 이메일로 자동 연결된 ID) ID를 보여 준다
   const shown = member.slack_name ?? member.slack_user_id;
   const trigger =
     scope === "d" ? (
       linked ? (
         <button className="slk" type="button" onClick={open} aria-label={`${member.name} 님 Slack ${state} ${shown} · 바꾸기`}>
-          <span className={`mark ${member.slack_name ? "ok" : "off"}`}>{state}</span>
+          <span className={`mark ${member.slack_checked ? "ok" : "off"}`}>{state}</span>
           <span className="nm">{shown}</span>
           <Icon name="pen" />
         </button>
@@ -51,7 +52,7 @@ export function SlackCell({ member, scope, slackReady }: Props) {
       )
     ) : (
       <button className={linked ? "slk-m" : "slk-m no"} type="button" onClick={open}>
-        {linked ? `Slack ${member.slack_name ?? "확인 전"}` : "Slack 연결하기"}
+        {linked ? `Slack ${member.slack_checked ? shown : "확인 전"}` : "Slack 연결하기"}
       </button>
     );
 
@@ -105,7 +106,7 @@ function SlackForm({ member, scope, slackReady, close }: Props & { close: () => 
     });
 
   // 연결된 ID 그대로면 저장할 게 없다 (확인 전 ID는 봇이 설정됐으면 그대로 다시 확인할 수 있게 둔다)
-  const unchanged = editing && parseSlackId(value) === member.slack_user_id && (Boolean(member.slack_name) || !slackReady);
+  const unchanged = editing && parseSlackId(value) === member.slack_user_id && (member.slack_checked || !slackReady);
   const submitLabel = pending ? (slackReady ? "확인하는 중…" : "저장하는 중…") : !slackReady ? "확인 없이 저장" : editing ? "저장" : "연결";
 
   return (
@@ -119,7 +120,7 @@ function SlackForm({ member, scope, slackReady, close }: Props & { close: () => 
       )}
       {editing ? (
         <div className="slk-cur">
-          <span className={`mark ${member.slack_name ? "ok" : "off"}`}>{member.slack_name ? "연결됨" : "확인 전"}</span>
+          <span className={`mark ${member.slack_checked ? "ok" : "off"}`}>{member.slack_checked ? "연결됨" : "확인 전"}</span>
           {member.slack_name && <b>{member.slack_name}</b>}
           <span className="id">{member.slack_user_id}</span>
         </div>

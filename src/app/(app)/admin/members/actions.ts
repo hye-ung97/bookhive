@@ -12,7 +12,7 @@ export type ActionState = { ok: boolean; message: string } | null;
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
-type SlackCheck = { ok: true; slackId: string; name: string | null } | { ok: false; message: string };
+type SlackCheck = { ok: true; slackId: string; name: string | null; checked: boolean } | { ok: false; message: string };
 
 /**
  * 입력한 Slack 멤버 ID를 고르고 Slack에서 사람 계정인지 확인해 이름을 받는다.
@@ -21,10 +21,10 @@ type SlackCheck = { ok: true; slackId: string; name: string | null } | { ok: fal
 async function checkSlackId(raw: string): Promise<SlackCheck> {
   const slackId = parseSlackId(raw);
   if (!slackId) return { ok: false, message: slackIdError(raw) ?? "Slack 멤버 ID를 확인해 주세요." };
-  if (slackConfig().dryRun) return { ok: true, slackId, name: null };
+  if (slackConfig().dryRun) return { ok: true, slackId, name: null, checked: false };
   try {
     const user = await getSlackUser(slackId);
-    if (user.status === "ok") return { ok: true, slackId, name: user.name || null };
+    if (user.status === "ok") return { ok: true, slackId, name: user.name || null, checked: true };
     if (user.status === "deleted") return { ok: false, message: "Slack에서 비활성화된 계정이에요." };
     if (user.status === "bot") return { ok: false, message: "봇 계정은 연결할 수 없어요." };
     return { ok: false, message: "Slack에서 이 ID를 찾지 못했어요. 우리 워크스페이스의 멤버 ID인지 확인해 주세요." };
@@ -41,7 +41,7 @@ export async function saveMember(_prev: ActionState, formData: FormData): Promis
 
   // Slack ID는 멤버를 만들기 전에 확인한다 (틀린 ID 때문에 멤버만 생기고 폼이 남는 일이 없게)
   const rawSlack = id ? "" : text(formData, "slackId");
-  let slack: { slackId: string; name: string | null } | null = null;
+  let slack: { slackId: string; name: string | null; checked: boolean } | null = null;
   if (rawSlack) {
     const check = await checkSlackId(rawSlack);
     if (!check.ok) return check;
@@ -66,7 +66,7 @@ export async function saveMember(_prev: ActionState, formData: FormData): Promis
   const added = `${text(formData, "name")} 님을 추가했어요 · 이 이메일의 Google 계정으로 로그인할 수 있어요`;
   if (!slack) return { ok: true, message: added };
   const { error: slackError } = await supabase.rpc("admin_set_member_slack", {
-    p_id: savedId as string, p_slack_user_id: slack.slackId, p_slack_name: slack.name,
+    p_id: savedId as string, p_slack_user_id: slack.slackId, p_slack_name: slack.name, p_checked: slack.checked,
   });
   // 멤버는 이미 만들어졌으니 폼은 비우고, Slack만 못 넣었다고 알린다 (표의 Slack 칸에서 다시 넣으면 된다)
   if (slackError) return { ok: true, message: `${added} · Slack은 연결하지 못했어요: ${toUserMessage(slackError)}` };
@@ -80,11 +80,11 @@ export async function linkSlack(_prev: ActionState, formData: FormData): Promise
   if (!check.ok) return check;
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_member_slack", {
-    p_id: text(formData, "id"), p_slack_user_id: check.slackId, p_slack_name: check.name,
+    p_id: text(formData, "id"), p_slack_user_id: check.slackId, p_slack_name: check.name, p_checked: check.checked,
   });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath("/", "layout");
-  return { ok: true, message: check.name ? `Slack 이름 ${check.name}` : "확인 전으로 저장했어요" };
+  return { ok: true, message: check.checked ? `Slack 이름 ${check.name ?? check.slackId}` : "확인 전으로 저장했어요" };
 }
 
 export type SlackLookup = { ok: true; slackId: string; name: string } | { ok: false; message: string };
