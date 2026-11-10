@@ -72,7 +72,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 <th>이름</th>
                 <th>이메일</th>
                 <th style={{ width: 110 }}>로그인</th>
-                <th style={{ width: 210 }}>Slack</th>
+                <th style={{ width: 110 }}>Slack</th>
                 <th style={{ width: 120 }}>가입</th>
                 <th style={{ width: 170 }}><span className="sr-only">작업</span></th>
               </tr>
