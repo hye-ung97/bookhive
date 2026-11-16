@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="request-book-link">
+<meta name="doan:width" content="1960">
+<title>요청 책 링크 시안</title>
+<link rel="stylesheet" href="../../src/app/globals.css">
+<style>
+/* 앱 글꼴: layout.tsx의 next/font(Pretendard) 대신 같은 파일을 직접 */
+@font-face { font-family: "Pretendard Variable"; src: url("../../src/app/fonts/PretendardVariable.woff2") format("woff2-variations"); font-weight: 45 920; font-display: swap; }
+:root { --font-pretendard: "Pretendard Variable"; }
+
+/* Tailwind preflight 중 화면에 보이는 것만 (globals.css 첫 줄 @import "tailwindcss"는 캔버스에서 풀리지 않는다) */
+*, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+button, input, select { font: inherit; color: inherit; background: transparent; }
+ol, ul { list-style: none; }
+h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; }
+a { color: inherit; text-decoration: inherit; }
+table { border-collapse: collapse; }
+svg { display: block; vertical-align: middle; }
+
+/* globals.css의 화면 높이 단위(vh)는 보드 전체 높이로 풀리므로 픽셀로 덮는다 */
+.shell { min-height: 0; }
+
+/* ───────── 보드 ───────── */
+body { background: var(--fill2); }
+.board { width: 1960px; padding: 96px 80px; display: flex; flex-direction: column; gap: 112px; }
+.frames { display: flex; flex-wrap: wrap; gap: 56px 56px; align-items: flex-start; }
+.fw { display: flex; flex-direction: column; gap: 12px; }
+.cap { font: 700 14px/20px var(--font-sans); color: var(--ink); }
+.cap span { font-weight: 400; color: var(--ink2); }
+.nc { display: inline-flex; align-items: center; height: 20px; margin-left: 6px; padding: 0 6px; border: 1px dashed var(--red); color: var(--red); font: 700 11px/1 var(--font-sans); vertical-align: 1px; }
+.frame { position: relative; overflow: hidden; background: var(--bg); box-shadow: var(--shadow); }
+/* 1280 화면에서 왼쪽 목차 232를 뺀 본문 칸만 잘라서 보여 준다 */
+.desk-main { width: 1048px; }
+.mob { width: 390px; }
+
+/* 개요 */
+.brief { width: 1800px; padding: 56px 64px 60px; background: var(--bg); border: 2px solid var(--ink); }
+.brief h1 { font: 800 44px/52px var(--font-sans); letter-spacing: -0.03em; }
+.lead { margin-top: 14px; max-width: 92ch; font: 500 17px/28px var(--font-sans); color: var(--ink2); }
+.lead b { color: var(--ink); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 48px; }
+.brief-cols h3 { padding-bottom: 8px; border-bottom: 2px solid var(--ink); font: 800 15px/22px var(--font-sans); }
+.brief-cols li { padding: 10px 0; border-bottom: 1px solid var(--rule); font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.brief-cols li b { color: var(--ink); }
+.brief-cols .ask li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; }
+.brief-cols .ask li > i { font: 800 13px/22px var(--font-sans); font-style: normal; color: var(--red); }
+.brief code, .spec code, .opt code { padding: 1px 4px; background: var(--fill); font: 500 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+
+/* 묶음 머리 */
+.grp { display: flex; flex-direction: column; gap: 32px; }
+.grp-top { display: grid; grid-template-columns: 88px 560px 1fr; gap: 32px; align-items: end; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.grp-top .no { font: 800 56px/56px var(--font-sans); letter-spacing: -0.04em; color: var(--past); }
+.grp-top h2 { font: 800 32px/40px var(--font-sans); letter-spacing: -0.02em; }
+.grp-top .route { margin-top: 6px; font: 500 14px/20px var(--font-sans); color: var(--ink2); }
+.grp-top .notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.grp-top .notes b { color: var(--ink); }
+.grp-top .notes div > b:first-child { display: block; margin-bottom: 4px; }
+
+/* 표시 방식 비교 */
+.opts { width: 1800px; padding: 36px 40px 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+.opt { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.opt-h { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
+.opt-h b { font: 800 20px/28px var(--font-sans); }
+.opt-h .tag { height: 22px; padding: 0 8px; font-size: 12px; }
+.opt p { font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.opt p b { color: var(--ink); }
+.opt ul li { display: grid; grid-template-columns: 20px minmax(0, 1fr); padding: 6px 0; border-bottom: 1px solid var(--rule); font: 400 13px/20px var(--font-sans); color: var(--ink2); }
+.opt ul li > i { font-style: normal; font-weight: 800; color: var(--ink); }
+.opt ul li.minus > i { color: var(--red); }
+.opt.pick { padding: 0 20px 20px; margin: 0 -20px; background: var(--fill); }
+.opt.pick .opt-h { padding-top: 20px; }
+/* 비교용 작은 표: 요청자 · 책 제목 · 서점 */
+.home-ledger.mini th:nth-child(1) { width: 96px; }
+.home-ledger.mini th:nth-child(3) { width: 84px; }
+.mini-lbl { display: block; margin-top: 2px; font: 500 11px/14px var(--font-sans); color: var(--ink2); }
+
+/* 앱 화면을 자른 틀 */
+.crop main { gap: 0; padding-block: 36px 40px; }
+.mob.crop main { padding-block: 24px 28px; }
+
+/* ───────── 책 제목 링크 ─────────
+   기본 모양(B 바깥 화살표)은 globals.css의 .book-link를 그대로 쓴다.
+   캔버스에서는 :hover · :focus-visible을 클래스로 흉내 내고, 채택 안 한 A · C 모양만 따로 그린다 */
+.book-link.is-hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+.book-link.is-hover .ic { color: var(--red); }
+.book-link.is-focus { outline: 2px solid var(--red); outline-offset: 2px; }
+/* A (채택 안 함): 사슬 아이콘 */
+.book-link.a .ic { width: 14px; height: 14px; vertical-align: -2px; stroke-width: 2; }
+/* C (채택 안 함): 아이콘 없이 연한 밑줄만 (푸터 링크와 같은 모양) */
+.book-link.c { text-decoration: underline; text-decoration-color: var(--past); text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+.book-link.c.is-hover { color: var(--red); text-decoration-color: var(--red); }
+/* URL 없는 예전 이관 요청: 링크 없이 글자만 */
+.book-plain { color: inherit; }
+.opt.off .opt-h b { color: var(--ink2); }
+
+/* 마우스를 올렸을 때 뜨는 브라우저 기본 말풍선(title)을 그린 것 */
+.has-tip { position: relative; }
+.tip { position: absolute; left: 40px; top: calc(100% - 6px); z-index: 2; padding: 4px 8px; border: 1px solid var(--rule); background: var(--bg); box-shadow: var(--shadow); font: 400 12px/16px var(--font-sans); color: var(--ink); white-space: nowrap; }
+.tip::before { content: "브라우저 말풍선 · "; color: var(--ink2); }
+
+/* 상태 표 */
+.spec { width: 1280px; padding: 36px 40px 40px; }
+.spec h3 { padding-bottom: 10px; border-bottom: 2px solid var(--ink); font: 800 20px/28px var(--font-sans); }
+.spec > .tbl > tbody > tr > td { vertical-align: top; padding-top: 18px; padding-bottom: 18px; font-size: 13px; line-height: 20px; }
+.spec > .tbl > tbody > tr > td:first-child { width: 170px; font-weight: 800; }
+.spec > .tbl > tbody > tr > td:nth-child(2) { width: 470px; }
+.spec .ex { display: block; margin-top: 4px; font-size: 12px; line-height: 18px; color: var(--ink2); font-weight: 500; }
+.spec .n { color: var(--ink2); }
+.spec .sample { position: relative; padding: 10px 12px; border: 1px solid var(--rule); font: 600 14px/20px var(--font-sans); }
+.spec .sample.me { background: var(--fill); box-shadow: inset 4px 0 0 var(--ink); }
+.spec .sample.narrow { width: 220px; word-break: keep-all; overflow-wrap: break-word; }
+.spec .sample .tip { left: 24px; top: calc(100% + 4px); }
+.spec .sample.has-tip { margin-bottom: 30px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- src/components/icon.tsx의 link (A 비교용 · 회차 문서 링크와 같은 사슬) -->
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <!-- src/components/icon.tsx의 arrowUR (채택한 B) -->
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+    <symbol id="i-chevD" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <!-- ═══════════ 개요 ═══════════ -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 요청 책 링크">
+    <h1>요청한 책 링크 — 제목을 누르면 서점 페이지로</h1>
+    <p class="lead">홈의 <b>회차 구매 요청</b> 표에서 책 제목 옆에 작은 <b>링크 표시</b>를 붙이고, 제목을 누르면 요청할 때 넣은 <b>서점 상품 페이지(yes24 · 교보문고)가 새 탭으로</b> 열려요. 다른 사람이 어떤 책을 골랐는지 서점에서 다시 찾아보지 않아도 돼요. 표의 칸·폭·순서는 그대로예요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>바뀌는 것</h3>
+        <ul>
+          <li><b>데스크톱 표의 책 제목</b> · 글자 뒤에 바깥 화살표 ↗, 제목 전체가 링크</li>
+          <li><b>모바일 목록의 책 제목</b> · 같은 모양. 손가락으로 제목을 누르면 열려요</li>
+          <li><b>전체 · 내 요청</b> 둘 다, 지난 회차를 골라도 똑같이</li>
+          <li><b>안 바뀌는 것</b> · 요청자 · 서점 · 금액 · 진행 칸, 시트용 복사, 구매 요청 화면</li>
+        </ul>
+      </div>
+      <div>
+        <h3>정한 동작</h3>
+        <ul>
+          <li><b>어디로</b> · 요청 때 저장된 <code>url</code> 그대로. 이미 있는 값이라 새로 저장할 것 없음</li>
+          <li><b>어떻게</b> · 새 탭 (<code>target="_blank" rel="noopener"</code>). 주문·배송 화면의 상품 링크와 같은 방식</li>
+          <li><b>마우스를 올리면</b> · 제목에 밑줄, 화살표가 빨갛게. 주소는 브라우저 말풍선으로 (<code>yes24.com/product/goods/…</code>)</li>
+          <li><b>화면 읽기</b> · "도시와 그 불확실한 벽, yes24 상품 페이지 새 탭에서 열기"</li>
+          <li><b>URL 없는 요청</b> (예전 이관 데이터) · 화살표 없이 지금처럼 글자만</li>
+        </ul>
+      </div>
+      <div class="ask">
+        <h3>정한 것</h3>
+        <ul>
+          <li><i>1</i><span><b>표시 모양은 B 바깥 화살표</b> · 다른 사이트로 나간다는 게 가장 분명해서. A 사슬 · C 밑줄은 채택 안 함</span></li>
+          <li><i>2</i><span><b>서점 칸은 글자 그대로</b> · 제목 하나만 링크</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 01 표시 모양 ═══════════ -->
+  <section class="grp" data-doan-id="g-marks">
+    <div class="grp-top">
+      <span class="no">01</span>
+      <div><h2>링크 표시 모양 · B로 정함</h2><p class="route">홈 · 회차 구매 요청 표의 책 제목 칸</p></div>
+      <div class="notes">
+        <div><b>기준</b>표를 훑을 때 제목이 먼저 읽혀야 하고, 링크 표시는 "눌러 볼 수 있다"만 알려 주면 돼요. 20줄이 넘는 표라 표시가 크면 시끄러워요.</div>
+        <div><b>위아래 줄은 기본, 세 번째 줄은 마우스를 올린 모습</b>이에요. 실제 캔버스에서도 제목에 마우스를 올려 볼 수 있어요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">표시 모양 3가지 <span>· 같은 줄을 세 가지로 · B를 코드에 넣음</span></p>
+        <div class="frame opts" data-doan-frame="marks" data-doan-title="표시 모양 A · B · C">
+
+          <div class="opt off" data-doan-id="opt-a">
+            <div class="opt-h"><b>A 사슬 아이콘</b><span class="tag tag-off">채택 안 함</span></div>
+            <table class="tbl home-ledger mini">
+              <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th></tr></thead>
+              <tbody>
+                <tr><td class="home-who">김하늘</td><td class="home-book"><a class="book-link a" href="#">태양 아래 <span class="nb">올리브<svg class="ic"><use href="#i-link"/></svg></span></a></td><td class="home-store">yes24</td></tr>
+                <tr><td class="home-who">최도윤</td><td class="home-book"><a class="book-link a" href="#">너무 시끄러운 <span class="nb">고독<svg class="ic"><use href="#i-link"/></svg></span></a></td><td class="home-store">yes24</td></tr>
+                <tr><td class="home-who">장보름</td><td class="home-book"><a class="book-link a is-hover" href="#">왜 <span class="nb">일하는가<svg class="ic"><use href="#i-link"/></svg></span></a><span class="mini-lbl">마우스 올림</span></td><td class="home-store">교보문고</td></tr>
+              </tbody>
+            </table>
+            <p>회차 현황의 <b>활동 계획서 · 보고서 링크</b>와 같은 아이콘이라, 앱 안에서 "바깥 문서로 가는 링크"가 한 모양으로 맞아요. 회색이라 제목보다 튀지 않아요.</p>
+            <ul>
+              <li><i>+</i><span>이미 있는 아이콘 · 회차 문서 링크와 같은 모양</span></li>
+              <li><i>+</i><span>표 20줄이 모두 같은 자리에 작은 표시 → 조용함</span></li>
+              <li class="minus"><i>–</i><span>"새 탭"이라는 뜻은 화살표(B)보다 약해요</span></li>
+            </ul>
+          </div>
+
+          <div class="opt pick" data-doan-id="opt-b">
+            <div class="opt-h"><b>B 바깥 화살표</b><span class="tag tag-on">채택</span></div>
+            <table class="tbl home-ledger mini">
+              <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th></tr></thead>
+              <tbody>
+                <tr><td class="home-who">김하늘</td><td class="home-book"><a class="book-link" href="#">태양 아래 <span class="nb">올리브<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td></tr>
+                <tr><td class="home-who">최도윤</td><td class="home-book"><a class="book-link" href="#">너무 시끄러운 <span class="nb">고독<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td></tr>
+                <tr><td class="home-who">장보름</td><td class="home-book"><a class="book-link is-hover" href="#">왜 <span class="nb">일하는가<svg class="ic"><use href="#i-ext"/></svg></span></a><span class="mini-lbl">마우스 올림</span></td><td class="home-store">교보문고</td></tr>
+              </tbody>
+            </table>
+            <p>"다른 사이트로 나가요"가 가장 분명해요. 아이콘 <code>arrowUR</code>을 새로 넣었고, 회차 문서 링크(사슬)와는 모양이 달라요.</p>
+            <ul>
+              <li><i>+</i><span>새 탭으로 열린다는 뜻이 바로 읽힘</span></li>
+              <li class="minus"><i>–</i><span>문서 링크(사슬)와 모양이 다름</span></li>
+              <li class="minus"><i>–</i><span>오른쪽 위를 가리켜 제목 옆에서 조금 더 눈에 띔</span></li>
+            </ul>
+          </div>
+
+          <div class="opt off" data-doan-id="opt-c">
+            <div class="opt-h"><b>C 밑줄만</b><span class="tag tag-off">채택 안 함</span></div>
+            <table class="tbl home-ledger mini">
+              <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th></tr></thead>
+              <tbody>
+                <tr><td class="home-who">김하늘</td><td class="home-book"><a class="book-link c" href="#">태양 아래 올리브</a></td><td class="home-store">yes24</td></tr>
+                <tr><td class="home-who">최도윤</td><td class="home-book"><a class="book-link c" href="#">너무 시끄러운 고독</a></td><td class="home-store">yes24</td></tr>
+                <tr><td class="home-who">장보름</td><td class="home-book"><a class="book-link c is-hover" href="#">왜 일하는가</a><span class="mini-lbl">마우스 올림</span></td><td class="home-store">교보문고</td></tr>
+              </tbody>
+            </table>
+            <p>푸터 링크처럼 <b>연한 밑줄</b>만 그어요. 아이콘이 없어 가장 깔끔하지만, 굵은 제목 20줄에 밑줄이 다 깔리면 표가 문서처럼 보여요.</p>
+            <ul>
+              <li><i>+</i><span>가장 단순 · 글자 폭이 그대로</span></li>
+              <li class="minus"><i>–</i><span>밑줄이 20줄 내내 깔려 표가 무거워짐</span></li>
+              <li class="minus"><i>–</i><span>바깥 사이트로 간다는 신호가 없음</span></li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 홈에 넣으면 ═══════════ -->
+  <section class="grp" data-doan-id="g-home">
+    <div class="grp-top">
+      <span class="no">02</span>
+      <div><h2>B를 홈에 넣은 모습</h2><p class="route">홈 · 12월 회차 구매 요청 · 총무 이서연(나)으로 로그인</p></div>
+      <div class="notes">
+        <div><b>데스크톱</b>1280 화면 기준 본문 칸만 잘랐어요. 다섯 번째 줄(최도윤 · 난처한 미술 이야기 3)이 마우스를 올린 모습이에요.</div>
+        <div><b>모바일</b>제목 줄 끝에 같은 화살표. 제목 글자 전체를 눌러도 되고, 진행 막대 쪽을 눌러도 아무 일 없어요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">홈 · 데스크톱 1280 <span>· 본문 칸</span></p>
+        <div class="frame desk-main crop app-frame" data-doan-frame="desktop" data-doan-title="홈 · 데스크톱 · 책 제목 링크" data-doan-implements="src/app/(app)/page.tsx">
+          <main>
+            <section class="home-sec" aria-labelledby="dk-h">
+              <div class="block-head">
+                <h2 class="t-heading" id="dk-h">12월 회차 구매 요청</h2>
+                <div class="row-gap">
+                  <div class="picker"><select class="select" aria-label="회차 선택"><option>12월 회차 · 요청 중</option></select></div>
+                  <div class="seg" role="group" aria-label="보기"><a href="#" aria-current="true">전체</a><a href="#" aria-current="false">내 요청</a></div>
+                  <button class="btn btn-sm" type="button"><svg class="ic"><use href="#i-copy"/></svg><span>시트용 복사</span></button>
+                </div>
+              </div>
+              <div class="tbl-wrap only-desk">
+                <table class="tbl home-ledger" aria-label="12월 회차 구매 요청 목록" data-doan-id="ledger">
+                  <thead><tr><th>요청자</th><th>책 제목</th><th>서점</th><th class="num">금액(원)</th><th>진행</th></tr></thead>
+                  <tbody>
+                    <tr><td class="home-who">김하늘</td><td class="home-book"><a class="book-link" href="#" data-doan-id="link-first">태양 아래 <span class="nb">올리브<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">17,820</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">김하늘</td><td class="home-book"><a class="book-link" href="#">내 이름은 빨강 <span class="nb">1<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">11,700</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr class="is-me"><td class="home-who">이서연 (나)</td><td class="home-book"><a class="book-link" href="#">도시와 그 불확실한 <span class="nb">벽<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">17,550</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr class="is-me"><td class="home-who">이서연 (나)</td><td class="home-book"><a class="book-link" href="#"><span class="nb">손자병법<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">11,700</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">최도윤</td><td class="home-book has-tip"><a class="book-link is-hover" href="#" data-doan-id="link-hover">난처한 미술 이야기 <span class="nb">3<svg class="ic"><use href="#i-ext"/></svg></span></a><span class="tip">yes24.com/product/goods/123097658</span></td><td class="home-store">yes24</td><td class="num">15,300</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">최도윤</td><td class="home-book"><a class="book-link" href="#">너무 시끄러운 <span class="nb">고독<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">13,500</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">배수아</td><td class="home-book"><a class="book-link" href="#">플루언트 <span class="nb">포에버<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">24,750</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">서도현</td><td class="home-book"><a class="book-link" href="#">녹색 절벽의 <span class="nb">신자들<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">17,100</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">신유찬</td><td class="home-book"><a class="book-link" href="#">이제부터는 오를 곳만 <span class="nb">오른다<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">yes24</td><td class="num">22,500</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">장보름</td><td class="home-book"><a class="book-link" href="#">왜 <span class="nb">일하는가<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">교보문고</td><td class="num">16,200</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">장보름</td><td class="home-book"><a class="book-link" href="#">다크 심리학(20만 부 한정판 스페셜 <span class="nb">에디션)<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">교보문고</td><td class="num">19,710</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr><td class="home-who">문여름</td><td class="home-book"><a class="book-link" href="#">옵시디언 프로페셔널 <span class="nb">노트<svg class="ic"><use href="#i-ext"/></svg></span></a></td><td class="home-store">교보문고</td><td class="num">22,500</td><td><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span></td></tr>
+                    <tr class="pending"><td colspan="5"><b>아직 요청 안 한 10명</b>노은솔 · 강민재 · 고유나 · 권태오 · 남궁별 · 류하진 · 오세린 · 임채원 · 정다온 · 황보윤</td></tr>
+                  </tbody>
+                  <tfoot><tr><td colspan="3">8 / 18명 요청 · 12권</td><td class="num">210,330</td><td>합계</td></tr></tfoot>
+                </table>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">홈 · 모바일 390 <span>· 회차 구매 요청 부분</span></p>
+        <div class="frame mob crop app-frame" data-doan-frame="mobile" data-doan-title="홈 · 모바일 · 책 제목 링크" data-doan-implements="src/app/(app)/page.tsx">
+          <main>
+            <section class="home-sec" aria-labelledby="mb-h">
+              <div class="block-head">
+                <h2 class="t-heading" id="mb-h">12월 회차 구매 요청</h2>
+                <p class="only-mob">8 / 18명 · 12권</p>
+                <div class="row-gap">
+                  <div class="picker"><select class="select" aria-label="회차 선택"><option>12월 회차 · 요청 중</option></select></div>
+                  <div class="seg" role="group" aria-label="보기"><a href="#" aria-current="true">전체</a><a href="#" aria-current="false">내 요청</a></div>
+                  <button class="btn btn-sm" type="button"><svg class="ic"><use href="#i-copy"/></svg><span>시트용 복사</span></button>
+                </div>
+              </div>
+              <div class="only-mob">
+                <ul class="home-mrows" data-doan-id="mrows">
+                  <li><b><a class="book-link" href="#">태양 아래 <span class="nb">올리브<svg class="ic"><use href="#i-ext"/></svg></span></a></b><span class="track sm"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span class="meta">김하늘 · yes24 · 17,820원</span></li>
+                  <li><b><a class="book-link" href="#">내 이름은 빨강 <span class="nb">1<svg class="ic"><use href="#i-ext"/></svg></span></a></b><span class="track sm"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span class="meta">김하늘 · yes24 · 11,700원</span></li>
+                  <li><b><a class="book-link" href="#">도시와 그 불확실한 <span class="nb">벽<svg class="ic"><use href="#i-ext"/></svg></span></a></b><span class="track sm"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span class="meta">이서연 (나) · yes24 · 17,550원</span></li>
+                  <li><b><a class="book-link" href="#"><span class="nb">손자병법<svg class="ic"><use href="#i-ext"/></svg></span></a></b><span class="track sm"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span class="meta">이서연 (나) · yes24 · 11,700원</span></li>
+                  <li><b><a class="book-link" href="#">다크 심리학(20만 부 한정판 스페셜 <span class="nb">에디션)<svg class="ic"><use href="#i-ext"/></svg></span></a></b><span class="track sm"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span class="meta">장보름 · 교보문고 · 19,710원</span></li>
+                </ul>
+                <details class="home-more">
+                  <summary><span>12권 모두 보기 · 합계 210,330원</span><svg class="ic"><use href="#i-chevD"/></svg></summary>
+                </details>
+                <p class="home-mpending"><b>아직 요청 안 한 10명</b>노은솔 · 강민재 · 고유나 · 권태오 · 남궁별 · 류하진 · 오세린 · 임채원 · 정다온 · 황보윤</p>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 상태 ═══════════ -->
+  <section class="grp" data-doan-id="g-states">
+    <div class="grp-top">
+      <span class="no">03</span>
+      <div><h2>제목 링크 상태</h2><p class="route">데스크톱 표 · 모바일 목록 공통</p></div>
+      <div class="notes">
+        <div><b>줄 전체가 아니라 제목만</b> 링크예요. 줄을 다 링크로 만들면 요청자·금액을 고르거나 복사하려다 서점이 열려요.</div>
+        <div><b>화살표는 마지막 낱말에 붙여요.</b> 긴 제목이 줄바꿈돼도 화살표만 혼자 다음 줄로 떨어지지 않게요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">상태 6가지 <span>· B 바깥 화살표</span></p>
+        <div class="frame spec" data-doan-frame="states" data-doan-title="제목 링크 상태 6가지" data-doan-implements="src/app/(app)/page.tsx">
+          <h3>책 제목 칸</h3>
+          <table class="tbl">
+            <tbody>
+              <tr>
+                <td>기본</td>
+                <td><div class="sample"><a class="book-link" href="#">도시와 그 불확실한 <span class="nb">벽<svg class="ic"><use href="#i-ext"/></svg></span></a></div></td>
+                <td class="n">제목은 지금처럼 검은 600 굵기. 끝에 13px 바깥 화살표(회색 <code>--ink2</code>, 모바일 14px). 눌러 볼 수 있다는 표시만 하고 제목보다 튀지 않게.</td>
+              </tr>
+              <tr>
+                <td>마우스 올림</td>
+                <td><div class="sample has-tip"><a class="book-link is-hover" href="#">도시와 그 불확실한 <span class="nb">벽<svg class="ic"><use href="#i-ext"/></svg></span></a><span class="tip">yes24.com/product/goods/123480613</span></div></td>
+                <td class="n">제목에 밑줄, 화살표가 빨강(<code>--red</code>). 회차 문서 링크(<code>a.doc:hover</code>)와 같은 반응. 잠시 두면 브라우저 말풍선에 주소가 떠요 — 주문·배송 화면처럼 <code>https://www.</code>를 뗀 짧은 주소.</td>
+              </tr>
+              <tr>
+                <td>키보드 이동</td>
+                <td><div class="sample"><a class="book-link is-focus" href="#">도시와 그 불확실한 <span class="nb">벽<svg class="ic"><use href="#i-ext"/></svg></span></a></div></td>
+                <td class="n">Tab으로 오면 앱 공통 빨간 테두리(<code>:focus-visible</code>). Enter로 새 탭 열기. 화면 읽기는 <b>"도시와 그 불확실한 벽, yes24 상품 페이지 새 탭에서 열기"</b>.</td>
+              </tr>
+              <tr>
+                <td>내 요청 줄</td>
+                <td><div class="sample me"><a class="book-link" href="#">도시와 그 불확실한 <span class="nb">벽<svg class="ic"><use href="#i-ext"/></svg></span></a></div></td>
+                <td class="n">회색 바탕·왼쪽 검은 띠는 그대로. 화살표 색도 같아요. 내 책도 눌러서 서점에서 다시 볼 수 있어요.</td>
+              </tr>
+              <tr>
+                <td>긴 제목</td>
+                <td><div class="sample narrow"><a class="book-link" href="#">다크 심리학(20만 부 한정판 스페셜 <span class="nb">에디션)<svg class="ic"><use href="#i-ext"/></svg></span></a></div></td>
+                <td class="n">낱말 단위 줄바꿈(<code>keep-all</code>)은 그대로. 마지막 낱말과 화살표를 한 덩어리(<code>.nb</code>)로 묶어, 화살표가 혼자 줄 맨 앞에 오지 않게 해요.</td>
+              </tr>
+              <tr>
+                <td>URL 없음<span class="ex">예전 이관 요청</span></td>
+                <td><div class="sample"><span class="book-plain">아몬드</span></div></td>
+                <td class="n">시트에서 옮겨 온 지난 회차 요청은 <code>url</code>이 비어 있을 수 있어요. 이때는 화살표도 링크도 없이 지금 모습 그대로. 새 요청은 항상 서점 상품 주소가 있어서 늘 링크가 걸려요.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
