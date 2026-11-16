@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
 import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
@@ -20,19 +21,39 @@ export type UnassignedItem = {
 /** 담을 곳 후보가 되는 장바구니 묶음 */
 export type CartBundle = { id: string; store: Store; label: string; count: number };
 
+/** 사진 대기: 활동 사진 체크 전인 사람의 미배정 요청 (담을 수 없다) */
+export type WaitingPerson = {
+  member_id: string;
+  name: string;
+  total: number;
+  books: { id: string; title: string; store: Store; price: number }[];
+};
+
 const STORES = ["yes24", "kyobo"] as const;
 
 const shortUrl = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "");
 
-/** 미배정 요청: 책을 골라 담을 곳(요청한 서점대로·장바구니 묶음·새 묶음)에 담거나, 장바구니 묶음 카드로 끌어다 놓는다 */
+/**
+ * 미배정 요청: 위 "주문할 요청"(활동 사진을 체크한 사람)은 책을 골라 담을 곳(요청한 서점대로·장바구니 묶음·새 묶음)에 담거나
+ * 장바구니 묶음 카드로 끌어다 놓는다. 아래 "사진 대기"는 체크 칸 없이 사람별로 보여 주기만 한다
+ */
 export function UnassignedPanel({
   cycleId,
   items,
+  waiting,
+  checkedCount,
+  photosHref,
   carts,
   nextLabel,
 }: {
   cycleId: string;
+  /** 주문할 요청 (사진 체크한 사람) */
   items: UnassignedItem[];
+  /** 사진 대기 (사람별, 이름 가나다순) */
+  waiting: WaitingPerson[];
+  /** 이 회차에 사진을 체크한 사람 수 */
+  checkedCount: number;
+  photosHref: string;
   /** 장바구니 상태의 묶음 (구매처·차수 순) */
   carts: CartBundle[];
   /** 구매처별 새로 만들 묶음 이름 */
@@ -79,11 +100,14 @@ export function UnassignedPanel({
   const byStore = STORES.map((store) => ({ store, list: items.filter((i) => i.store === store) })).filter((g) => g.list.length);
 
   const total = picked.reduce((a, i) => a + i.price, 0);
+  const waitingBooks = waiting.reduce((a, p) => a + p.books.length, 0);
+  const waitingTotal = waiting.reduce((a, p) => a + p.total, 0);
 
   return (
     <section className="un" aria-labelledby="un-h">
       <div className="block-head">
-        <h2 className="t-heading" id="un-h">미배정 요청 · {items.length}건</h2>
+        <h2 className="t-heading" id="un-h">주문할 요청 · {items.length}건</h2>
+        <span>{checkedCount ? "사진 확인한 사람" : "사진 확인 0명"}</span>
       </div>
       {items.length ? (
         <>
@@ -168,12 +192,42 @@ export function UnassignedPanel({
             </button>
           </div>
         </>
+      ) : waiting.length && !checkedCount ? (
+        <div className="empty un-empty">
+          <strong>아직 사진을 체크한 사람이 없어요</strong>
+          <p>활동 사진에서 체크하면 그 사람 요청이 여기에 모여요.</p>
+          <Link className="btn btn-sm" href={photosHref}>활동 사진으로</Link>
+        </div>
       ) : (
-        <div className="empty">
+        <div className="empty un-empty">
           <strong>묶을 요청이 없어요</strong>
-          <p>새 요청이 들어오면 여기에 모여요.</p>
+          <p>{waiting.length ? "사진 대기 요청은 활동 사진에서 체크하면 여기로 올라와요." : "새 요청이 들어오면 여기에 모여요."}</p>
           {state?.ok && <p className="msg msg-ok"><Icon name="checkc" />{state.message}</p>}
         </div>
+      )}
+
+      {waiting.length > 0 && (
+        <section className="wait" aria-labelledby="wait-h">
+          <div className="wait-h">
+            <h3 id="wait-h">사진 대기 · {waitingBooks}건</h3>
+            <span>{waiting.length}명 · {won(waitingTotal)}원</span>
+          </div>
+          <p className="hint">
+            활동 사진을 아직 체크하지 않은 사람의 요청이에요. 담을 수 없고, <Link className="link" href={photosHref}>활동 사진</Link>에서 체크하면 위로 올라가요.
+          </p>
+          <ul className="wait-list">
+            {waiting.map((p) => (
+              <li key={p.member_id}>
+                <div className="wait-top"><b>{p.name}</b><span>{p.books.length}권 · {won(p.total)}원</span></div>
+                <ul className="wait-bk">
+                  {p.books.map((b) => (
+                    <li key={b.id}><span className="tt">{b.title} · {STORE_NAME[b.store]}</span><span>{won(b.price)}</span></li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </section>
   );

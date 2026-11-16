@@ -20,6 +20,8 @@ const MEMBER_NAV: NavItem[] = [
 ];
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/rounds", label: "회차 현황", short: "회차" },
+  // 사진 체크 → 주문 순서로 쓰므로 주문·배송 앞에 둔다
+  { href: "/admin/photos", label: "활동 사진", short: "사진" },
   { href: "/admin/orders", label: "주문·배송" },
   { href: "/admin/members", label: "멤버" },
   { href: "/admin/settings", label: "설정" },
@@ -33,7 +35,7 @@ export function AppShell({
   theme: initialTheme,
   children,
 }: {
-  me: { name: string; isAdmin: boolean; roleTitle: string | null };
+  me: { name: string; isAdmin: boolean; roleTitle: string | null; photoPending?: number };
   theme: Theme;
   children: ReactNode;
 }) {
@@ -41,9 +43,12 @@ export function AppShell({
   const [theme, setTheme] = useState(initialTheme);
   // 모두의 일지는 메뉴에 따로 없고 일지 쓰기에서 들어가므로 일지 쓰기에 불을 켠다
   const navActive = (href: string) => isActive(pathname, href) || (href === "/journal" && isActive(pathname, "/journals"));
+  // 활동 사진 옆 "아직 N": 처음 여는 회차에서 사진 체크 전인 사람 수
+  const badge = (href: string) => (href === "/admin/photos" && me.photoPending ? `아직 ${me.photoPending}` : null);
   const link = (item: NavItem) => (
     <Link key={item.href} className="nav" href={item.href} aria-current={navActive(item.href) ? "page" : undefined}>
       {item.label}
+      {badge(item.href) && <small>{badge(item.href)}</small>}
     </Link>
   );
   const tabs: NavItem[] = [...MEMBER_NAV.filter((t) => !t.noTab), ...(me.isAdmin ? [{ href: "/admin/rounds", label: "운영" }] : [])];
@@ -115,7 +120,7 @@ export function AppShell({
   );
 }
 
-/** 모바일 운영 화면 위 운영 메뉴 4칸 (데스크톱은 왼쪽 목차에 있어 CSS로 숨긴다) */
+/** 모바일 운영 화면 위 운영 메뉴 5칸 (데스크톱은 왼쪽 목차에 있어 CSS로 숨긴다) */
 export function AdminNav() {
   const pathname = usePathname();
   return (

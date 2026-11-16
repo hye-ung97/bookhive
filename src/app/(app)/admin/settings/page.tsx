@@ -85,6 +85,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     warn.plannedCoffee && `사용완료 처리 안 된 커피 예정 ${warn.plannedCoffee}건`,
     warn.undelivered && `배송완료 안 된 묶음 ${warn.undelivered}개`,
     warn.unassigned && `묶음에 안 담긴 요청 ${warn.unassigned}건`,
+    warn.photoWaiting && `사진 대기 요청 ${warn.photoWaiting}건 (활동 사진 체크 전 · 마감하면 취소돼요)`,
   ].filter(Boolean) as string[];
 
   const transitions = {
@@ -101,7 +102,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     ],
     closed: [
       { to: "reading" as const, button: "회차 다시 열기", title: `${label}를 다시 열까요?`, primary: false,
-        effect: "일지 작성과 수정이 다시 열려요.", warnings: [] },
+        effect: "일지 작성과 수정이 다시 열려요. 마감 때 취소된 사진 대기 요청도 되살아나요.", warnings: [] },
     ],
   }[cycle.status];
   // 다음 단계로 넘기기 전에 남은 일은 버튼 왼쪽에 빨간 줄로 (확인창에도 그대로 나온다)

@@ -6,7 +6,7 @@ import { Icon } from "@/components/icon";
 import { PenaltyPips } from "@/components/penalty-pips";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME } from "@/lib/books/parse-store-url";
-import { listCycles, listPenalties, myBudgets, myCoffee, myJournals, myRequestsAll } from "@/lib/data";
+import { listCycles, listPenalties, myBudgets, myCoffee, myJournals, myPhotoCycles, myRequestsAll } from "@/lib/data";
 import { kstToday, md, roundLabel, won } from "@/lib/format";
 import { PENALTY_OUT, penaltyStanding } from "@/lib/penalties";
 
@@ -15,8 +15,8 @@ export const metadata: Metadata = { title: "내 기록" };
 export default async function MePage() {
   const me = await requireMe();
   const today = kstToday();
-  const [cycles, budgets, requests, journals, coffee, penalties] = await Promise.all([
-    listCycles(), myBudgets(me.id), myRequestsAll(me.id), myJournals(me.id), myCoffee(me.id), listPenalties(me.id),
+  const [cycles, budgets, requests, journals, coffee, penalties, photoCycles] = await Promise.all([
+    listCycles(), myBudgets(me.id), myRequestsAll(me.id), myJournals(me.id), myCoffee(me.id), listPenalties(me.id), myPhotoCycles(me.id),
   ]);
   const mine = cycles.filter((c) => budgets.has(c.id) || requests.some((r) => r.cycle_id === c.id));
   const penaltyTotal = penalties.reduce((a, p) => a + p.points, 0);
@@ -78,6 +78,8 @@ export default async function MePage() {
                             {STORE_NAME[r.store]} · {won(r.price)}원
                             {r.purchase_store && r.purchase_store !== r.store ? ` · ${STORE_NAME[r.purchase_store]}에서 구매` : ""}
                             {r.status === "ordered" && r.expected_arrival ? ` · 도착 예정 ${md(r.expected_arrival)}` : ""}
+                            {/* 활동 사진 확인 전이라 묶음에 담지 못한 요청 */}
+                            {r.status === "requested" && !photoCycles.has(c.id) && <> · <b className="red">사진 대기</b></>}
                           </span>
                         </span>
                         <StatusBadge status={r.status} />

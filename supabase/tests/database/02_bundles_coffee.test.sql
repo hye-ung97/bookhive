@@ -14,8 +14,9 @@ insert into auth.users (id, email) values
   ('10000000-0000-0000-0000-0000000000b3', 'badmin@t.test'),
   ('10000000-0000-0000-0000-0000000000b4', 'bc@t.test');
 insert into public.cycles (id, month, status) values ('10000000-0000-0000-0000-0000000000c1', '2032-01-01', 'requesting');
-insert into public.cycle_participants (cycle_id, member_id, budget)
-select '10000000-0000-0000-0000-0000000000c1', id, 30000 from public.members where email in ('ba@t.test', 'bb@t.test', 'bc@t.test');
+-- 모두 활동 사진을 체크한 참가자 (사진 체크 전 요청을 막는 검증은 14_activity_photos)
+insert into public.cycle_participants (cycle_id, member_id, budget, photo_checked_at)
+select '10000000-0000-0000-0000-0000000000c1', id, 30000, now() from public.members where email in ('ba@t.test', 'bb@t.test', 'bc@t.test');
 insert into public.purchase_requests (id, cycle_id, member_id, title, price, store, url) values
   ('10000000-0000-0000-0000-0000000000d1', '10000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-0000000000a1', 'A의 yes24 책', 5000, 'yes24', 'https://www.yes24.com/product/goods/30000001'),
   ('10000000-0000-0000-0000-0000000000d2', '10000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-0000000000a1', 'A의 교보 책', 6000, 'kyobo', 'https://product.kyobobook.co.kr/detail/S000300000002'),

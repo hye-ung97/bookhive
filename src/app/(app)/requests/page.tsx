@@ -4,7 +4,7 @@ import { DdayChip, StatusBadge } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME, type Store } from "@/lib/books/parse-store-url";
-import { getMyRequest, listCycles, myBudgets, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
+import { getMyRequest, listCycles, myBudgets, myPhotoCycles, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
 import type { RequestRow } from "@/lib/types";
 import { DeleteRequest } from "./delete-request";
@@ -12,7 +12,8 @@ import { RequestForm, type Editing, type FormCycle } from "./request-form";
 
 export const metadata: Metadata = { title: "구매 요청" };
 
-function MyRequestItem({ r, editable }: { r: RequestRow; editable: boolean }) {
+/** photoWaiting: 이 회차 활동 사진을 아직 확인받지 않았다 → 묶음에 안 담긴 요청은 "사진 대기" */
+function MyRequestItem({ r, editable, photoWaiting }: { r: RequestRow; editable: boolean; photoWaiting: boolean }) {
   const otherStore = r.purchase_store && r.purchase_store !== r.store;
   return (
     <li>
@@ -25,6 +26,7 @@ function MyRequestItem({ r, editable }: { r: RequestRow; editable: boolean }) {
         {r.status === "ordered" && r.expected_arrival && <span>도착 예정 {md(r.expected_arrival)}</span>}
         {r.status === "cart" && <span>장바구니에 담겨 바꿀 수 없어요 · 총무에게 문의</span>}
         {!r.verified && r.status === "requested" && <span className="mark warn">도서 확인 안 됨</span>}
+        {photoWaiting && r.status === "requested" && <span className="mark warn">사진 대기</span>}
       </span>
       {editable && (
         <span className="acts">
@@ -40,7 +42,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const me = await requireMe();
   const sp = await searchParams;
   const today = kstToday();
-  const [cycles, budgets] = await Promise.all([listCycles(), myBudgets(me.id)]);
+  const [cycles, budgets, photoCycles] = await Promise.all([listCycles(), myBudgets(me.id), myPhotoCycles(me.id)]);
   const open = openCycles(cycles);
   const reading = readingCycle(cycles);
 
@@ -107,16 +109,24 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         <div className="rq-mine">
           {open.map((c, i) => {
             const b = budgets.get(c.id);
+            const photoWaiting = !photoCycles.has(c.id);
+            const waiting = photoWaiting && mine[i].some((r) => r.status === "requested");
             return (
               <section key={c.id} className="split-col" aria-labelledby={`mine-${c.id}`}>
                 <div className="block-head">
                   <h2 className="t-heading" id={`mine-${c.id}`}>내 {roundLabel(c.month, today)} 요청 · {mine[i].length}권</h2>
                   {mine[i].length > 0 && <span>요청 → 장바구니 → 주문 → 배송</span>}
                 </div>
+                {waiting && (
+                  <p className="note note-warn">
+                    <Icon name="alert" />
+                    <span><b>활동 사진이 아직 확인되지 않았어요.</b> 운영진이 사진을 확인하면 주문해요. 사진을 찍었다면 총무에게 알려 주세요.</span>
+                  </p>
+                )}
                 {mine[i].length ? (
                   <ul className="req-list">
                     {mine[i].map((r) => (
-                      <MyRequestItem key={r.id} r={r} editable={r.status === "requested"} />
+                      <MyRequestItem key={r.id} r={r} editable={r.status === "requested"} photoWaiting={photoWaiting} />
                     ))}
                   </ul>
                 ) : (

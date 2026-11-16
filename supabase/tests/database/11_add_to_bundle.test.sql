@@ -13,8 +13,9 @@ insert into auth.users (id, email) values
 insert into public.cycles (id, month, status) values
   ('11000000-0000-0000-0000-0000000000c1', '2033-05-01', 'requesting'),
   ('11000000-0000-0000-0000-0000000000c2', '2033-06-01', 'closed');
-insert into public.cycle_participants (cycle_id, member_id, budget)
-select c.id, m.id, 30000 from public.cycles c cross join public.members m
+-- 모두 활동 사진을 체크한 참가자 (사진 체크 전 요청을 막는 검증은 14_activity_photos)
+insert into public.cycle_participants (cycle_id, member_id, budget, photo_checked_at)
+select c.id, m.id, 30000, now() from public.cycles c cross join public.members m
 where c.id in ('11000000-0000-0000-0000-0000000000c1', '11000000-0000-0000-0000-0000000000c2')
   and m.email in ('atb-a@t.test', 'atb-b@t.test');
 insert into public.purchase_requests (id, cycle_id, member_id, title, price, store, url, cancelled_at) values

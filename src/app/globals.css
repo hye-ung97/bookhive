@@ -122,7 +122,7 @@ main > * { min-width: 0; }
 .tabs a + a { border-left: 1px solid var(--rule); }
 .tabs a[aria-current="page"] { background: var(--ink); color: var(--on); }
 /* 모바일 운영 화면 위 운영 메뉴 4칸 (데스크톱은 목차에 있어 숨긴다) */
-.anav { display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--ink); }
+.anav { display: none; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--ink); }
 .anav a { display: grid; place-items: center; height: 36px; color: var(--ink); text-decoration: none; font: 700 13px/1 var(--font-sans); white-space: nowrap; }
 .anav a + a { border-left: 1px solid var(--ink); }
 .anav a[aria-current="page"] { background: var(--ink); color: var(--on); }
@@ -643,6 +643,53 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .att-list { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .att-list legend { margin-bottom: 6px; }
 .att-item { display: flex; align-items: center; gap: 8px; min-width: 0; font: 500 13px/18px var(--font-sans); overflow-wrap: anywhere; cursor: pointer; }
+/* 사진 대기: 활동 사진 체크 전인 사람의 요청. 담을 수 없어 체크 칸 없이 사람별로 묶고, 머리 줄은 회색 */
+.un-empty { margin-top: 10px; }
+.un-empty .btn { margin-top: 8px; }
+.wait { display: grid; gap: 10px; margin-top: 36px; }
+.wait-h { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 4px 8px; padding-bottom: 10px; border-bottom: 2px solid var(--past); }
+.wait-h h3 { font: 800 20px/28px var(--font-sans); letter-spacing: -0.01em; }
+.wait-h span { font: 500 13px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.wait .hint .link { font-size: 12px; line-height: 18px; }
+.wait-list { margin: 0; padding: 0; list-style: none; }
+.wait-list > li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.wait-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.wait-top b { font: 700 14px/20px var(--font-sans); overflow-wrap: anywhere; }
+.wait-top span { font: 600 12px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wait-bk { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.wait-bk li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; font: 400 12px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.wait-bk .tt { overflow-wrap: anywhere; }
+/* 묶음 줄: 활동 사진 체크가 풀린 사람 (자동으로 빼지 않고 표시만) */
+.bk-rows li.is-flag .bk-who { color: var(--red); font-weight: 700; }
+.bk-rows .x .mark { font-size: 12px; }
+.bk-rows .x .mark::before { width: 6px; height: 6px; }
+
+/* 활동 사진: 참가자 칸을 눌러 체크. 체크 전은 굵은 검은 칸(할 일), 체크한 사람은 옅은 테두리, 저장 전에 바꾼 칸은 회색 바탕 */
+.ph-head-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ph-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ph { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 2px 12px; align-items: center; min-width: 0; min-height: 72px; padding: 12px 14px; border: 2px solid var(--ink); background: var(--bg); cursor: pointer; }
+.ph:hover { background: var(--fill); }
+.ph:has(input:disabled) { cursor: default; }
+.ph:has(input:focus-visible) { outline: 2px solid var(--red); outline-offset: 2px; }
+.ph input { grid-row: 1 / span 2; }
+.ph .nm { min-width: 0; padding-right: 44px; font: 700 16px/22px var(--font-sans); overflow-wrap: anywhere; }
+.ph .nm small { margin-left: 6px; font: 500 12px/16px var(--font-sans); color: var(--ink2); }
+.ph .st { grid-column: 2; font: 500 12px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.ph .st.is-wait { color: var(--red); font-weight: 700; }
+.ph.is-done { border-color: var(--rule); }
+.ph.is-changed { border-color: var(--ink); background: var(--fill); }
+.ph.is-changed .st { color: var(--ink); font-weight: 700; }
+.ph-tag { position: absolute; top: 8px; right: 10px; font: 700 11px/14px var(--font-sans); color: var(--red); }
+.ph-more { padding: 12px 14px; border: 1px dashed var(--rule); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+/* 체크를 풀 때 확인창: 이미 묶음에 든 책 */
+.dlg-list { margin: 0; padding: 10px 12px; list-style: none; background: var(--fill); font: 500 13px/20px var(--font-sans); }
+.dlg-list li + li { margin-top: 4px; }
+@container app (max-width: 1023px) { .ph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container app (max-width: 767px) {
+  .ph-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .ph { min-height: 64px; }
+  .ph-head-acts { width: 100%; justify-content: space-between; }
+}
 
 /* 영수증: 직각 파일 칸 + 점선 추가 단추. 파일을 이 줄에 끌어다 놓아도 올라간다 */
 .rc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }

@@ -1,4 +1,5 @@
 import "server-only";
+import { STORE_NAME, type Store } from "./books/parse-store-url";
 import { roundKey } from "./format";
 import type { PenaltyRow } from "./penalties";
 import { withThumbs, type ReceiptView } from "./receipts";
@@ -305,24 +306,133 @@ export async function coffeePlans(cycleId: string): Promise<CoffeePlanView[]> {
   });
 }
 
-export type CycleWarnings ={ unrequested: number; unassigned: number; undelivered: number; plannedCoffee: number };
+export type CycleWarnings = { unrequested: number; unassigned: number; photoWaiting: number; undelivered: number; plannedCoffee: number };
 
 /** 단계를 넘길 때 확인창에 띄울 남은 일 */
 export async function cycleWarnings(cycleId: string): Promise<CycleWarnings> {
   const supabase = await createClient();
-  const [budgets, requests, bundles, coffee] = await Promise.all([
+  const [budgets, requests, bundles, coffee, checks] = await Promise.all([
     supabase.from("v_participant_budget").select("request_count").eq("cycle_id", cycleId),
-    // 시트에서 옮긴 요청(legacy_status 있음)은 시트에서 이미 주문·배송된 것이라 묶음 대상이 아니다
-    supabase.from("purchase_requests").select("id").eq("cycle_id", cycleId).is("cancelled_at", null).is("bundle_id", null).is("legacy_status", null),
+    // 시트에서 옮긴 요청(legacy_ref)은 시트에서 이미 주문·배송된 것이라 묶음 대상이 아니다 (회차 마감 때 취소 대상도 아님)
+    supabase.from("purchase_requests").select("id, member_id").eq("cycle_id", cycleId).is("cancelled_at", null).is("bundle_id", null)
+      .is("legacy_status", null).is("legacy_ref", null),
     supabase.from("order_bundles").select("id, status").eq("cycle_id", cycleId),
     supabase.from("coffee_plans").select("id").eq("cycle_id", cycleId).eq("status", "planned"),
+    photoChecks(cycleId),
   ]);
+  const open = requests.data ?? [];
+  const waiting = open.filter((r) => !checks.get(r.member_id as string)?.checked_at).length;
   return {
     unrequested: (budgets.data ?? []).filter((b) => b.request_count === 0).length,
-    unassigned: (requests.data ?? []).length,
+    unassigned: open.length - waiting,
+    photoWaiting: waiting,
     undelivered: (bundles.data ?? []).filter((b) => b.status !== "delivered").length,
     plannedCoffee: (coffee.data ?? []).length,
   };
+}
+
+// ───────── 활동 사진: 체크한 사람의 요청만 묶음에 담는다 ─────────
+
+export type PhotoCheck = { checked_at: string | null; checked_by: string | null };
+
+/** 관리자: 회차 참가자별 사진 체크 (관리자는 RLS로 모든 행이 보인다) */
+export async function photoChecks(cycleId: string): Promise<Map<string, PhotoCheck>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("cycle_participants")
+    .select("member_id, photo_checked_at, photo_checked_by")
+    .eq("cycle_id", cycleId);
+  if (error) throw error;
+  return new Map(
+    (data ?? []).map((p) => [p.member_id as string, { checked_at: p.photo_checked_at as string | null, checked_by: p.photo_checked_by as string | null }]),
+  );
+}
+
+/** 내가 사진 체크를 받은 회차 id (RLS로 본인 행만 보인다) */
+export async function myPhotoCycles(memberId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("cycle_participants")
+    .select("cycle_id")
+    .eq("member_id", memberId)
+    .not("photo_checked_at", "is", null);
+  if (error) throw error;
+  return new Set((data ?? []).map((p) => p.cycle_id as string));
+}
+
+export type PhotoBook = { title: string; price: number; bundle: string; status: "cart" | "ordered" | "delivered" };
+
+export type PhotoPerson = {
+  member_id: string;
+  name: string;
+  role_title: string | null;
+  left: boolean;
+  checked_at: string | null;
+  /** 체크한 운영진. 체크는 있는데 비어 있으면 이 기능 전에 요청을 마감한 회차 */
+  checked_by_name: string | null;
+  /** 묶음에 안 담긴 요청 (체크 전이면 "사진 대기") */
+  waiting: { count: number; total: number };
+  /** 이미 묶음에 든 책 (체크를 풀 때 확인창에 보여 준다) */
+  bundled: PhotoBook[];
+};
+
+/**
+ * 관리자 활동 사진 화면: 참가자 중 활동 중이거나 이 회차에 요청이 남은 사람. 이름 가나다순.
+ * 탈퇴해도 참가자 행은 남으므로 요청이 없는 탈퇴 멤버는 뺀다
+ */
+export async function photoRoster(cycleId: string): Promise<PhotoPerson[]> {
+  const supabase = await createClient();
+  const [checks, { data: members, error }, requests, { data: bundles }] = await Promise.all([
+    photoChecks(cycleId),
+    supabase.from("members").select("id, name, role_title, status"),
+    requestsForCycle(cycleId),
+    supabase.from("v_bundles").select("id, store, seq, status").eq("cycle_id", cycleId),
+  ]);
+  if (error) throw error;
+  const byId = new Map((members ?? []).map((m) => [m.id as string, m]));
+  const bundleOf = new Map((bundles ?? []).map((b) => [b.id as string, b]));
+  return [...checks.entries()]
+    .map(([memberId, check]) => {
+      const m = byId.get(memberId);
+      const mine = requests.filter((r) => r.member_id === memberId);
+      const open = mine.filter((r) => !r.bundle_id && r.status === "requested");
+      const bundled = mine.flatMap((r) => {
+        const b = r.bundle_id ? bundleOf.get(r.bundle_id) : undefined;
+        if (!b) return [];
+        return [{
+          title: r.title,
+          price: r.price,
+          bundle: `${STORE_NAME[b.store as Store] ?? b.store} ${b.seq}차`,
+          status: b.status as PhotoBook["status"],
+        }];
+      });
+      return {
+        member_id: memberId,
+        name: (m?.name as string) ?? "?",
+        role_title: (m?.role_title as string | null) ?? null,
+        left: m?.status === "left",
+        checked_at: check.checked_at,
+        checked_by_name: check.checked_by ? ((byId.get(check.checked_by)?.name as string) ?? null) : null,
+        waiting: { count: open.length, total: open.reduce((a, r) => a + r.price, 0) },
+        bundled,
+      };
+    })
+    .filter((p) => !p.left || p.waiting.count > 0 || p.bundled.length > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+}
+
+/** 관리자 목차의 "아직 N": 주문·배송·활동 사진이 처음 여는 회차에서 사진 체크 전인 활동 멤버 수 */
+export async function photoPendingCount(): Promise<number> {
+  const cycles = await listCycles();
+  const cycle = openCycles(cycles)[0] ?? readingCycle(cycles);
+  if (!cycle) return 0;
+  const supabase = await createClient();
+  const [checks, { data: members }] = await Promise.all([
+    photoChecks(cycle.id),
+    supabase.from("members").select("id").eq("status", "active"),
+  ]);
+  const active = new Set((members ?? []).map((m) => m.id as string));
+  return [...checks.entries()].filter(([id, c]) => active.has(id) && !c.checked_at).length;
 }
 
 // ───────── 벌점 ─────────

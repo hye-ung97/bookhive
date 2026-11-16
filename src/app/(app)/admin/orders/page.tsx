@@ -5,10 +5,10 @@ import { Receipts } from "@/components/receipts";
 import { RoundPicker } from "@/components/round-picker";
 import { requireAdmin } from "@/lib/auth";
 import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
-import { bundlesForCycle, findByKey, listCycles, openCycles, readingCycle, unassignedRequests, type BundleView } from "@/lib/data";
+import { bundlesForCycle, findByKey, listCycles, openCycles, photoChecks, readingCycle, unassignedRequests, type BundleView } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
 import { CancelItem, CartDropZone, CartPanel, DeliverButton, OpenAllLinks, RemoveItem, ResendButton, RevertButton } from "./bundle-controls";
-import { UnassignedPanel, type CartBundle } from "./unassigned-panel";
+import { UnassignedPanel, type CartBundle, type WaitingPerson } from "./unassigned-panel";
 
 export const metadata: Metadata = { title: "주문·배송" };
 
@@ -69,7 +69,10 @@ function LegacyBundleCard({ b, cycleKey }: { b: BundleView; cycleKey: string }) 
   );
 }
 
-function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: string; cycleKey: string; round: string }) {
+/** photoPending: 활동 사진 체크 전인 사람. 체크를 풀기 전에 담긴 책은 줄에 "사진 아직"으로 보인다 (자동으로 빼지 않음) */
+function BundleCard({ b, cycleId, cycleKey, round, photoPending }: {
+  b: BundleView; cycleId: string; cycleKey: string; round: string; photoPending: Set<string>;
+}) {
   if (b.is_legacy && b.item_count === 0) return <LegacyBundleCard b={b} cycleKey={cycleKey} />;
   const label = bundleLabel(b);
   const active = b.items.filter((i) => i.status !== "cancelled");
@@ -95,10 +98,17 @@ function BundleCard({ b, cycleId, cycleKey, round }: { b: BundleView; cycleId: s
         {b.items.map((i) => {
           const buy = buyStore && i.store !== buyStore ? buyLink(i, buyStore) : null;
           const cancelled = i.status === "cancelled";
+          const flag = !cancelled && photoPending.has(i.member_id);
           return (
-            <li key={i.id} className={cancelled ? "is-cancelled" : undefined}>
+            <li key={i.id} className={cancelled ? "is-cancelled" : flag ? "is-flag" : undefined}>
               <span className="t">
                 <span className="tt">{i.title}</span>
+                {flag && (
+                  <span className="x">
+                    <span className="mark no">사진 아직</span>
+                    {b.status === "cart" && <span className="muted">빼면 사진 대기로 돌아가요</span>}
+                  </span>
+                )}
                 {i.store !== b.store && (
                   <span className="x">
                     <span className="xstore">{STORE_NAME[i.store]} 요청 → {STORE_NAME[b.store]} 구매</span>
@@ -190,7 +200,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const [unassigned, bundles] = await Promise.all([unassignedRequests(cycle.id), bundlesForCycle(cycle.id)]);
+  const [unassigned, bundles, checks] = await Promise.all([unassignedRequests(cycle.id), bundlesForCycle(cycle.id), photoChecks(cycle.id)]);
+  // 활동 사진을 체크한 사람의 요청만 묶음에 담는다. 나머지는 사람별로 "사진 대기"
+  const photoPending = new Set([...checks.entries()].filter(([, c]) => !c.checked_at).map(([id]) => id));
+  const ready = unassigned.filter((r) => !photoPending.has(r.member_id));
+  const waiting: WaitingPerson[] = [];
+  for (const r of unassigned.filter((x) => photoPending.has(x.member_id))) {
+    let p = waiting.find((w) => w.member_id === r.member_id);
+    if (!p) waiting.push((p = { member_id: r.member_id, name: r.member_name, total: 0, books: [] }));
+    p.books.push({ id: r.id, title: r.title, store: r.store as Store, price: r.price });
+    p.total += r.price;
+  }
+  waiting.sort((a, b) => a.name.localeCompare(b.name, "ko"));
   const cycleKey = roundKey(cycle.month);
   const round = roundLabel(cycle.month, today);
   const stores = ["yes24", "kyobo"] as const;
@@ -221,13 +242,16 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <UnassignedPanel
           key={cycle.id}
           cycleId={cycle.id}
-          items={unassigned.map((r) => ({ id: r.id, title: r.title, member_name: r.member_name, price: r.price, store: r.store as Store, url: r.url, isbn: r.isbn }))}
+          items={ready.map((r) => ({ id: r.id, title: r.title, member_name: r.member_name, price: r.price, store: r.store as Store, url: r.url, isbn: r.isbn }))}
+          waiting={waiting}
+          checkedCount={checks.size - photoPending.size}
+          photosHref={`/admin/photos?round=${cycleKey}`}
           carts={carts}
           nextLabel={nextLabel}
         />
         <section className="bundles" aria-label="묶음 목록">
           {sorted.length ? (
-            sorted.map((b) => <BundleCard key={b.id} b={b} cycleId={cycle.id} cycleKey={cycleKey} round={round} />)
+            sorted.map((b) => <BundleCard key={b.id} b={b} cycleId={cycle.id} cycleKey={cycleKey} round={round} photoPending={photoPending} />)
           ) : (
             <div className="empty"><strong>아직 묶음이 없어요</strong><p>왼쪽에서 요청을 골라 묶음에 담아 보세요.</p></div>
           )}

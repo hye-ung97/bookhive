@@ -28,6 +28,15 @@ insert into public.cycles (month, budget_per_person, budget_note, status, reques
 insert into public.cycle_participants (cycle_id, member_id, budget)
 select c.id, m.id, c.budget_per_person from public.cycles c cross join public.members m;
 
+-- 활동 사진: 11월 회차는 모두 확인, 12월 회차는 10명만 (정민지·오세훈·임채원·홍지안 등의 요청은 주문·배송에서 "사진 대기")
+update public.cycle_participants cp
+set photo_checked_at = case when c.month = '2026-11-01' then '2026-10-10 20:00+09'::timestamptz else '2026-11-14 20:00+09'::timestamptz end,
+    photo_checked_by = (select id from public.members where email = 'haneul.kim@sikkeul.test')
+from public.cycles c, public.members m
+where c.id = cp.cycle_id and m.id = cp.member_id
+  and (c.month = '2026-11-01'
+       or m.name in ('김하늘', '박서준', '이서연', '최도윤', '한지우', '윤가람', '장보름', '서도현', '문여름', '신유찬'));
+
 -- 11월 회차 주문 묶음: 교보문고 1차 배송완료, yes24 1차 주문완료
 insert into public.order_bundles (cycle_id, store, status, paid_amount, ordered_at, expected_arrival, delivered_at)
 select id, 'kyobo', 'delivered', null, '2026-10-16', '2026-10-19', '2026-10-19' from public.cycles where month = '2026-11-01';
