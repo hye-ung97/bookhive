@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="activity-photo">
+<meta name="doan:width" content="1960">
+<title>활동 사진 확인 시안</title>
+<link rel="stylesheet" href="../../src/app/globals.css">
+<style>
+/* 앱 글꼴: layout.tsx의 next/font(Pretendard) 대신 같은 파일을 직접 */
+@font-face { font-family: "Pretendard Variable"; src: url("../../src/app/fonts/PretendardVariable.woff2") format("woff2-variations"); font-weight: 45 920; font-display: swap; }
+:root { --font-pretendard: "Pretendard Variable"; }
+
+/* Tailwind preflight 중 화면에 보이는 것만 (globals.css 첫 줄 @import "tailwindcss"는 캔버스에서 풀리지 않는다) */
+*, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+button, input, select { font: inherit; color: inherit; background: transparent; }
+ol, ul { list-style: none; }
+h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; }
+a { color: inherit; text-decoration: inherit; }
+table { border-collapse: collapse; }
+svg { display: block; vertical-align: middle; }
+
+/* globals.css의 화면 높이 단위(vh)는 보드 전체 높이로 풀리므로 픽셀로 덮는다 */
+.shell { min-height: 0; }
+.side-inner { position: static; height: auto; min-height: 100%; }
+dialog.dlg { max-height: none; }
+/* 캔버스는 스크롤하지 않으므로 아래 실행 막대는 본문 끝에 그대로 둔다 */
+.actionbar { position: relative; bottom: auto; }
+
+/* ───────── 보드 ───────── */
+body { background: var(--fill2); }
+.board { width: 1960px; padding: 96px 80px; display: flex; flex-direction: column; gap: 112px; }
+.frames { display: flex; flex-wrap: wrap; gap: 56px 56px; align-items: flex-start; }
+.fw { display: flex; flex-direction: column; gap: 12px; }
+.cap { font: 700 14px/20px var(--font-sans); color: var(--ink); }
+.cap span { font-weight: 400; color: var(--ink2); }
+.cap .tag { height: 22px; margin-right: 6px; padding: 0 8px; font-size: 12px; vertical-align: 1px; }
+.nc { display: inline-flex; align-items: center; height: 20px; margin-left: 6px; padding: 0 6px; border: 1px dashed var(--red); color: var(--red); font: 700 11px/1 var(--font-sans); vertical-align: 1px; }
+.frame { position: relative; overflow: hidden; background: var(--bg); box-shadow: var(--shadow); }
+.desk { width: 1280px; }
+.desk .shell { min-height: 820px; }
+.mob { width: 390px; }
+.mob .shell { min-height: 844px; }
+
+/* 개요 */
+.brief { width: 1800px; padding: 56px 64px 60px; background: var(--bg); border: 2px solid var(--ink); }
+.brief h1 { font: 800 44px/52px var(--font-sans); letter-spacing: -0.03em; }
+.lead { margin-top: 14px; max-width: 92ch; font: 500 17px/28px var(--font-sans); color: var(--ink2); }
+.lead b { color: var(--ink); }
+.flow { margin-top: 32px; }
+.flow > li .st { display: inline-flex; margin-left: 8px; padding: 2px 6px; border: 1px solid currentColor; font: 700 11px/1 var(--font-sans); vertical-align: 2px; }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 48px; }
+.brief-cols h3 { padding-bottom: 8px; border-bottom: 2px solid var(--ink); font: 800 15px/22px var(--font-sans); }
+.brief-cols li { padding: 10px 0; border-bottom: 1px solid var(--rule); font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.brief-cols li b { color: var(--ink); }
+.brief-cols .ask li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; }
+.brief-cols .ask li > i { font: 800 13px/22px var(--font-sans); font-style: normal; color: var(--red); }
+.brief code, .spec code { padding: 1px 4px; background: var(--fill); font: 500 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+
+/* 묶음 머리 */
+.grp { display: flex; flex-direction: column; gap: 32px; }
+.grp-top { display: grid; grid-template-columns: 88px 560px 1fr; gap: 32px; align-items: end; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.grp-top .no { font: 800 56px/56px var(--font-sans); letter-spacing: -0.04em; color: var(--past); }
+.grp-top h2 { font: 800 32px/40px var(--font-sans); letter-spacing: -0.02em; }
+.grp-top .route { margin-top: 6px; font: 500 14px/20px var(--font-sans); color: var(--ink2); }
+.grp-top .notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.grp-top .notes b { color: var(--ink); }
+.grp-top .notes div > b:first-child { display: block; margin-bottom: 4px; }
+
+/* 확인창만 */
+.dlg.static { position: relative; inset: auto; display: block; margin: 0; }
+.stage { width: 560px; padding: 20px; background-color: var(--bg); background-image: linear-gradient(var(--overlay), var(--overlay)); }
+.stage .dlg.static { width: 520px; }
+.crop { padding: 32px 28px 36px; }
+.fold-ph { padding: 14px 16px; border: 1px dashed var(--rule); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+
+/* ───────── 새로 그린 것 (코드에 없음) ───────── */
+/* 운영 메뉴가 5칸이 된다 (A안) */
+.anav.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* A · 활동 사진 칸: 체크 전은 굵은 검은 칸(할 일), 체크한 사람은 옅은 테두리(끝난 일). 저장 전 바뀐 칸은 회색 바탕 */
+.ph-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ph { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 2px 12px; align-items: center; min-height: 72px; padding: 12px 14px; border: 2px solid var(--ink); background: var(--bg); cursor: pointer; }
+.ph:hover { background: var(--fill); }
+.ph input { grid-row: 1 / span 2; pointer-events: none; }
+.ph .nm { min-width: 0; font: 700 16px/22px var(--font-sans); }
+.ph .nm small { margin-left: 6px; font: 500 12px/16px var(--font-sans); color: var(--ink2); }
+.ph .st { grid-column: 2; font: 500 12px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.ph .st.is-wait { color: var(--red); font-weight: 700; }
+.ph.is-done { border-color: var(--rule); }
+.ph.is-changed { border-color: var(--ink); background: var(--fill); }
+.ph.is-changed .st { color: var(--ink); font-weight: 700; }
+.ph-tag { position: absolute; top: 8px; right: 10px; font: 700 11px/14px var(--font-sans); color: var(--red); }
+.ph-head-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ph-more { padding: 12px 14px; border: 1px dashed var(--rule); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+@container app (max-width: 1023px) { .ph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container app (max-width: 767px) {
+  .ph-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .ph { min-height: 64px; }
+  .ph-head-acts { width: 100%; justify-content: space-between; }
+}
+
+/* B · 회차 현황 표의 사진 칸 */
+.ppl-tbl .ph-td { width: 150px; }
+.ph-yes { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.ph-yes small { font: 500 12px/16px var(--font-sans); color: var(--ink2); }
+.ph-no { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.ppl-rows .ph-m { grid-column: 2 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; }
+
+/* 주문·배송 · 사진 대기: 담을 수 없는 요청. 체크 칸 없이 사람별로 묶고, 머리 줄은 회색 */
+.wait { display: grid; gap: 10px; margin-top: 36px; }
+.wait-h { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 4px 8px; padding-bottom: 10px; border-bottom: 2px solid var(--past); }
+.wait-h h3 { font: 800 20px/28px var(--font-sans); letter-spacing: -0.01em; }
+.wait-h span { font: 500 13px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.wait-list > li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.wait-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.wait-top b { font: 700 14px/20px var(--font-sans); }
+.wait-top span { font: 600 12px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wait-bk { display: grid; gap: 2px; }
+.wait-bk li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; font: 400 12px/18px var(--font-sans); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.wait-bk .tt { overflow-wrap: anywhere; }
+.wait .hint .link { font-size: 12px; line-height: 18px; }
+.un-empty { margin-top: 10px; border-top: 0; }
+.un-empty .btn { margin-top: 8px; }
+/* 묶음 줄에 사진 체크가 풀린 사람 */
+.bk-rows li.is-flag .bk-who { color: var(--red); font-weight: 700; }
+.bk-rows .x .mark { font-size: 12px; }
+.bk-rows .x .mark::before { width: 6px; height: 6px; }
+/* 해제 확인창의 책 목록 */
+.dlg-list { padding: 10px 12px; background: var(--fill); font: 500 13px/20px var(--font-sans); }
+.dlg-list li + li { margin-top: 4px; }
+
+/* 멤버 쪽 (제안) */
+.req-crop { width: 600px; }
+.req-crop .req-list li:first-child { border-top: 0; }
+
+/* 상태 표 */
+.spec { width: 1280px; padding: 36px 40px 40px; }
+.spec h3 { padding-bottom: 10px; border-bottom: 2px solid var(--ink); font: 800 20px/28px var(--font-sans); }
+.spec .tbl td { vertical-align: top; padding-top: 14px; padding-bottom: 14px; font-size: 13px; line-height: 20px; }
+.spec .tbl td:first-child { width: 110px; font-weight: 800; }
+.spec .tbl td:nth-child(2) { width: 150px; }
+.spec .mini { display: inline-flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-alertc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-checkc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-chevR" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-arrowR" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 10a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <!-- ═══════════ 개요 ═══════════ -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 활동 사진 확인">
+    <h1>활동 사진을 찍은 사람만 주문해요</h1>
+    <p class="lead">회사 활동비는 <b>활동 사진이 있는 사람 몫만</b> 나와요. 그래서 운영진이 회차마다 <b>사진을 찍었는지 체크</b>하고, 주문·배송에서는 <b>체크한 사람의 요청만 묶음에 담을 수 있게</b> 해요. 체크 전인 사람의 요청은 <b>사진 대기</b>로 따로 모여 있다가, 체크하면 바로 주문할 요청으로 올라가요.</p>
+    <ol class="phase flow">
+      <li><b>1 · 멤버가 책 요청 <span class="st">그대로</span></b>사진이 없어도 요청은 받아요. 한도 30,000원도 그대로 잡혀요.</li>
+      <li class="now"><b>2 · 운영진이 사진 체크 <span class="st">새로</span></b>회차마다 참가자별로 찍음·아직. 누가 언제 체크했는지 남겨요.</li>
+      <li><b>3 · 주문·배송에서 묶기 <span class="st">바뀜</span></b>체크한 사람 요청만 담기·끌어다 놓기. 나머지는 아래 "사진 대기"에.</li>
+    </ol>
+    <div class="brief-cols">
+      <div>
+        <h3>정한 것</h3>
+        <ul>
+          <li><b>막는 곳은 주문 단계 하나.</b> 요청은 막지 않아요. 사진을 아직 못 찍었어도 책은 미리 골라 둘 수 있게요.</li>
+          <li><b>체크는 회차마다·참가자마다.</b> 지난 회차에 찍었어도 이번 회차는 다시 체크해요.</li>
+          <li><b>사진 파일은 올리지 않고 체크만</b> 해요. 사진은 지금처럼 Slack·드라이브에.</li>
+          <li><b>체크는 눌러서 고르고 [저장].</b> 모임 사진을 보며 여러 명을 한 번에 체크하고, 실수로 누른 건 저장 전에 되돌려요.</li>
+          <li><b>체크를 풀어도 이미 장바구니·주문에 들어간 책은 자동으로 빼지 않아요.</b> 묶음 줄에 "사진 아직"이 떠서 총무가 직접 [빼기] (03).</li>
+          <li><b>서버에서도 막아요.</b> 묶음에 담는 DB 함수가 사진 체크 전 요청을 거절해요.</li>
+        </ul>
+      </div>
+      <div class="ask">
+        <h3>11/16 정한 것</h3>
+        <ul>
+          <li><i>Q1</i><span><b>사진 체크 화면은 A 새 메뉴 "활동 사진".</b> B(회차 현황 칸)는 채택하지 않았어요 (01).</span></li>
+          <li><i>Q2</i><span><b>12월 회차 주문은 12월 회차에 체크한 사진으로</b> 열어요. 체크는 회차마다 따로예요.</span></li>
+          <li><i>Q3</i><span><b>회차를 마감하면 남은 사진 대기 요청은 취소</b>돼요. 마감 확인창에 건수가 나오고, [회차 다시 열기]로 되돌리면 되살아나요.</span></li>
+          <li><i>Q4</i><span><b>멤버에게도 "사진 대기"를 보여 줘요.</b> 구매 요청의 내 요청 줄과 안내 한 줄, 내 기록의 요청 줄 (04).</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>코드</h3>
+        <ul>
+          <li><b>화면</b>: 활동 사진 <code>admin/photos/</code>(page·photo-board·actions), 주문·배송 <code>orders/unassigned-panel.tsx</code>·묶음 줄, 구매 요청·내 기록의 "사진 대기", 설정의 마감 확인창 경고, 운영 메뉴 5칸과 "아직 N"(<code>app-shell.tsx</code>)</li>
+          <li><b>DB</b>: <code>20261116000001_activity_photos.sql</code> — <code>cycle_participants.photo_checked_at</code>·<code>photo_checked_by</code>, <code>set_activity_photos</code>(운영진만, 감사 로그), 묶음 담기 함수가 체크 전 요청 거절(<code>PHOTO_PENDING</code>), <code>set_cycle_status</code>가 마감 때 사진 대기 요청 취소·되돌리면 되살림</li>
+          <li><b>이전 회차</b>: 마이그레이션 때 읽는 중·마감 회차는 모두 체크로 옮겨요 ("확인 · 이 기능 전 회차")</li>
+          <li><b>B안 프레임</b>은 채택하지 않아 코드에 없어요</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 01 사진 체크 화면 ═══════════ -->
+  <section class="grp" data-doan-id="g-check">
+    <div class="grp-top">
+      <span class="no">01</span>
+      <div><h2>사진 체크 화면 · A 채택</h2><p class="route">A /admin/photos (새 메뉴, 채택) · B /admin/rounds (사람별 예산 표, 채택 안 함)</p></div>
+      <div class="notes">
+        <div><b>A 새 메뉴 "활동 사진" · 채택</b>참가자를 큰 칸으로 늘어놓고 눌러서 체크 → [저장]. 모임 끝나고 휴대폰으로 사진 보며 바로 체크하기 좋아요. 기본 회차가 주문·배송과 같아요(요청 중 회차). 대신 운영 메뉴가 하나 늘어요.</div>
+        <div><b>B 회차 현황에 "사진" 칸</b>메뉴는 그대로, 이미 있는 사람별 예산 표에 칸 하나. 대신 회차 현황은 <b>읽는 중 회차(11월)가 먼저</b> 열려서 12월 사진은 회차를 바꿔야 하고, 표에 체크 칸(커피용)이 이미 있어 헷갈릴 수 있어요.</div>
+      </div>
+    </div>
+    <div class="frames">
+
+      <!-- A 데스크톱 -->
+      <div class="fw">
+        <p class="cap"><span class="tag tag-on">A 채택</span>활동 사진 · 데스크톱 1280 <span>· 정민지·서도현을 눌러 체크한 직후 (저장 전)</span></p>
+        <div class="frame desk app-frame" data-doan-frame="a-desktop" data-doan-title="A 활동 사진 · 데스크톱" data-doan-implements="src/app/(app)/admin/photos/photo-board.tsx">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#"><b>시끌북적</b><span>독서 동아리</span></a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#">홈</a><a class="nav" href="#">구매 요청</a><a class="nav" href="#">일지 쓰기</a><a class="nav" href="#">내 기록</a><a class="nav" href="#">벌점</a>
+                  <p class="grp-t">운영</p>
+                  <a class="nav" href="#">회차 현황</a><a class="nav" href="#" aria-current="page" data-doan-id="nav-photo">활동 사진<small>아직 5</small></a><a class="nav" href="#">주문·배송</a><a class="nav" href="#">멤버</a><a class="nav" href="#">설정</a>
+                </nav>
+                <div class="who"><b>김하늘</b>총무</div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">활동 사진</h1>
+                    <p class="page-sub">사진을 찍은 사람을 체크해요. 체크한 사람의 요청만 주문·배송에서 묶음에 담을 수 있어요.</p>
+                  </div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+
+                <div class="tiles" data-doan-id="a-tiles">
+                  <div class="tile"><span>사진 확인</span><b>11<small>/ 16명</small></b></div>
+                  <div class="tile"><span>아직</span><b class="red">5<small>명</small></b></div>
+                  <div class="tile"><span>사진 대기 요청</span><b>4<small>권 · 3명</small></b></div>
+                  <div class="tile"><span>대기 금액</span><b>55,800<small>원</small></b></div>
+                </div>
+
+                <section class="block" aria-labelledby="pa-h" data-doan-id="a-grid">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="pa-h">참가자 16명</h2>
+                    <div class="ph-head-acts">
+                      <div class="seg" role="group" aria-label="필터"><a href="#" aria-current="true">전체</a><a href="#">아직 5</a><a href="#">확인 11</a></div>
+                      <button class="btn btn-sm" type="button">아직인 5명 모두 체크</button>
+                    </div>
+                  </div>
+                  <p class="hint">칸을 눌러 체크하고 아래 [저장]을 눌러요. 단체 사진이면 [아직인 5명 모두 체크] 뒤 빠진 사람만 다시 눌러요. 체크 기록은 회차마다 따로예요.</p>
+                  <div class="ph-grid">
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">강민호</span><span class="st">확인 · 11/15(일) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">김하늘<small>총무</small></span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">문가람</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">박서준<small>회장</small></span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph" data-doan-id="cell-none"><input type="checkbox" tabindex="-1"><span class="nm">배수아</span><span class="st">아직 · 요청 없음</span></label>
+                    <label class="ph is-changed" data-doan-id="cell-changed"><span class="ph-tag">저장 전</span><input type="checkbox" checked tabindex="-1"><span class="nm">서도현</span><span class="st">저장하면 요청 1권 주문 가능</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">송유나</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph"><input type="checkbox" tabindex="-1"><span class="nm">오세린</span><span class="st">아직 · 요청 없음</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">윤하은</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">이서연</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph" data-doan-id="cell-wait"><input type="checkbox" tabindex="-1"><span class="nm">임태윤</span><span class="st is-wait">요청 1권 · 18,000원 대기</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">장현우</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph is-changed"><span class="ph-tag">저장 전</span><input type="checkbox" checked tabindex="-1"><span class="nm">정민지</span><span class="st">저장하면 요청 2권 주문 가능</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">조은비</span><span class="st">확인 · 11/15(일) 박서준</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">최도윤</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked tabindex="-1"><span class="nm">한지우</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                  </div>
+                </section>
+
+                <div class="actionbar" role="region" aria-label="저장 전 변경" data-doan-id="a-bar">
+                  <span><b>2명</b> 체크 · 저장하면 요청 <b>3권 · 37,800원</b>이 주문할 요청으로 올라가요</span>
+                  <span class="row-gap"><button class="btn btn-ghost" type="button">되돌리기</button><button class="btn btn-primary" type="button">저장</button></span>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A 모바일 -->
+      <div class="fw">
+        <p class="cap">A 모바일 390 <span>· "아직" 필터로 5명만, 임태윤을 누른 직후</span></p>
+        <div class="frame mob app-frame" data-doan-frame="a-mobile" data-doan-title="A 활동 사진 · 모바일" data-doan-implements="src/app/(app)/admin/photos/photo-board.tsx">
+          <div class="shell">
+            <div class="maincol">
+              <header class="appbar"><a class="logo" href="#">시끌북적</a><div class="appbar-right"><span class="mono" aria-hidden="true">늘</span></div></header>
+              <main>
+                <nav class="anav five" aria-label="운영 메뉴" data-doan-id="anav-five"><a href="#">회차</a><a href="#" aria-current="page">사진</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">활동 사진</h1>
+                    <p class="page-sub">사진을 찍은 사람을 체크해요. 체크한 사람의 요청만 묶음에 담을 수 있어요.</p>
+                  </div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+                <div class="tiles">
+                  <div class="tile"><span>사진 확인</span><b>11<small>/ 16명</small></b></div>
+                  <div class="tile"><span>아직</span><b class="red">5<small>명</small></b></div>
+                  <div class="tile"><span>사진 대기 요청</span><b>4<small>권</small></b></div>
+                  <div class="tile"><span>대기 금액</span><b>55,800<small>원</small></b></div>
+                </div>
+                <section class="block" aria-labelledby="pm-h">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="pm-h">참가자 16명</h2>
+                    <div class="ph-head-acts">
+                      <div class="seg" role="group" aria-label="필터"><a href="#">전체</a><a href="#" aria-current="true">아직 5</a><a href="#">확인 11</a></div>
+                      <button class="btn btn-sm" type="button">모두 체크</button>
+                    </div>
+                  </div>
+                  <div class="ph-grid">
+                    <label class="ph"><input type="checkbox" tabindex="-1"><span class="nm">배수아</span><span class="st">아직 · 요청 없음</span></label>
+                    <label class="ph"><input type="checkbox" tabindex="-1"><span class="nm">서도현</span><span class="st is-wait">요청 1권 · 12,600원 대기</span></label>
+                    <label class="ph"><input type="checkbox" tabindex="-1"><span class="nm">오세린</span><span class="st">아직 · 요청 없음</span></label>
+                    <label class="ph is-changed"><span class="ph-tag">저장 전</span><input type="checkbox" checked tabindex="-1"><span class="nm">임태윤</span><span class="st">저장하면 요청 1권 주문 가능</span></label>
+                    <label class="ph"><input type="checkbox" tabindex="-1"><span class="nm">정민지</span><span class="st is-wait">요청 2권 · 25,200원 대기</span></label>
+                  </div>
+                  <p class="ph-more">확인 11명은 [확인 11]에서 볼 수 있어요. 체크를 풀 때도 거기서 눌러요.</p>
+                </section>
+                <div class="actionbar" role="region" aria-label="저장 전 변경">
+                  <span><b>1명</b> 체크 · 요청 <b>1권</b>이 주문할 요청으로</span>
+                  <span class="row-gap ppl-acts"><button class="btn btn-ghost" type="button">되돌리기</button><button class="btn btn-primary" type="button">저장</button></span>
+                </div>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#">내 기록</a><a href="#" aria-current="page">운영</a></nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- B 데스크톱 -->
+      <div class="fw">
+        <p class="cap"><span class="tag tag-off">B 채택 안 함</span>회차 현황에 사진 칸 · 데스크톱 1280 <span>· 회차를 12월로 바꾼 모습. [체크]는 누르면 바로 저장</span><span class="nc">코드에 없음</span></p>
+        <div class="frame desk app-frame" data-doan-frame="b-desktop" data-doan-title="B 회차 현황 사진 칸 · 데스크톱 (채택 안 함)">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#"><b>시끌북적</b><span>독서 동아리</span></a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#">홈</a><a class="nav" href="#">구매 요청</a><a class="nav" href="#">일지 쓰기</a><a class="nav" href="#">내 기록</a><a class="nav" href="#">벌점</a>
+                  <p class="grp-t">운영</p>
+                  <a class="nav" href="#" aria-current="page">회차 현황</a><a class="nav" href="#">주문·배송</a><a class="nav" href="#">멤버</a><a class="nav" href="#">설정</a>
+                </nav>
+                <div class="who"><b>김하늘</b>총무</div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">회차 현황</h1>
+                    <p class="page-sub">1인 한도 30,000원 · 참가 16명 · 회비 480,000원 · <em>사진 아직 5명</em></p>
+                  </div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+                <div class="tiles">
+                  <div class="tile"><span>요청한 사람</span><b>13<small>/ 16명</small></b></div>
+                  <div class="tile"><span>도서 사용</span><b>236,640<small>원</small></b></div>
+                  <div class="tile"><span>커피 (예약·사용)</span><b>0<small>원</small></b></div>
+                  <div class="tile"><span>남은 예산</span><b>243,360<small>원</small></b></div>
+                </div>
+                <p class="fold-ph">회사 제출 문서 · 12월 회차 (그대로)</p>
+                <section class="block ppl" aria-labelledby="pb-h" data-doan-id="b-table">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="pb-h">사람별 예산</h2>
+                    <div class="seg" role="group" aria-label="필터"><a href="#" aria-current="true">전체</a><a href="#">잔액 있음</a><a href="#">미요청</a><a href="#" data-doan-id="b-filter">사진 아직</a></div>
+                  </div>
+                  <div class="tbl-wrap">
+                    <table class="tbl ppl-tbl">
+                      <thead>
+                        <tr><th style="width:36px"><span class="sr-only">선택</span></th><th>이름</th><th class="ph-td">사진</th><th class="num" style="width:70px">권수</th><th class="num" style="width:110px">사용(원)</th><th class="num" style="width:110px">커피(원)</th><th class="num" style="width:110px">잔액(원)</th><th style="width:120px">상태</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td><input type="checkbox" aria-label="강민호 선택"></td><td class="strong"><span class="row-toggle-pad">강민호</span></td><td class="ph-td"><span class="ph-yes"><span class="mark ok">확인</span><small>11/15</small></span></td><td class="num">2</td><td class="num">27,720</td><td class="num">—</td><td class="num strong">2,280</td><td><span class="t-cap">잔액 있음</span></td></tr>
+                        <tr><td><input type="checkbox" aria-label="김하늘 선택"></td><td class="strong"><span class="row-toggle-pad">김하늘</span><span class="role"> 총무</span></td><td class="ph-td"><span class="ph-yes"><span class="mark ok">확인</span><small>11/14</small></span></td><td class="num">1</td><td class="num">15,300</td><td class="num">—</td><td class="num strong">14,700</td><td><span class="t-cap">잔액 있음</span></td></tr>
+                        <tr><td><input type="checkbox" aria-label="문가람 선택"></td><td class="strong"><span class="row-toggle-pad">문가람</span></td><td class="ph-td"><span class="ph-yes"><span class="mark ok">확인</span><small>11/14</small></span></td><td class="num">1</td><td class="num">15,120</td><td class="num">—</td><td class="num strong">14,880</td><td><span class="t-cap">잔액 있음</span></td></tr>
+                        <tr><td><input type="checkbox" aria-label="박서준 선택"></td><td class="strong"><span class="row-toggle-pad">박서준</span><span class="role"> 회장</span></td><td class="ph-td"><span class="ph-yes"><span class="mark ok">확인</span><small>11/14</small></span></td><td class="num">1</td><td class="num">14,400</td><td class="num">—</td><td class="num strong">15,600</td><td><span class="t-cap">잔액 있음</span></td></tr>
+                        <tr><td><input type="checkbox" aria-label="배수아 선택" disabled></td><td class="strong"><span class="row-toggle-pad">배수아</span></td><td class="ph-td"><span class="ph-no"><span class="mark no">아직</span><button class="btn btn-sm" type="button">체크</button></span></td><td class="num">0</td><td class="num">0</td><td class="num">—</td><td class="num strong">30,000</td><td><span class="mark warn">미요청</span></td></tr>
+                        <tr data-doan-id="b-row-wait"><td><input type="checkbox" aria-label="서도현 선택"></td><td class="strong"><span class="row-toggle-pad">서도현</span></td><td class="ph-td"><span class="ph-no"><span class="mark no">아직</span><button class="btn btn-sm" type="button">체크</button></span></td><td class="num">1</td><td class="num">12,600</td><td class="num">—</td><td class="num strong">17,400</td><td><span class="t-cap">잔액 있음</span></td></tr>
+                        <tr><td><input type="checkbox" aria-label="송유나 선택" disabled></td><td class="strong"><span class="row-toggle-pad">송유나</span></td><td class="ph-td"><span class="ph-yes"><span class="mark ok">확인</span><small>11/14</small></span></td><td class="num">0</td><td class="num">0</td><td class="num">—</td><td class="num strong">30,000</td><td><span class="mark warn">미요청</span></td></tr>
+                        <tr><td colspan="8" class="muted" style="font-size:13px">… 9명 더 · 사진 아직 3명(오세린·임태윤·정민지)</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B 모바일 -->
+      <div class="fw">
+        <p class="cap"><span class="tag tag-off">B 채택 안 함</span>모바일 390 <span>· "사진 아직" 필터</span><span class="nc">코드에 없음</span></p>
+        <div class="frame mob app-frame" data-doan-frame="b-mobile" data-doan-title="B 회차 현황 사진 칸 · 모바일 (채택 안 함)">
+          <div class="shell">
+            <div class="maincol">
+              <header class="appbar"><a class="logo" href="#">시끌북적</a><div class="appbar-right"><span class="mono" aria-hidden="true">늘</span></div></header>
+              <main>
+                <nav class="anav" aria-label="운영 메뉴"><a href="#" aria-current="page">회차</a><a href="#">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">회차 현황</h1>
+                    <p class="page-sub">1인 한도 30,000원 · 참가 16명 · <em>사진 아직 5명</em></p>
+                  </div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+                <section class="block ppl" aria-labelledby="pbm-h">
+                  <div class="block-head"><h2 class="t-heading" id="pbm-h">사람별 예산</h2></div>
+                  <div class="seg" role="group" aria-label="필터"><a href="#">전체</a><a href="#">잔액</a><a href="#">미요청</a><a href="#" aria-current="true">사진 아직</a></div>
+                  <ul class="ppl-rows">
+                    <li><input type="checkbox" aria-label="배수아 선택" disabled><span class="t"><span class="row-toggle-pad">배수아</span></span><span class="m">0권</span><span class="r"><span class="mark warn">미요청</span></span><span class="ph-m"><span class="mark no">사진 아직</span><button class="btn btn-sm" type="button">사진 체크</button></span></li>
+                    <li><input type="checkbox" aria-label="서도현 선택"><span class="t"><span class="row-toggle-pad">서도현</span></span><span class="m">1권 · 사용 12,600</span><span class="r">17,400<small>잔액</small></span><span class="ph-m"><span class="mark no">사진 아직</span><button class="btn btn-sm" type="button">사진 체크</button></span></li>
+                    <li><input type="checkbox" aria-label="오세린 선택" disabled><span class="t"><span class="row-toggle-pad">오세린</span></span><span class="m">0권</span><span class="r"><span class="mark warn">미요청</span></span><span class="ph-m"><span class="mark no">사진 아직</span><button class="btn btn-sm" type="button">사진 체크</button></span></li>
+                    <li><input type="checkbox" aria-label="임태윤 선택"><span class="t"><span class="row-toggle-pad">임태윤</span></span><span class="m">1권 · 사용 18,000</span><span class="r">12,000<small>잔액</small></span><span class="ph-m"><span class="mark no">사진 아직</span><button class="btn btn-sm" type="button">사진 체크</button></span></li>
+                    <li><input type="checkbox" aria-label="정민지 선택"><span class="t"><span class="row-toggle-pad">정민지</span></span><span class="m">2권 · 사용 25,200</span><span class="r">4,800<small>잔액</small></span><span class="ph-m"><span class="mark no">사진 아직</span><button class="btn btn-sm" type="button">사진 체크</button></span></li>
+                  </ul>
+                </section>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#">내 기록</a><a href="#" aria-current="page">운영</a></nav>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 주문·배송 ═══════════ -->
+  <section class="grp" data-doan-id="g-orders">
+    <div class="grp-top">
+      <span class="no">02</span>
+      <div><h2>주문·배송 · 주문할 요청과 사진 대기</h2><p class="route">/admin/orders · 왼쪽 미배정 요청 칸</p></div>
+      <div class="notes">
+        <div><b>무엇이 바뀌나</b>"미배정 요청"이 둘로 나뉘어요. 위 <b>주문할 요청</b>은 지금과 똑같이 체크·담기·끌어다 놓기. 아래 <b>사진 대기</b>는 체크 칸 없이 사람별로 모아 보여 주고, 담을 수도 끌 수도 없어요.</div>
+        <div><b>그대로</b>오른쪽 묶음 카드, 담을 곳 고르기, 링크 모두 열기, 주문완료·배송완료 공지. 사진 대기가 없으면 아래 무리는 안 보여요.</div>
+      </div>
+    </div>
+    <div class="frames">
+
+      <div class="fw">
+        <p class="cap">데스크톱 1280 <span>· 12월 회차</span></p>
+        <div class="frame desk app-frame" data-doan-frame="orders-desktop" data-doan-title="주문·배송 · 데스크톱 · 사진 대기" data-doan-implements="src/app/(app)/admin/orders/unassigned-panel.tsx">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#"><b>시끌북적</b><span>독서 동아리</span></a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#">홈</a><a class="nav" href="#">구매 요청</a><a class="nav" href="#">일지 쓰기</a><a class="nav" href="#">내 기록</a><a class="nav" href="#">벌점</a>
+                  <p class="grp-t">운영</p>
+                  <a class="nav" href="#">회차 현황</a><a class="nav" href="#">활동 사진<small>아직 5</small></a><a class="nav" href="#" aria-current="page">주문·배송</a><a class="nav" href="#">멤버</a><a class="nav" href="#">설정</a>
+                </nav>
+                <div class="who"><b>김하늘</b>총무</div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">주문·배송</h1>
+                    <p class="page-sub">요청을 구매처별 묶음으로 담고, 주문·배송 상태와 영수증을 관리해요.</p>
+                  </div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+                <div class="orders">
+                  <section class="un" aria-labelledby="ou-h" data-doan-id="un-ready">
+                    <div class="block-head">
+                      <h2 class="t-heading" id="ou-h">주문할 요청 · 6건</h2>
+                      <span>사진 확인한 사람</span>
+                    </div>
+                    <p class="hint">책을 체크해 묶음으로 만든 뒤, 묶음의 "링크 모두 열기"로 서점 장바구니에 담아요. 열어 본 링크는 회색으로 바뀌어요.</p>
+                    <p class="hint dnd-hint">책을 장바구니 묶음 카드에 끌어다 놓아도 담겨요. 체크한 책을 끌면 체크한 책이 모두 함께 담겨요.</p>
+                    <div class="un-group">
+                      <div class="un-group-h"><span>yes24 요청 · 4건</span><button class="link" type="button">모두 선택</button></div>
+                      <div class="un-item" draggable="true"><input type="checkbox" checked><span class="un-main"><span class="t">작별하지 않는다</span><span class="m">강민호 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">15,120</span></div>
+                      <div class="un-item" draggable="true"><input type="checkbox" checked><span class="un-main"><span class="t">이처럼 사소한 것들</span><span class="m">조은비 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">11,700</span></div>
+                      <div class="un-item" draggable="true"><input type="checkbox"><span class="un-main"><span class="t">아주 희미한 빛으로도</span><span class="m">문가람 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">15,120</span></div>
+                      <div class="un-item" draggable="true"><input type="checkbox"><span class="un-main"><span class="t">도둑맞은 집중력</span><span class="m">장현우 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">18,800</span></div>
+                    </div>
+                    <div class="un-group">
+                      <div class="un-group-h"><span>교보문고 요청 · 2건</span><button class="link" type="button">모두 선택</button></div>
+                      <div class="un-item" draggable="true"><input type="checkbox"><span class="un-main"><span class="t">불편한 편의점</span><span class="m">강민호 · <a href="#">교보문고 상품 페이지</a></span></span><span class="p">12,600</span></div>
+                      <div class="un-item" draggable="true"><input type="checkbox"><span class="un-main"><span class="t">어떤 물질의 사랑</span><span class="m">윤하은 · <a href="#">교보문고 상품 페이지</a></span></span><span class="p">13,500</span></div>
+                    </div>
+                    <div class="form un-form">
+                      <div class="sumline"><span>선택</span><span>2권 · 26,820원</span></div>
+                      <div class="field">
+                        <label class="label" for="ou-target">담을 곳</label>
+                        <select class="select" id="ou-target"><option>요청한 서점대로</option></select>
+                      </div>
+                      <ul class="plan-preview" aria-label="담기 미리보기"><li><b>yes24 1차</b>(장바구니)에 2권 추가</li></ul>
+                      <button class="btn btn-primary" type="button">묶음에 담기</button>
+                    </div>
+
+                    <section class="wait" aria-labelledby="ow-h" data-doan-id="un-wait">
+                      <div class="wait-h"><h3 id="ow-h">사진 대기 · 4건</h3><span>3명 · 55,800원</span></div>
+                      <p class="hint">활동 사진을 아직 체크하지 않은 사람의 요청이에요. 담을 수 없고, <a class="link" href="#">활동 사진</a>에서 체크하면 위로 올라가요.</p>
+                      <ul class="wait-list">
+                        <li><div class="wait-top"><b>서도현</b><span>1권 · 12,600원</span></div><ul class="wait-bk"><li><span class="tt">급류 · yes24</span><span>12,600</span></li></ul></li>
+                        <li><div class="wait-top"><b>임태윤</b><span>1권 · 18,000원</span></div><ul class="wait-bk"><li><span class="tt">트렌드 코리아 2027 · 교보문고</span><span>18,000</span></li></ul></li>
+                        <li><div class="wait-top"><b>정민지</b><span>2권 · 25,200원</span></div><ul class="wait-bk"><li><span class="tt">소년이 온다 · yes24</span><span>13,500</span></li><li><span class="tt">모순 · 교보문고</span><span>11,700</span></li></ul></li>
+                      </ul>
+                    </section>
+                  </section>
+
+                  <section class="bundles" aria-label="묶음 목록">
+                    <article class="bundle" aria-label="yes24 1차 묶음">
+                      <div class="bundle-head">
+                        <h3>yes24 1차</h3>
+                        <span class="bundle-meta">5권 · 5명 · 요청액 76,950원</span>
+                        <ol class="stops" aria-label="진행 단계"><li class="now" aria-current="step">장바구니</li><li>주문완료</li><li>배송완료</li></ol>
+                      </div>
+                      <div class="bundle-body">
+                        <ul class="bk-rows">
+                          <li><span class="t"><span class="tt">물고기는 존재하지 않는다</span></span><span class="bk-who">김하늘</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">15,300원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+                          <li><span class="t"><span class="tt">단 한 번의 삶</span></span><span class="bk-who">이서연</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">15,750원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+                          <li><span class="t"><span class="tt">슬픔의 방문</span></span><span class="bk-who">박서준</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">14,400원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+                          <li><span class="t"><span class="tt">프로젝트 헤일메리</span></span><span class="bk-who">최도윤</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">19,800원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+                          <li><span class="t"><span class="tt">구의 증명</span></span><span class="bk-who">한지우</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">11,700원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+                        </ul>
+                        <div class="openall"><button class="btn btn-sm btn-primary" type="button"><svg class="ic"><use href="#i-link"/></svg>링크 모두 열기 · 5</button><span class="hint">책 5권 링크를 새 탭으로 열어요. 탭마다 장바구니만 누르면 돼요.</span></div>
+                        <div class="rc"><span class="rc-label">영수증·주문 내역</span><span class="rc-add"><svg class="ic"><use href="#i-plus"/></svg>파일 추가</span></div>
+                        <div class="order-form">
+                          <div class="field"><label class="label" for="od-1">주문일</label><input class="input" id="od-1" value="2026-11-16"></div>
+                          <div class="field"><label class="label" for="eta-1">도착 예정일</label><input class="input" id="eta-1" placeholder="연도-월-일"></div>
+                          <div class="field"><label class="label" for="paid-1">실결제액</label><div class="input-unit"><input class="input" id="paid-1" placeholder="76,950"><span>원</span></div></div>
+                        </div>
+                        <div class="bundle-foot">
+                          <span class="hint">장바구니에 담긴 요청은 멤버가 수정·삭제할 수 없어요.</span>
+                          <span class="row-gap bundle-acts"><button class="btn btn-ghost" type="button">묶음 풀기</button><button class="btn btn-primary" type="button"><svg class="ic"><use href="#i-hash"/></svg>주문완료 처리 · Slack 공지</button></span>
+                        </div>
+                      </div>
+                    </article>
+                  </section>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">모바일 390 <span>· 한 단으로 쌓여 묶음은 아래</span></p>
+        <div class="frame mob app-frame" data-doan-frame="orders-mobile" data-doan-title="주문·배송 · 모바일 · 사진 대기" data-doan-implements="src/app/(app)/admin/orders/unassigned-panel.tsx">
+          <div class="shell">
+            <div class="maincol">
+              <header class="appbar"><a class="logo" href="#">시끌북적</a><div class="appbar-right"><span class="mono" aria-hidden="true">늘</span></div></header>
+              <main>
+                <nav class="anav five" aria-label="운영 메뉴"><a href="#">회차</a><a href="#">사진</a><a href="#" aria-current="page">주문·배송</a><a href="#">멤버</a><a href="#">설정</a></nav>
+                <div class="page-head">
+                  <div><h1 class="t-title">주문·배송</h1></div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+                <div class="orders">
+                  <section class="un" aria-labelledby="oum-h">
+                    <div class="block-head"><h2 class="t-heading" id="oum-h">주문할 요청 · 6건</h2><span>사진 확인한 사람</span></div>
+                    <div class="un-group">
+                      <div class="un-group-h"><span>yes24 요청 · 4건</span><button class="link" type="button">모두 선택</button></div>
+                      <div class="un-item"><input type="checkbox"><span class="un-main"><span class="t">작별하지 않는다</span><span class="m">강민호 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">15,120</span></div>
+                      <div class="un-item"><input type="checkbox"><span class="un-main"><span class="t">이처럼 사소한 것들</span><span class="m">조은비 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">11,700</span></div>
+                      <div class="un-item"><input type="checkbox"><span class="un-main"><span class="t">아주 희미한 빛으로도</span><span class="m">문가람 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">15,120</span></div>
+                      <div class="un-item"><input type="checkbox"><span class="un-main"><span class="t">도둑맞은 집중력</span><span class="m">장현우 · <a href="#">yes24 상품 페이지</a></span></span><span class="p">18,800</span></div>
+                    </div>
+                    <div class="un-group">
+                      <div class="un-group-h"><span>교보문고 요청 · 2건</span><button class="link" type="button">모두 선택</button></div>
+                      <div class="un-item"><input type="checkbox"><span class="un-main"><span class="t">불편한 편의점</span><span class="m">강민호 · <a href="#">교보문고 상품 페이지</a></span></span><span class="p">12,600</span></div>
+                      <div class="un-item"><input type="checkbox"><span class="un-main"><span class="t">어떤 물질의 사랑</span><span class="m">윤하은 · <a href="#">교보문고 상품 페이지</a></span></span><span class="p">13,500</span></div>
+                    </div>
+                    <div class="form un-form">
+                      <div class="sumline"><span>선택</span><span>0권 · 0원</span></div>
+                      <div class="field"><label class="label" for="oum-target">담을 곳</label><select class="select" id="oum-target"><option>요청한 서점대로</option></select></div>
+                      <button class="btn btn-primary" type="button" disabled>묶음에 담기</button>
+                    </div>
+                    <section class="wait" aria-labelledby="owm-h">
+                      <div class="wait-h"><h3 id="owm-h">사진 대기 · 4건</h3><span>3명 · 55,800원</span></div>
+                      <p class="hint">활동 사진을 아직 체크하지 않은 사람의 요청이에요. <a class="link" href="#">활동 사진</a>에서 체크하면 위로 올라가요.</p>
+                      <ul class="wait-list">
+                        <li><div class="wait-top"><b>서도현</b><span>1권 · 12,600원</span></div><ul class="wait-bk"><li><span class="tt">급류 · yes24</span><span>12,600</span></li></ul></li>
+                        <li><div class="wait-top"><b>임태윤</b><span>1권 · 18,000원</span></div><ul class="wait-bk"><li><span class="tt">트렌드 코리아 2027 · 교보문고</span><span>18,000</span></li></ul></li>
+                        <li><div class="wait-top"><b>정민지</b><span>2권 · 25,200원</span></div><ul class="wait-bk"><li><span class="tt">소년이 온다 · yes24</span><span>13,500</span></li><li><span class="tt">모순 · 교보문고</span><span>11,700</span></li></ul></li>
+                      </ul>
+                    </section>
+                  </section>
+                  <section class="bundles" aria-label="묶음 목록">
+                    <article class="bundle" aria-label="yes24 1차 묶음">
+                      <div class="bundle-head">
+                        <h3>yes24 1차</h3>
+                        <span class="bundle-meta">5권 · 5명 · 요청액 76,950원</span>
+                        <ol class="stops" aria-label="진행 단계"><li class="now" aria-current="step">장바구니</li><li>주문완료</li><li>배송완료</li></ol>
+                      </div>
+                      <div class="bundle-body"><p class="hint">… 묶음 내용은 그대로</p></div>
+                    </article>
+                  </section>
+                </div>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#">내 기록</a><a href="#" aria-current="page">운영</a></nav>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 상태·케이스 ═══════════ -->
+  <section class="grp" data-doan-id="g-states">
+    <div class="grp-top">
+      <span class="no">03</span>
+      <div><h2>상태와 케이스</h2><p class="route">사진 체크 × 요청 단계 → 화면마다 무엇이 보이나</p></div>
+      <div class="notes">
+        <div><b>체크를 풀 때</b>장바구니·주문에 이미 들어간 책이 있으면 저장 전에 한 번 더 물어요. 자동으로 빼지 않고, 묶음 줄에 "사진 아직"을 띄워 총무가 직접 [빼기].</div>
+        <div><b>아무도 체크 전일 때</b>주문할 요청 칸이 비고, 활동 사진으로 가는 버튼을 보여 줘요. 사진 대기가 없으면 아래 무리는 숨겨요.</div>
+      </div>
+    </div>
+    <div class="frames">
+
+      <div class="fw">
+        <p class="cap">상태 표 <span>· 사람(사진) × 요청 단계</span></p>
+        <div class="frame spec" data-doan-frame="states" data-doan-title="사진 × 요청 상태 표">
+          <h3>사진 체크 × 요청 단계</h3>
+          <table class="tbl">
+            <thead><tr><th>사진</th><th>그 사람 요청</th><th>활동 사진</th><th>주문·배송</th><th>멤버 내 요청·내 기록 (04)</th></tr></thead>
+            <tbody>
+              <tr><td>확인</td><td>미배정</td><td><span class="mini"><input type="checkbox" checked tabindex="-1">옅은 테두리 · "확인 · 11/14(토) 김하늘"</span></td><td>주문할 요청 · 체크·담기·끌기 가능</td><td>요청됨</td></tr>
+              <tr><td>아직</td><td>미배정</td><td>굵은 칸 · <span class="red" style="font-weight:700">요청 n권 · 금액 대기</span></td><td>사진 대기 · 체크 칸 없음, 담기·끌기 안 됨. 서버도 거절</td><td>요청됨 + <span class="mark warn">사진 대기</span></td></tr>
+              <tr><td>아직</td><td>요청 없음</td><td>굵은 칸 · "아직 · 요청 없음"</td><td class="muted">안 보임</td><td class="muted">—</td></tr>
+              <tr><td>확인 → 풀기</td><td>미배정</td><td>저장하면 바로 풀림 (확인창 없음)</td><td>주문할 요청 → 사진 대기로 내려감</td><td>사진 대기</td></tr>
+              <tr><td>확인 → 풀기</td><td>장바구니</td><td>저장 때 확인창 (dlg-uncheck)</td><td>묶음에 그대로 + 줄에 <span class="mark no">사진 아직</span> · [빼기]하면 사진 대기로</td><td>장바구니</td></tr>
+              <tr><td>확인 → 풀기</td><td>주문완료·배송완료</td><td>저장 때 확인창</td><td>그대로 + 줄에 <span class="mark no">사진 아직</span> (이미 산 책)</td><td>그대로</td></tr>
+              <tr><td>회차 마감</td><td>사진 대기로 남음</td><td>읽기 전용 · "마감된 회차라 체크를 바꿀 수 없어요"</td><td>사진 대기 요청은 <b>취소</b> (마감 확인창에 "사진 대기 요청 N건 · 마감하면 취소돼요"). [회차 다시 열기]로 되살아남</td><td>취소</td></tr>
+              <tr><td>이전 회차</td><td>—</td><td>"확인 · 이 기능 전 회차"</td><td>모두 체크로 옮겨 그대로</td><td>그대로</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">체크 풀기 확인창 <span>· 최도윤을 풀고 [저장]</span></p>
+        <div class="frame stage" data-doan-frame="dlg-uncheck" data-doan-title="체크 풀기 · 묶음에 든 책 있음" data-doan-implements="src/app/(app)/admin/photos/photo-board.tsx">
+          <dialog class="dlg static" open aria-labelledby="du-t">
+            <div class="dlg-body">
+              <h2 id="du-t">최도윤 님의 사진 체크를 풀까요?</h2>
+              <p>최도윤 님 책 1권이 이미 묶음에 들어가 있어요. 체크를 풀어도 묶음에서 <b>자동으로 빠지지 않아요.</b></p>
+              <ul class="dlg-list"><li>프로젝트 헤일메리 · 19,800원 · <b>yes24 1차</b> 장바구니</li></ul>
+              <p class="t-cap">빼려면 주문·배송의 묶음에서 [빼기]를 눌러요. 그 줄에 "사진 아직"이 표시돼요.</p>
+              <div class="dlg-acts"><button class="btn btn-ghost" type="button">취소</button><button class="btn btn-primary" type="button">체크 풀기</button></div>
+            </div>
+          </dialog>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">묶음 줄 · 체크가 풀린 사람 <span>· 확인창 뒤 주문·배송. 코드는 "11/16 체크를 풀었어요" 대신 "빼면 사진 대기로 돌아가요"만</span></p>
+        <div class="frame crop app-frame" data-doan-frame="bundle-flag" data-doan-title="묶음 줄 · 사진 아직" data-doan-implements="src/app/(app)/admin/orders/page.tsx" style="width:840px">
+          <article class="bundle" aria-label="yes24 1차 묶음">
+            <div class="bundle-head">
+              <h3>yes24 1차</h3>
+              <span class="bundle-meta">5권 · 5명 · 요청액 76,950원</span>
+              <ol class="stops" aria-label="진행 단계"><li class="now" aria-current="step">장바구니</li><li>주문완료</li><li>배송완료</li></ol>
+            </div>
+            <div class="bundle-body">
+              <ul class="bk-rows">
+                <li><span class="t"><span class="tt">슬픔의 방문</span></span><span class="bk-who">박서준</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">14,400원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+                <li class="is-flag" data-doan-id="row-flag"><span class="t"><span class="tt">프로젝트 헤일메리</span><span class="x"><span class="mark no">사진 아직</span><span class="muted">빼면 사진 대기로 돌아가요</span></span></span><span class="bk-who">최도윤</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">19,800원</span><span class="acts"><button class="btn btn-sm" type="button">빼기</button></span></li>
+                <li><span class="t"><span class="tt">구의 증명</span></span><span class="bk-who">한지우</span><span class="lnk"><a class="link" href="#">상품 페이지</a></span><span class="num">11,700원</span><span class="acts"><button class="btn btn-sm btn-ghost" type="button">빼기</button></span></li>
+              </ul>
+              <p class="hint">… 2권 더</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">아무도 체크 전 <span>· 새 회차, 사진 체크 0명</span></p>
+        <div class="frame crop app-frame" data-doan-frame="none-checked" data-doan-title="주문할 요청 없음 · 모두 사진 대기" data-doan-implements="src/app/(app)/admin/orders/unassigned-panel.tsx" style="width:400px">
+          <section class="un" aria-labelledby="on-h">
+            <div class="block-head"><h2 class="t-heading" id="on-h">주문할 요청 · 0건</h2><span>사진 확인 0명</span></div>
+            <div class="empty un-empty">
+              <strong>아직 사진을 체크한 사람이 없어요</strong>
+              <p>활동 사진에서 체크하면 그 사람 요청이 여기에 모여요.</p>
+              <a class="btn btn-sm" href="#">활동 사진으로</a>
+            </div>
+            <section class="wait" aria-labelledby="onw-h" style="margin-top:20px">
+              <div class="wait-h"><h3 id="onw-h">사진 대기 · 21건</h3><span>14명 · 382,400원</span></div>
+              <ul class="wait-list">
+                <li><div class="wait-top"><b>강민호</b><span>2권 · 27,720원</span></div><ul class="wait-bk"><li><span class="tt">작별하지 않는다 · yes24</span><span>15,120</span></li><li><span class="tt">불편한 편의점 · 교보문고</span><span>12,600</span></li></ul></li>
+                <li><div class="wait-top"><b>김하늘</b><span>1권 · 15,300원</span></div><ul class="wait-bk"><li><span class="tt">물고기는 존재하지 않는다 · yes24</span><span>15,300</span></li></ul></li>
+                <li class="muted" style="font-size:13px">… 12명 더</li>
+              </ul>
+            </section>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ 04 멤버 쪽 (제안) ═══════════ -->
+  <section class="grp" data-doan-id="g-member">
+    <div class="grp-top">
+      <span class="no">04</span>
+      <div><h2>멤버가 보는 사진 대기</h2><p class="route">/requests · 내 요청, /me · 내 기록 요청 줄</p></div>
+      <div class="notes">
+        <div><b>왜</b>사진 대기면 요청은 "요청됨"인데 주문이 안 돼요. 멤버가 이유를 모르면 총무에게 물어봐야 해요. 한 줄로 알려 주면 스스로 사진을 올려요.</div>
+        <div><b>어디에만</b>내 요청 목록과 내 기록의 요청 줄("· 사진 대기", 빨간 글자). 다른 사람 요청을 보는 홈 "전체 구매 요청" 표에는 보이지 않아요(누가 사진을 안 찍었는지 드러나지 않게).</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">구매 요청 · 내 요청 <span>· 정민지로 로그인</span></p>
+        <div class="frame crop app-frame req-crop" data-doan-frame="member-request" data-doan-title="내 요청 · 사진 대기" data-doan-implements="src/app/(app)/requests/page.tsx">
+          <section class="split-col" aria-labelledby="mr-h">
+            <div class="block-head"><h2 class="t-heading" id="mr-h">내 12월 회차 요청 · 2권</h2></div>
+            <p class="note note-warn"><svg class="ic"><use href="#i-alert"/></svg><span><b>활동 사진이 아직 확인되지 않았어요.</b> 운영진이 사진을 확인하면 주문해요. 사진을 찍었다면 총무에게 알려 주세요.</span></p>
+            <ul class="req-list">
+              <li><span class="t">소년이 온다</span><span class="p">13,500원</span><span class="m"><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span>yes24</span><span class="mark warn">사진 대기</span></span><span class="acts"><a class="btn btn-sm" href="#">수정</a><button class="btn btn-sm btn-ghost" type="button">삭제</button></span></li>
+              <li><span class="t">모순</span><span class="p">11,700원</span><span class="m"><span class="track"><span class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></span>요청됨</span><span>교보문고</span><span class="mark warn">사진 대기</span></span><span class="acts"><a class="btn btn-sm" href="#">수정</a><button class="btn btn-sm btn-ghost" type="button">삭제</button></span></li>
+            </ul>
+            <div class="sumline"><span>합계</span><span>25,200원 / 30,000원</span></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
