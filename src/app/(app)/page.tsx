@@ -35,6 +35,31 @@ const NOT_PARTICIPANT = "이 회차의 참가자로 등록되어 있지 않아�
 /** 홈 화면에서 한 번에 보여 줄 요청 수 (모바일 목록). 나머지는 펼쳐서 본다 */
 const MOBILE_ROWS = 5;
 
+/**
+ * 요청한 책 제목: 요청 때 넣은 서점 상품 페이지를 새 탭으로 연다. url이 없는 예전 이관 요청은 글자만.
+ * 마지막 낱말과 화살표를 한 덩어리(.nb)로 묶어, 줄이 바뀌어도 화살표만 혼자 다음 줄로 떨어지지 않게 한다
+ */
+function BookTitle({ r }: { r: RequestRow }) {
+  if (!r.url) return <>{r.title}</>;
+  const cut = r.title.lastIndexOf(" ") + 1;
+  return (
+    <a
+      className="book-link"
+      href={r.url}
+      target="_blank"
+      rel="noopener"
+      title={r.url.replace(/^https?:\/\/(www\.)?/, "")}
+      aria-label={`${r.title}, ${STORE_NAME[r.store]} 상품 페이지 새 탭에서 열기`}
+    >
+      {r.title.slice(0, cut)}
+      <span className="nb">
+        {r.title.slice(cut)}
+        <Icon name="arrowUR" />
+      </span>
+    </a>
+  );
+}
+
 /** 요청 → 주문 → 배송 → 읽기 → 마감. step 앞은 지난 단계, step이 지금 단계 */
 function Stops({ step }: { step: number }) {
   return (
@@ -131,7 +156,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const pendingNames = roster.pending.map((p) => `${p.name}${p.member_id === me.id ? " (나)" : ""}`).join(" · ");
   const mobileRow = (r: RequestRow) => (
     <li key={r.id}>
-      <b>{r.title}</b>
+      <b>
+        <BookTitle r={r} />
+      </b>
       <StatusBadge status={r.status} size="sm" />
       <span className="meta">
         {r.member_name}
@@ -534,7 +561,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                           {r.member_name}
                           {r.member_id === me.id ? " (나)" : ""}
                         </td>
-                        <td className="home-book">{r.title}</td>
+                        <td className="home-book">
+                          <BookTitle r={r} />
+                        </td>
                         <td className="home-store">{STORE_NAME[r.store]}</td>
                         <td className="num">{won(r.price)}</td>
                         <td>

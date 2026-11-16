@@ -107,6 +107,8 @@ const PATHS = {
     </>
   ),
   arrowR: <path d="M5 12h14M13 6l6 6-6 6" />,
+  // 바깥 사이트(서점 상품 페이지)를 새 탭으로 여는 링크
+  arrowUR: <path d="M7 17 17 7M8 7h9v9" />,
   truck: (
     <>
       <path d="M3 6h11v10H3z" />

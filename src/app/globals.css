@@ -409,6 +409,13 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .home-ledger .home-who { font-weight: 600; white-space: nowrap; }
 .home-ledger .home-book { font-weight: 600; word-break: keep-all; overflow-wrap: break-word; }
 .home-ledger .home-store { color: var(--ink2); }
+/* 책 제목 링크 (서점 상품 페이지를 새 탭으로): 회색 바깥 화살표, 올리면 밑줄 + 빨간 화살표 (request-book-link 시안 B) */
+.book-link { color: inherit; text-decoration: none; }
+.book-link .nb { white-space: nowrap; }
+.book-link .ic { display: inline-block; width: 13px; height: 13px; margin-left: 5px; vertical-align: -1px; stroke-width: 2.2; color: var(--ink2); }
+.book-link:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+.book-link:hover .ic { color: var(--red); }
+.home-mrows .book-link .ic { width: 14px; height: 14px; }
 .home-ledger .empty { border-bottom: 0; }
 .home-ledger tr.pending td { background: repeating-linear-gradient(135deg, var(--fill) 0 6px, var(--bg) 6px 12px); color: var(--ink2); font-size: 13px; }
 /* 본문이 좁으면(태블릿) 진행 막대를 작게 줄여 표가 넘치지 않게 */
