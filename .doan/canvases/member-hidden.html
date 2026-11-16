@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="member-hidden">
+<meta name="doan:width" content="1960">
+<title>보기 전용 멤버 시안</title>
+<link rel="stylesheet" href="../../src/app/globals.css">
+<style>
+/* 앱 글꼴: layout.tsx의 next/font(Pretendard) 대신 같은 파일을 직접 */
+@font-face { font-family: "Pretendard Variable"; src: url("../../src/app/fonts/PretendardVariable.woff2") format("woff2-variations"); font-weight: 45 920; font-display: swap; }
+:root { --font-pretendard: "Pretendard Variable"; }
+
+/* Tailwind preflight 중 화면에 보이는 것만 (globals.css 첫 줄 @import "tailwindcss"는 캔버스에서 풀리지 않는다) */
+*, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+button, input, select { font: inherit; color: inherit; background: transparent; }
+ol, ul { list-style: none; }
+h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; }
+a { color: inherit; text-decoration: inherit; }
+table { border-collapse: collapse; }
+svg { display: block; vertical-align: middle; }
+
+/* globals.css의 화면 높이 단위(vh)는 보드 전체 높이로 풀리므로 픽셀로 덮는다 */
+.shell { min-height: 0; }
+.side-inner { position: static; height: auto; min-height: 100%; }
+dialog.dlg { max-height: none; }
+
+/* ───────── 보드 ───────── */
+body { background: var(--fill2); }
+.board { width: 1960px; padding: 96px 80px; display: flex; flex-direction: column; gap: 112px; }
+.frames { display: flex; flex-wrap: wrap; gap: 56px 56px; align-items: flex-start; }
+.fw { display: flex; flex-direction: column; gap: 12px; }
+.cap { font: 700 14px/20px var(--font-sans); color: var(--ink); }
+.cap span { font-weight: 400; color: var(--ink2); }
+.nc { display: inline-flex; align-items: center; height: 20px; margin-left: 6px; padding: 0 6px; border: 1px dashed var(--red); color: var(--red); font: 700 11px/1 var(--font-sans); vertical-align: 1px; }
+.frame { position: relative; overflow: hidden; background: var(--bg); box-shadow: var(--shadow); }
+.desk { width: 1280px; }
+.desk .shell { min-height: 820px; }
+.desk.short .shell { min-height: 560px; }
+.mob { width: 390px; }
+.mob .shell { min-height: 844px; }
+.mob.short .shell { min-height: 640px; }
+
+/* 개요 */
+.brief { width: 1800px; padding: 56px 64px 60px; background: var(--bg); border: 2px solid var(--ink); }
+.brief h1 { font: 800 44px/52px var(--font-sans); letter-spacing: -0.03em; }
+.lead { margin-top: 14px; max-width: 92ch; font: 500 17px/28px var(--font-sans); color: var(--ink2); }
+.lead b { color: var(--ink); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 48px; }
+.brief-cols h3 { padding-bottom: 8px; border-bottom: 2px solid var(--ink); font: 800 15px/22px var(--font-sans); }
+.brief-cols li { padding: 10px 0; border-bottom: 1px solid var(--rule); font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.brief-cols li b { color: var(--ink); }
+.brief-cols .ask li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; }
+.brief-cols .ask li > i { font: 800 13px/22px var(--font-sans); font-style: normal; color: var(--red); }
+.can { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 4px; }
+.can h4 { font: 800 13px/20px var(--font-sans); color: var(--ink); }
+.can li { padding: 6px 0; border-bottom: 1px solid var(--rule); font: 500 13px/20px var(--font-sans); }
+.can .no-li { color: var(--ink2); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 1.5px; }
+.brief code, .spec code { padding: 1px 4px; background: var(--fill); font: 500 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+.was { margin-top: 18px; max-width: 92ch; padding: 10px 14px; border: 1px dashed var(--rule); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+.was b { color: var(--ink); }
+
+/* 묶음 머리 */
+.grp { display: flex; flex-direction: column; gap: 32px; }
+.grp-top { display: grid; grid-template-columns: 88px 560px 1fr; gap: 32px; align-items: end; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.grp-top .no { font: 800 56px/56px var(--font-sans); letter-spacing: -0.04em; color: var(--past); }
+.grp-top h2 { font: 800 32px/40px var(--font-sans); letter-spacing: -0.02em; }
+.grp-top .route { margin-top: 6px; font: 500 14px/20px var(--font-sans); color: var(--ink2); }
+.grp-top .notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.grp-top .notes b { color: var(--ink); }
+.grp-top .notes div > b:first-child { display: block; margin-bottom: 4px; }
+
+/* 확인창만 */
+.dlg.static { position: relative; inset: auto; display: block; margin: 0; }
+.stage { width: 560px; padding: 20px; background-color: var(--bg); background-image: linear-gradient(var(--overlay), var(--overlay)); }
+.stage .dlg.static { width: 520px; }
+.crop { padding: 32px 28px 36px; }
+.fold-ph { padding: 14px 16px; border: 1px dashed var(--rule); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+.fold-ph b { color: var(--ink); }
+.fold-ph + .fold-ph { margin-top: 12px; }
+
+/* ───────── 새로 그린 것 (코드에 없음) ───────── */
+/* 보기 전용 칸: 직책 칸(검은 테두리)과 헷갈리지 않게 점선 테두리 */
+.tag.vo { height: 22px; margin-left: 4px; padding: 0 8px; border: 1.5px dashed var(--ink2); color: var(--ink2); font-size: 12px; }
+/* 멤버 표의 보기 전용 묶음: 활동 멤버 아래, 탈퇴 위. 머리 줄은 회색 바탕 한 줄 */
+.mem-tbl tr.vo-head td { padding-top: 10px; padding-bottom: 10px; background: var(--fill); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+.mem-tbl tr.vo-head b { margin-right: 10px; color: var(--ink); font-weight: 800; }
+.mem-tbl tr.mem-vo td:not(:first-child) { color: var(--ink2); }
+.mem-tbl .dash { color: var(--past); }
+.mem-rows > li.vo-head { display: block; padding: 10px 12px; border-bottom: 0; background: var(--fill); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+.mem-rows > li.vo-head b { display: block; color: var(--ink); font-weight: 800; }
+.mem-rows > li.vo-head + li { padding-top: 12px; }
+/* 보기 전용이 보는 멤버 표: 작업 칸이 없어 한 줄이 짧다 */
+.mem-rows.ro > li { grid-template-columns: minmax(0, 1fr); }
+/* 권한에서 보기 전용을 고르면 나오는 안내 */
+.role-note { padding: 10px 12px; border-left: 3px solid var(--ink); background: var(--fill); font: 500 13px/20px var(--font-sans); color: var(--ink); }
+.role-note b { font-weight: 800; }
+.role-note ul { margin-top: 4px; color: var(--ink2); }
+.role-note li::before { content: "– "; }
+.mem-check.off { color: var(--past); }
+/* 확인창 목록 */
+.dlg-list { padding: 10px 12px; background: var(--fill); font: 500 13px/20px var(--font-sans); }
+.dlg-list li + li { margin-top: 4px; }
+/* 운영 화면 맨 위 보기 전용 줄 */
+.vo-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1.5px dashed var(--ink); font: 500 14px/20px var(--font-sans); color: var(--ink); }
+.vo-bar b { font-weight: 800; }
+.vo-bar .ic { color: var(--ink); }
+.mob .vo-bar { align-items: flex-start; font-size: 13px; }
+.mob .vo-bar .ic { margin-top: 2px; }
+/* 잠근 체크 칸: 지금은 체크+비활성이면 흰 체크가 회색 바탕에 묻혀 안 보인다 (마감 회차도 같음) */
+input[type="checkbox"]:checked:disabled { border-color: var(--ink2); background-color: var(--ink2); }
+/* 사이드바 운영 묶음 머리의 보기 전용 */
+.grp-t small { margin-left: 6px; font: 700 11px/16px var(--font-sans); letter-spacing: 0; color: var(--ink2); }
+
+/* 상태 표 */
+.spec { width: 1280px; padding: 36px 40px 40px; }
+.spec.wide { width: 1800px; }
+.spec h3 { padding-bottom: 10px; border-bottom: 2px solid var(--ink); font: 800 20px/28px var(--font-sans); }
+.spec .tbl td { vertical-align: top; padding-top: 14px; padding-bottom: 14px; font-size: 13px; line-height: 20px; }
+.spec .tbl td:first-child { width: 150px; font-weight: 800; }
+.spec .y { font-weight: 700; color: var(--ink); }
+.spec .n { color: var(--ink2); }
+.spec .n.red { color: var(--red); font-weight: 700; }
+.spec .ex { display: block; margin-top: 4px; font-size: 12px; line-height: 18px; color: var(--ink2); }
+.spec tr.same td { color: var(--ink2); }
+.spec tr.hl td { background: var(--fill); }
+.spec .lockw { font-weight: 700; }
+.pend-cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.pend-cmp h4 { margin-bottom: 8px; font: 800 13px/20px var(--font-sans); }
+.pend-cmp h4 span { font-weight: 500; color: var(--ink2); }
+.pend-cmp .home-mpending { margin-top: 0; }
+.pend-cmp s { color: var(--red); text-decoration-thickness: 1.5px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-alertc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-checkc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <!-- ═══════════ 개요 ═══════════ -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 보기 전용 멤버">
+    <h1>보기 전용 멤버 — 모든 화면을 보기만 하는 사람</h1>
+    <p class="lead">권한에 <b>보기 전용</b>을 하나 더 둬요. 보기 전용 멤버는 <b>운영 화면까지 모든 화면을 운영진과 똑같이 볼 수 있고, 바꾸는 버튼만 비활성화돼요.</b> 책 요청 · 활동 사진 · 일지 · 벌점 · 마감 알림 대상도 아니라서, 다른 사람이 보는 <b>활동 명단과 인원수</b>(요청 안 한 N명, 일지 안 쓴 사람, 벌점 현황, 회차 예산 표…)에도 나오지 않아요.</p>
+    <p class="was"><b>처음 시안에서 바뀐 점</b> · 멤버 줄마다 [숨기기] 버튼을 두던 "숨김"을 권한 하나로 합쳤어요. 운영진 여부와 숨김을 따로 관리하지 않아도 돼서, "운영진은 숨길 수 없어요" 같은 막는 창이 필요 없어져요. <b>이어서</b> 메뉴·버튼을 빼던 것도 그만두고, <b>모든 화면을 보여 주고 버튼만 비활성화</b>해요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>보기 전용 멤버는</h3>
+        <div class="can">
+          <ul>
+            <li><h4>모든 화면을 봐요</h4></li>
+            <li>홈 · 구매 요청 · 일지 쓰기</li>
+            <li>내 기록 · 벌점 · 모두의 일지</li>
+            <li>회차 현황 · 활동 사진</li>
+            <li>주문·배송 · 영수증 · 서점 링크</li>
+            <li>멤버 · 설정</li>
+          </ul>
+          <ul>
+            <li><h4>버튼이 눌리지 않아요</h4></li>
+            <li class="no-li">책 요청 · 일지 쓰기</li>
+            <li class="no-li">활동 사진 체크</li>
+            <li class="no-li">벌점 주기·받기</li>
+            <li class="no-li">묶음·주문·알림 보내기</li>
+            <li class="no-li">멤버·회차·마감일 바꾸기</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <h3>정한 것 (제안 · 확인해 주세요)</h3>
+        <ul class="ask">
+          <li><i>1</i><span><b>권한 고르기에 "보기 전용"</b> — 멤버 추가 폼과 [수정] 창의 권한 칸 하나로 끝나요. 멤버 표에서는 점선 '보기 전용' 칸을 달고 활동 멤버 아래 묶음으로 모여요.</span></li>
+          <li><i>2</i><span><b>숨기는 화면·버튼 없이 모두 보여 주고, 바꾸는 버튼·입력 칸·체크 칸은 비활성화(회색)</b>해요. 회차 고르기·보기 전환·링크 열기는 눌려요.</span></li>
+          <li><i>3</i><span><b>버튼이 비활성화된 화면 맨 위에 "보기 전용" 한 줄</b>(구매 요청 + 운영 5곳)로 왜 안 눌리는지 알려요.</span></li>
+          <li><i>4</i><span><b>보기 전용으로 바꾸면 진행 중 회차 참가자에서 빠져요.</b> 그 회차에 요청한 책이 있으면 저장할 때 막아요. 마지막 운영진은 바꿀 수 없어요(지금 규칙 그대로).</span></li>
+          <li><i>5</i><span><b>메뉴는 운영진과 똑같아요.</b> 구매 요청은 지금 "참가자가 아닌 회차"에서 쓰는 비활성 모습을 그대로 써요.</span></li>
+          <li><i>6</i><span><b>꼭 확인할 것</b>: 운영 화면에는 <b>멤버 이메일, 영수증, 사람별 예산</b>이 있어요. 보기 전용 멤버에게 이것도 다 보여요.</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>코드에 없는 것 <span class="nc">코드에 없음</span></h3>
+        <ul>
+          <li><b>DB</b>: 권한 값 <code>viewer</code> 추가. 운영 화면이 <b>읽는</b> RLS·RPC(<code>admin_list_members</code> 등)는 "운영진 또는 보기 전용"으로 넓혀요. <b>쓰기</b>는 지금처럼 <code>is_admin()</code>·<code>requireAdmin()</code> 그대로라, 버튼이 실수로 보여도 저장은 막혀요.</li>
+          <li><b>앱</b>: 운영 화면 열기용 확인(운영진 또는 보기 전용), <code>me.isViewer</code>. 화면마다 바꾸는 버튼·폼에 <code>disabled</code> (회차 고르기·보기 전환은 그대로), 활동 사진은 마감 회차와 같은 잠금 모드</li>
+          <li><b>회차·명단</b>: 회차 만들기·멤버 저장 때 보기 전용은 참가자로 안 넣기, 활동 명단 셈에서 빼기 (03)</li>
+          <li><b>화면·문구</b>: 권한 "보기 전용"과 안내, 멤버 표의 보기 전용 칸·묶음, 맨 위 "보기 전용" 줄, 구매 요청 폼 문구, 내 벌점 칸 문구, 멤버 설명 줄("활동 멤버만" → "여기 있는 멤버만")</li>
+          <li><b>덤</b>: 잠근 체크 칸의 체크가 안 보이는 문제 (마감 회차에도 있음)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 01 멤버 화면 (운영진) ═══════════ -->
+  <section class="grp" data-doan-id="g-members">
+    <div class="grp-top">
+      <span class="no">01</span>
+      <div><h2>멤버 화면 · 권한으로 정하기</h2><p class="route">/admin/members · 운영진이 볼 때</p></div>
+      <div class="notes">
+        <div><b>무엇이 바뀌나</b>권한 칸에 "보기 전용". 고르면 무엇이 달라지는지 바로 아래에 보여 주고, 진행 중 회차 칸은 잠겨요. 표에서는 활동 멤버 아래 <b>보기 전용 묶음</b>, Slack 칸은 "—"(알림 대상 아님).</div>
+        <div><b>그대로</b>줄 버튼 [수정]·[탈퇴 처리], 로그인 칸, Slack 연결 창. 보기 전용에서 멤버로 되돌리면 [수정] 창에 지금처럼 "진행 중 회차에 참가자로 넣기"가 나와요.</div>
+      </div>
+    </div>
+    <div class="frames">
+
+      <div class="fw">
+        <p class="cap">데스크톱 1280 <span>· 추가 폼에서 권한을 보기 전용으로 고른 모습</span><span class="nc">보기 전용 칸·묶음·권한 안내 코드에 없음</span></p>
+        <div class="frame desk app-frame" data-doan-frame="members-desktop" data-doan-title="멤버 · 데스크톱 · 보기 전용 묶음" data-doan-implements="src/app/(app)/admin/members/page.tsx">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#"><b>시끌북적</b><span>독서 동아리</span></a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#">홈</a><a class="nav" href="#">구매 요청</a><a class="nav" href="#">일지 쓰기</a><a class="nav" href="#">내 기록</a><a class="nav" href="#">벌점</a>
+                  <p class="grp-t">운영</p>
+                  <a class="nav" href="#">회차 현황</a><a class="nav" href="#">활동 사진</a><a class="nav" href="#">주문·배송</a><a class="nav" href="#" aria-current="page">멤버</a><a class="nav" href="#">설정</a>
+                </nav>
+                <div class="who"><b>김하늘</b>총무</div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">멤버</h1>
+                    <p class="page-sub">여기 있는 멤버만 로그인할 수 있어요. 각자 로그인할 Google 계정 이메일로 등록해요.</p>
+                  </div>
+                </div>
+                <section class="block" aria-labelledby="md-h" data-doan-id="list">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="md-h">활동 멤버 15명</h2>
+                    <span>보기 전용 1명 · 탈퇴 2명</span>
+                  </div>
+                  <p class="note note-warn"><svg class="ic"><use href="#i-alert"/></svg><span><b>Slack 미연결 1명</b> · 마감 알림에서 멘션되지 않고 이름만 나가요. Slack의 '미연결'을 눌러 멤버 ID를 넣어 주세요.</span></p>
+                  <div class="tbl-wrap">
+                    <table class="tbl mem-tbl">
+                      <thead>
+                        <tr><th>이름</th><th>이메일</th><th style="width:110px">로그인</th><th style="width:110px">Slack</th><th style="width:120px">가입</th><th style="width:170px"><span class="sr-only">작업</span></th></tr>
+                      </thead>
+                      <tbody>
+                        <tr><td class="strong">김하늘 <span class="tag mem-role">총무</span></td><td class="muted">haneul.kim@company.com</td><td><span class="mark ok">로그인함</span></td><td><span class="mark ok">연결</span></td><td class="tnum">창립 멤버</td><td class="num"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></td></tr>
+                        <tr><td class="strong">박서준 <span class="tag mem-role">회장</span></td><td class="muted">seojun.park@company.com</td><td><span class="mark ok">로그인함</span></td><td><span class="mark ok">연결</span></td><td class="tnum">창립 멤버</td><td class="num"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></td></tr>
+                        <tr><td class="strong">이서연</td><td class="muted">seoyeon.lee@company.com</td><td><span class="mark ok">로그인함</span></td><td><span class="mark ok">연결</span></td><td class="tnum">가입 2024.03</td><td class="num"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></td></tr>
+                        <tr><td class="strong">정민지</td><td class="muted">minji.jung@company.com</td><td><span class="mark ok">로그인함</span></td><td><span class="mark no">미연결</span></td><td class="tnum">가입 2024.09</td><td class="num"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></td></tr>
+                        <tr><td colspan="6" class="muted" style="font-size:13px">… 11명 더</td></tr>
+                        <tr class="vo-head" data-doan-id="vo-head"><td colspan="6"><b>보기 전용 1명</b>운영 화면까지 모든 화면을 보기만 해요 · 책 요청·활동 사진·일지·벌점·알림 명단에서 빠져요</td></tr>
+                        <tr class="mem-vo" data-doan-id="vo-row"><td class="strong">한지우 <span class="tag vo">보기 전용</span></td><td class="muted">jiwoo.han@company.com</td><td><span class="mark ok">로그인함</span></td><td><span class="dash" aria-label="보기 전용이라 알림 대상 아님">—</span></td><td class="tnum">가입 2026.11</td><td class="num"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></td></tr>
+                        <tr class="mem-left"><td class="strong">윤재희</td><td class="muted">jaehee.yoon@company.com</td><td><span class="mark ok">로그인함</span></td><td><span class="dash">—</span></td><td class="tnum">탈퇴 10/31(토)</td><td class="num"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">복귀</button></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+                <section class="block" aria-labelledby="ma-h" data-doan-id="add">
+                  <div class="block-head"><h2 class="t-heading" id="ma-h">새 멤버 추가</h2></div>
+                  <div class="block mem-add">
+                    <div class="mem-form">
+                      <div class="field"><label class="label" for="ma-name">이름</label><input class="input" id="ma-name" value="오세린"></div>
+                      <div class="field"><label class="label" for="ma-mail">Google 계정 이메일</label><input class="input" id="ma-mail" value="serin.oh@company.com"></div>
+                      <div class="field" data-doan-id="add-role"><label class="label" for="ma-role">권한</label><select class="select" id="ma-role"><option>보기 전용</option></select></div>
+                      <div class="field"><label class="label" for="ma-title">직책 <small>선택</small></label><input class="input" id="ma-title" placeholder="회장·부회장·총무"></div>
+                      <div class="field"><label class="label" for="ma-join">가입일</label><input class="input" id="ma-join" value="2026-11-16"></div>
+                    </div>
+                    <div class="role-note" data-doan-id="add-role-note"><b>보기 전용</b> · 운영 화면까지 모든 화면을 볼 수 있지만 버튼은 눌리지 않아요.<ul><li>책 요청·활동 사진·일지·벌점·마감 알림 대상이 아니에요</li><li>활동 명단과 인원수에 나오지 않아요</li></ul></div>
+                    <div class="field" style="max-width:420px">
+                      <label class="label" for="ma-slack">Slack 멤버 ID <small>선택</small></label>
+                      <input class="input slk-id" id="ma-slack" placeholder="U04AB12CD3E" disabled>
+                      <p class="hint">보기 전용은 알림을 받지 않아 넣지 않아도 돼요.</p>
+                    </div>
+                    <div class="mem-cycles">
+                      <div class="mem-check off" role="group" aria-labelledby="ma-cyc">
+                        <span class="label" id="ma-cyc">진행 중 회차에 참가자로 넣기</span>
+                        <label><input type="checkbox" disabled><span>12월 회차 · 요청 받는 중</span></label>
+                        <label><input type="checkbox" disabled><span>11월 회차 · 읽는 중</span></label>
+                      </div>
+                      <p class="hint">보기 전용은 회차에 참가하지 않아요.</p>
+                    </div>
+                    <div class="row-gap mem-submit"><button class="btn btn-primary" type="button"><svg class="ic"><use href="#i-plus"/></svg>멤버 추가</button></div>
+                  </div>
+                </section>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">모바일 390 <span>· 운영진이 볼 때</span><span class="nc">코드에 없음</span></p>
+        <div class="frame mob app-frame" data-doan-frame="members-mobile" data-doan-title="멤버 · 모바일 · 보기 전용 묶음" data-doan-implements="src/app/(app)/admin/members/page.tsx">
+          <div class="shell">
+            <div class="maincol">
+              <header class="appbar"><a class="logo" href="#">시끌북적</a><div class="appbar-right"><span class="mono" aria-hidden="true">늘</span></div></header>
+              <main>
+                <nav class="anav" aria-label="운영 메뉴"><a href="#">회차</a><a href="#">사진</a><a href="#">주문·배송</a><a href="#" aria-current="page">멤버</a><a href="#">설정</a></nav>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">멤버</h1>
+                    <p class="page-sub">여기 있는 멤버만 로그인할 수 있어요. 각자 로그인할 Google 계정 이메일로 등록해요.</p>
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-block" type="button"><svg class="ic"><use href="#i-plus"/></svg>새 멤버 추가</button>
+                <section class="block" aria-labelledby="mm-h">
+                  <div class="block-head"><h2 class="t-heading" id="mm-h">활동 멤버 15명</h2><span>보기 전용 1명 · 탈퇴 2명</span></div>
+                  <ul class="mem-rows">
+                    <li><span class="t">김하늘 <span class="tag mem-role">총무</span></span><span class="m"><span class="mem-email">haneul.kim@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack 연결</span><span class="tnum">창립 멤버</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></span></li>
+                    <li><span class="t">이서연</span><span class="m"><span class="mem-email">seoyeon.lee@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack 연결</span><span class="tnum">가입 2024.03</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></span></li>
+                    <li><span class="t">최도윤</span><span class="m"><span class="mem-email">doyun.choi@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack 연결</span><span class="tnum">가입 2025.02</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></span></li>
+                    <li class="muted" style="display:block;font-size:13px">… 12명 더</li>
+                    <li class="vo-head"><b>보기 전용 1명</b>모든 화면을 보기만 해요 · 요청·사진·일지·벌점·알림에서 빠져요</li>
+                    <li><span class="t">한지우 <span class="tag vo">보기 전용</span></span><span class="m"><span class="mem-email">jiwoo.han@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack —</span><span class="tnum">가입 2026.11</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">탈퇴 처리</button></span></li>
+                    <li class="mem-left"><span class="t">윤재희</span><span class="m"><span class="mem-email">jaehee.yoon@company.com</span><span class="mem-meta"><span>Slack —</span><span class="tnum">탈퇴 10/31(토)</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button">수정</button><button class="btn btn-sm btn-ghost" type="button">복귀</button></span></li>
+                  </ul>
+                </section>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#">내 기록</a><a href="#" aria-current="page">운영</a></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">[수정] 창 · 멤버 → 보기 전용 <span>· 이서연 · 진행 중 회차에 요청 없음</span><span class="nc">코드에 없음</span></p>
+        <div class="frame stage" data-doan-frame="dlg-role" data-doan-title="수정 창 · 보기 전용으로 바꾸기" data-doan-implements="src/app/(app)/admin/members/forms.tsx">
+          <dialog class="dlg static" open aria-labelledby="dr-t">
+            <div class="dlg-body">
+              <h2 id="dr-t">이서연 님 정보</h2>
+              <div class="form-grid">
+                <div class="field"><label class="label" for="dr-name">이름</label><input class="input" id="dr-name" value="이서연"></div>
+                <div class="field"><label class="label" for="dr-mail">Google 계정 이메일</label><input class="input" id="dr-mail" value="seoyeon.lee@company.com"></div>
+                <div class="field"><label class="label" for="dr-role">권한</label><select class="select" id="dr-role"><option>보기 전용</option></select></div>
+                <div class="field"><label class="label" for="dr-join">가입일</label><input class="input" id="dr-join" value="2024-03-02"></div>
+              </div>
+              <div class="role-note" data-doan-id="dlg-role-note"><b>멤버 → 보기 전용</b> · 저장하면<ul><li>12월 회차(요청 받는 중) 참가자에서 빠져요</li><li>활동 사진·일지·벌점·마감 알림 명단에서 빠져요</li><li>운영 화면까지 모든 화면을 볼 수 있지만, 버튼은 눌리지 않아요</li></ul></div>
+              <p class="t-cap">지난 회차 기록은 그대로 남아요.</p>
+              <div class="dlg-acts"><button class="btn btn-ghost" type="button">취소</button><button class="btn btn-primary" type="button">저장</button></div>
+            </div>
+          </dialog>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">[수정] 창 · 바꿀 수 없음 <span>· 최도윤 · 진행 중 회차에 요청한 책 있음 · [저장] 뒤</span><span class="nc">코드에 없음</span></p>
+        <div class="frame stage" data-doan-frame="dlg-role-blocked" data-doan-title="수정 창 · 요청한 책 있어 못 바꿈" data-doan-implements="src/app/(app)/admin/members/forms.tsx">
+          <dialog class="dlg static" open aria-labelledby="db-t">
+            <div class="dlg-body">
+              <h2 id="db-t">최도윤 님 정보</h2>
+              <div class="form-grid">
+                <div class="field"><label class="label" for="db-name">이름</label><input class="input" id="db-name" value="최도윤"></div>
+                <div class="field"><label class="label" for="db-mail">Google 계정 이메일</label><input class="input" id="db-mail" value="doyun.choi@company.com"></div>
+                <div class="field"><label class="label" for="db-role">권한</label><select class="select" id="db-role"><option>보기 전용</option></select></div>
+                <div class="field"><label class="label" for="db-join">가입일</label><input class="input" id="db-join" value="2025-02-10"></div>
+              </div>
+              <p class="msg msg-err" role="status"><svg class="ic"><use href="#i-alertc"/></svg>진행 중 회차에 요청한 책이 있어 보기 전용으로 바꿀 수 없어요. 요청을 먼저 취소하거나, 회차가 마감된 뒤에 바꿔 주세요.</p>
+              <ul class="dlg-list">
+                <li><b>12월 회차</b> · 데미안 · 7,200원 · 요청됨</li>
+                <li><b>11월 회차</b> · 프로젝트 헤일메리 · 19,800원 · 배송 완료</li>
+              </ul>
+              <div class="dlg-acts"><button class="btn btn-ghost" type="button">취소</button><button class="btn btn-primary" type="button">저장</button></div>
+            </div>
+          </dialog>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">권한 4가지 <span>· 보기 전용은 모든 화면을 보지만 버튼은 안 눌리고, 활동 명단에는 없음</span></p>
+        <div class="frame spec wide" data-doan-frame="states" data-doan-title="권한 × 할 수 있는 것">
+          <h3>권한 × 할 수 있는 것</h3>
+          <table class="tbl">
+            <thead><tr><th>권한</th><th>로그인</th><th>멤버 화면</th><th>운영 화면</th><th>책 요청</th><th>활동 사진</th><th>일지</th><th>벌점</th><th>Slack 마감 알림</th><th>활동 명단·인원수</th><th>멤버 표에서</th></tr></thead>
+            <tbody>
+              <tr><td>멤버</td><td class="y">돼요</td><td class="y">모두</td><td class="n">안 보여요</td><td class="y">참가 회차</td><td class="y">체크 대상</td><td class="y">책 받은 회차</td><td class="y">받아요</td><td class="y">멘션</td><td class="y">나와요</td><td>위쪽</td></tr>
+              <tr><td>운영진</td><td class="y">돼요</td><td class="y">모두</td><td class="y">보고 바꾸기</td><td class="y">참가 회차</td><td class="y">체크 대상</td><td class="y">책 받은 회차</td><td class="y">받아요</td><td class="y">멘션</td><td class="y">나와요</td><td>위쪽 · 직책 칸</td></tr>
+              <tr class="hl"><td>보기 전용 <span class="nc">새 권한</span></td><td class="y">돼요</td><td class="y">모두 · 버튼 비활성화</td><td class="y">모두 · 버튼 비활성화</td><td class="n red">안 돼요</td><td class="n red">빠져요</td><td class="n red">안 써요</td><td class="n red">빠져요</td><td class="n red">빠져요</td><td class="n red">빠져요</td><td>보기 전용 묶음 · 점선 칸<span class="ex">Slack 칸 "—"</span></td></tr>
+              <tr class="same"><td>탈퇴</td><td class="n">안 돼요</td><td class="n">—</td><td class="n">—</td><td class="n">안 돼요</td><td class="n">빠져요</td><td class="n">안 써요</td><td class="n">빠져요</td><td class="n">빠져요</td><td class="n">빠져요</td><td>맨 아래 · 회색</td></tr>
+            </tbody>
+          </table>
+          <p class="hint" style="margin-top:14px">보기 전용 멤버를 [탈퇴 처리]하면 탈퇴로 바뀌어요. [복귀]하면 탈퇴 전 권한으로 돌아와요.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 운영 화면 · 보기 전용으로 ═══════════ -->
+  <section class="grp" data-doan-id="g-viewer-admin">
+    <div class="grp-top">
+      <span class="no">02</span>
+      <div><h2>운영 화면 · 보기 전용으로 볼 때</h2><p class="route">/admin/* · 한지우로 로그인</p></div>
+      <div class="notes">
+        <div><b>원칙</b>숨기는 화면·버튼 없이 <b>운영진과 똑같이 보여 주고</b>, 바꾸는 버튼·입력 칸·체크 칸만 <b>비활성화(회색)</b>해요. 회차 고르기·보기 전환·링크 열기는 눌려요.</div>
+        <div><b>맨 위 한 줄</b>버튼이 비활성화된 화면 제목 아래에 "보기 전용" 줄로 이유를 알려요. 사이드바 운영 묶음 머리에도 "보기 전용".</div>
+      </div>
+    </div>
+    <div class="frames">
+
+      <div class="fw">
+        <p class="cap">활동 사진 · 데스크톱 1280 <span>· 체크 칸·[모두 체크] 비활성화</span><span class="nc">보기 전용 줄·비활성화 코드에 없음</span></p>
+        <div class="frame desk app-frame" data-doan-frame="viewer-photos" data-doan-title="보기 전용 · 활동 사진 · 데스크톱" data-doan-implements="src/app/(app)/admin/photos/photo-board.tsx">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#"><b>시끌북적</b><span>독서 동아리</span></a>
+                <nav class="navlist" aria-label="메뉴" data-doan-id="vo-nav">
+                  <a class="nav" href="#">홈</a><a class="nav" href="#">구매 요청</a><a class="nav" href="#">일지 쓰기</a><a class="nav" href="#">내 기록</a><a class="nav" href="#">벌점</a>
+                  <p class="grp-t">운영<small>보기 전용</small></p>
+                  <a class="nav" href="#">회차 현황</a><a class="nav" href="#" aria-current="page">활동 사진</a><a class="nav" href="#">주문·배송</a><a class="nav" href="#">멤버</a><a class="nav" href="#">설정</a>
+                </nav>
+                <div class="who"><b>한지우</b>보기 전용</div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">활동 사진</h1>
+                    <p class="page-sub">사진을 찍은 사람을 체크해요. 체크한 사람의 요청만 주문·배송에서 묶음에 담을 수 있어요.</p>
+                  </div>
+                  <div class="picker"><select class="select" aria-label="회차"><option>12월 회차 · 요청 중</option></select></div>
+                </div>
+                <p class="vo-bar" data-doan-id="vo-bar"><svg class="ic"><use href="#i-lock"/></svg><span><b>보기 전용</b> · 모든 화면을 볼 수 있지만 버튼은 눌리지 않아요.</span></p>
+                <div class="tiles">
+                  <div class="tile"><span>사진 확인</span><b>11<small>/ 15명</small></b></div>
+                  <div class="tile"><span>아직</span><b class="red">4<small>명</small></b></div>
+                  <div class="tile"><span>사진 대기 요청</span><b>4<small>권 · 3명</small></b></div>
+                  <div class="tile"><span>대기 금액</span><b>55,800<small>원</small></b></div>
+                </div>
+                <section class="block" aria-labelledby="vp-h">
+                  <div class="block-head">
+                    <h2 class="t-heading" id="vp-h">참가자 15명</h2>
+                    <div class="ph-head-acts">
+                      <div class="seg" role="group" aria-label="보기"><button class="seg-btn" type="button" aria-pressed="true">전체</button><button class="seg-btn" type="button" aria-pressed="false">아직 4</button><button class="seg-btn" type="button" aria-pressed="false">확인 11</button></div>
+                      <button class="btn btn-sm" type="button" disabled data-doan-id="vo-checkall">아직인 4명 모두 체크</button>
+                    </div>
+                  </div>
+                  <p class="hint">칸을 눌러 체크하고 아래 [저장]을 눌러요. 단체 사진이면 [모두 체크] 뒤 빠진 사람만 다시 눌러요. 체크 기록은 회차마다 따로예요.</p>
+                  <div class="ph-grid" data-doan-id="vo-grid">
+                    <label class="ph is-done"><input type="checkbox" checked disabled><span class="nm">강민호</span><span class="st">확인 · 11/15(일) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked disabled><span class="nm">김하늘<small>총무</small></span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked disabled><span class="nm">문가람</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph"><input type="checkbox" disabled><span class="nm">박서준<small>회장</small></span><span class="st is-wait">아직 · 요청 2권 대기</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked disabled><span class="nm">배수아</span><span class="st">확인 · 11/14(토) 김하늘</span></label>
+                    <label class="ph"><input type="checkbox" disabled><span class="nm">서도현</span><span class="st">아직 · 요청 없음</span></label>
+                    <label class="ph is-done"><input type="checkbox" checked disabled><span class="nm">이서연</span><span class="st">확인 · 11/15(일) 김하늘</span></label>
+                    <label class="ph"><input type="checkbox" disabled><span class="nm">정민지</span><span class="st is-wait">아직 · 요청 1권 대기</span></label>
+                  </div>
+                  <p class="ph-more">… 7명 더 · 보기 전용 한지우는 참가자가 아니라 이 목록에 없어요</p>
+                </section>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">멤버 · 모바일 390 <span>· [새 멤버 추가]·[수정]·[탈퇴 처리]·Slack 칸 비활성화</span><span class="nc">코드에 없음</span></p>
+        <div class="frame mob app-frame" data-doan-frame="viewer-members-mobile" data-doan-title="보기 전용 · 멤버 · 모바일" data-doan-implements="src/app/(app)/admin/members/page.tsx">
+          <div class="shell">
+            <div class="maincol">
+              <header class="appbar"><a class="logo" href="#">시끌북적</a><div class="appbar-right"><span class="mono" aria-hidden="true">지</span></div></header>
+              <main>
+                <nav class="anav" aria-label="운영 메뉴"><a href="#">회차</a><a href="#">사진</a><a href="#">주문·배송</a><a href="#" aria-current="page">멤버</a><a href="#">설정</a></nav>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">멤버</h1>
+                    <p class="page-sub">여기 있는 멤버만 로그인할 수 있어요. 각자 로그인할 Google 계정 이메일로 등록해요.</p>
+                  </div>
+                </div>
+                <p class="vo-bar"><svg class="ic"><use href="#i-lock"/></svg><span><b>보기 전용</b> · 모든 화면을 볼 수 있지만 버튼은 눌리지 않아요.</span></p>
+                <button class="btn btn-primary btn-block" type="button" disabled><svg class="ic"><use href="#i-plus"/></svg>새 멤버 추가</button>
+                <section class="block" aria-labelledby="vm-h">
+                  <div class="block-head"><h2 class="t-heading" id="vm-h">활동 멤버 15명</h2><span>보기 전용 1명 · 탈퇴 2명</span></div>
+                  <ul class="mem-rows">
+                    <li><span class="t">김하늘 <span class="tag mem-role">총무</span></span><span class="m"><span class="mem-email">haneul.kim@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack 연결</span><span class="tnum">창립 멤버</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button" disabled>수정</button><button class="btn btn-sm btn-ghost" type="button" disabled>탈퇴 처리</button></span></li>
+                    <li><span class="t">이서연</span><span class="m"><span class="mem-email">seoyeon.lee@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack 연결</span><span class="tnum">가입 2024.03</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button" disabled>수정</button><button class="btn btn-sm btn-ghost" type="button" disabled>탈퇴 처리</button></span></li>
+                    <li><span class="t">정민지</span><span class="m"><span class="mem-email">minji.jung@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span style="color:var(--red);font-weight:700">Slack 미연결</span><span class="tnum">가입 2024.09</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button" disabled>수정</button><button class="btn btn-sm btn-ghost" type="button" disabled>탈퇴 처리</button></span></li>
+                    <li class="muted" style="display:block;font-size:13px">… 12명 더</li>
+                    <li class="vo-head"><b>보기 전용 1명</b>모든 화면을 보기만 해요</li>
+                    <li><span class="t">한지우 (나) <span class="tag vo">보기 전용</span></span><span class="m"><span class="mem-email">jiwoo.han@company.com</span><span class="mem-meta"><span><span class="mark ok">로그인함</span></span><span>Slack —</span><span class="tnum">가입 2026.11</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button" disabled>수정</button><button class="btn btn-sm btn-ghost" type="button" disabled>탈퇴 처리</button></span></li>
+                    <li class="mem-left"><span class="t">윤재희</span><span class="m"><span class="mem-email">jaehee.yoon@company.com</span><span class="mem-meta"><span>Slack —</span><span class="tnum">탈퇴 10/31(토)</span></span></span><span class="r"><button class="btn btn-sm btn-ghost" type="button" disabled>수정</button><button class="btn btn-sm btn-ghost" type="button" disabled>복귀</button></span></li>
+                  </ul>
+                </section>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴"><a href="#">홈</a><a href="#">구매 요청</a><a href="#">일지</a><a href="#">내 기록</a><a href="#" aria-current="page">운영</a></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">운영 화면별로 <span>· 그대로 눌리는 것 / 비활성화하는 것</span></p>
+        <div class="frame spec wide" data-doan-frame="viewer-spec" data-doan-title="보기 전용 · 운영 화면별 정리">
+          <h3>운영 화면별 · 보기 전용일 때 (빼는 것 없음)</h3>
+          <table class="tbl">
+            <thead><tr><th>화면</th><th>그대로 보이고 눌려요</th><th>보이지만 비활성화 (운영진만 눌림)</th></tr></thead>
+            <tbody>
+              <tr><td>회차 현황</td><td>회차 고르기, 사람별 예산 표, 요청 목록, 커피 계획 목록, 기획서·보고서 링크 열기</td><td>커피 계획 추가·사용·취소, 문서 링크 넣기·고치기</td></tr>
+              <tr><td>활동 사진</td><td>숫자 타일, 회차 고르기, 전체·아직·확인 보기</td><td>체크 칸 (마감 회차와 같은 잠금), [모두 체크]. 바꾼 게 없으니 [저장] 줄은 안 떠요</td></tr>
+              <tr><td>주문·배송</td><td>회차 고르기, 묶음·책 목록, 서점 링크·[링크 모두 열기], 영수증 보기, 공지 보낸 기록</td><td>담기·빼기·묶음 만들기, 주문·배송 완료, 되돌리기, 공지 다시 보내기</td></tr>
+              <tr><td>멤버</td><td>멤버 표 (이메일·로그인·Slack 상태·가입)</td><td>[수정]·[탈퇴 처리]·[복귀], Slack 칸, 새 멤버 추가 폼 전체</td></tr>
+              <tr><td>설정</td><td>회차 단계·마감일·알림 미리보기, Slack 미연결 칩</td><td>새 회차 만들기 폼, 마감일 입력·저장, 단계 바꾸기, 알림 지금 보내기, 알림 빼기 칩</td></tr>
+              <tr class="same"><td>영수증</td><td>/admin/receipts/[id] 열기</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <p class="hint" style="margin-top:14px">버튼이 창을 여는 경우([수정], Slack 칸 등)도 비활성화라 창이 열리지 않아요. 저장은 지금도 서버에서 운영진만 받도록 막혀 있어서, 하나를 놓쳐도 바뀌지는 않아요.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 다른 화면에서 빠지는 곳 ═══════════ -->
+  <section class="grp" data-doan-id="g-elsewhere">
+    <div class="grp-top">
+      <span class="no">03</span>
+      <div><h2>활동 명단에서 빠지는 곳</h2><p class="route">멤버·운영진이 보는 활동 화면</p></div>
+      <div class="notes">
+        <div><b>대부분 저절로</b>요청·사진·일지·알림 명단은 "회차 참가자" 기준이라, 보기 전용은 참가자가 아니어서 따라 빠져요.</div>
+        <div><b>따로 걸러야 하는 곳</b>"활동 중인 멤버 전체"를 세는 곳 — 홈 요청 명단, 벌점, 설정의 인원수, 활동 사진 메뉴 숫자. 여기서 보기 전용을 빼요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">화면별로 <span>· 한지우를 보기 전용으로 바꾼 뒤 (활동 16명 → 15명)</span></p>
+        <div class="frame spec wide" data-doan-frame="where" data-doan-title="보기 전용이 빠지는 활동 명단">
+          <h3>보기 전용이 빠지는 활동 명단</h3>
+          <table class="tbl">
+            <thead><tr><th>화면</th><th>지금 보이는 곳</th><th>바꾼 뒤</th><th style="width:300px">어떻게</th></tr></thead>
+            <tbody>
+              <tr><td>홈 · 구매 요청 표</td><td>"아직 요청 안 한 8명"에 이름, 아래 "9 / 16명 요청"<span class="ex">모두가 봐요</span></td><td>"아직 요청 안 한 7명", "9 / 15명 요청"</td><td class="muted"><code>activeMembers</code>에서 보기 전용 빼기</td></tr>
+              <tr><td>홈 · 일지 현황</td><td>"동아리 7 / 12명 제출" (책 받은 사람 기준)</td><td>그대로 — 책을 받은 사람만 세서 원래 안 들어가요</td><td class="muted">바꿀 것 없음</td></tr>
+              <tr><td>모두의 일지</td><td>"아직 안 쓴 사람"</td><td>안 나와요</td><td class="muted">참가자 기준 (저절로)</td></tr>
+              <tr><td>일지 내보내기</td><td>시트의 참가자 줄</td><td>안 나와요</td><td class="muted">참가자 기준 (저절로)</td></tr>
+              <tr><td>벌점</td><td>누적 현황 목록, [벌점 주기] 사람 고르기</td><td>둘 다 안 나와요</td><td class="muted"><code>activeMembers</code>에서 보기 전용 빼기</td></tr>
+              <tr><td>회차 현황 <span class="ex">운영</span></td><td>사람별 예산 표</td><td>안 나와요</td><td class="muted">참가자 기준 (저절로)</td></tr>
+              <tr><td>활동 사진 <span class="ex">운영</span></td><td>체크 칸, 메뉴의 "아직 N"</td><td>둘 다 빠져요</td><td class="muted">참가자 기준 + <code>photoPendingCount</code></td></tr>
+              <tr><td>Slack 마감 알림</td><td>요청·일지 안 한 사람 멘션</td><td>안 나와요</td><td class="muted">참가자 기준 (저절로)</td></tr>
+              <tr><td>설정 <span class="ex">운영</span></td><td>새 회차 만들기 "활동 16명", Slack 미연결 칩</td><td>"활동 15명", 미연결에서 빠짐</td><td class="muted"><code>activeMemberCount</code>·미연결 셈에서 빼기</td></tr>
+              <tr><td>멤버 <span class="ex">운영</span></td><td>"활동 멤버 16명", Slack 미연결 2명</td><td>"활동 멤버 15명", 미연결 1명 + 보기 전용 묶음</td><td class="muted">01 화면</td></tr>
+              <tr class="same"><td>주문·배송</td><td>요청한 사람만 나와요</td><td>보기 전용은 요청이 없어 나올 일 없음</td><td>바꿀 것 없음</td></tr>
+              <tr class="same"><td>같이 읽는 중</td><td>이름 없이 동물로 앉아요</td><td>그대로 앉아요 — 실제로 와 있는 사람이라서</td><td>바꿀 것 없음 (빼고 싶으면 알려 주세요)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">예 · 홈 요청 명단 <span>· 모바일, 모두가 보는 줄</span></p>
+        <div class="frame crop app-frame" data-doan-frame="home-pending" data-doan-title="홈 · 요청 안 한 사람 · 바꾼 뒤" data-doan-implements="src/app/(app)/page.tsx" style="width:720px">
+          <div class="pend-cmp">
+            <div>
+              <h4>지금 <span>· 한지우가 들어 있음</span></h4>
+              <p class="home-mpending"><b>아직 요청 안 한 8명</b>노은솔 · 문여름 · 배수아 · 서도현 · 신유찬 · 장보름 · 최도윤 · <s>한지우</s></p>
+            </div>
+            <div>
+              <h4>보기 전용으로 바꾼 뒤</h4>
+              <p class="home-mpending"><b>아직 요청 안 한 7명</b>노은솔 · 문여름 · 배수아 · 서도현 · 신유찬 · 장보름 · 최도윤</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 04 멤버 화면 · 보기 전용으로 ═══════════ -->
+  <section class="grp" data-doan-id="g-self">
+    <div class="grp-top">
+      <span class="no">04</span>
+      <div><h2>멤버 화면 · 보기 전용으로 볼 때</h2><p class="route">한지우로 로그인 · 홈 · 구매 요청 · 일지 쓰기 · 내 기록 · 벌점</p></div>
+      <div class="notes">
+        <div><b>메뉴</b>운영진과 똑같아요. 빠지는 메뉴 없음. 모바일 아래 탭도 홈 · 구매 요청 · 일지 · 내 기록 · 운영.</div>
+        <div><b>구매 요청</b>지금 "참가자가 아닌 회차"에서 쓰는 모습(요청 버튼 비활성화)을 그대로 쓰고, 입력 칸까지 잠그고 문구만 바꿔요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">구매 요청 · 데스크톱 1280 <span>· 폼 전체 비활성화, 내 요청은 0권</span><span class="nc">보기 전용 줄·문구 코드에 없음</span></p>
+        <div class="frame desk app-frame" data-doan-frame="self-requests" data-doan-title="보기 전용 · 구매 요청 · 데스크톱" data-doan-implements="src/app/(app)/requests/request-form.tsx">
+          <div class="shell">
+            <aside class="side" aria-label="사이드바">
+              <div class="side-inner">
+                <a class="logo" href="#"><b>시끌북적</b><span>독서 동아리</span></a>
+                <nav class="navlist" aria-label="메뉴">
+                  <a class="nav" href="#">홈</a><a class="nav" href="#" aria-current="page">구매 요청</a><a class="nav" href="#">일지 쓰기</a><a class="nav" href="#">내 기록</a><a class="nav" href="#">벌점</a>
+                  <p class="grp-t">운영<small>보기 전용</small></p>
+                  <a class="nav" href="#">회차 현황</a><a class="nav" href="#">활동 사진</a><a class="nav" href="#">주문·배송</a><a class="nav" href="#">멤버</a><a class="nav" href="#">설정</a>
+                </nav>
+                <div class="who"><b>한지우</b>보기 전용</div>
+              </div>
+            </aside>
+            <div class="maincol">
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">책 요청</h1>
+                    <p class="page-sub">12월 회차 요청 마감 <b>11/20(금)</b></p>
+                  </div>
+                </div>
+                <p class="vo-bar"><svg class="ic"><use href="#i-lock"/></svg><span><b>보기 전용</b> · 모든 화면을 볼 수 있지만 버튼은 눌리지 않아요.</span></p>
+                <p class="note"><svg class="ic"><use href="#i-info"/></svg><span>지금 읽는 11월 회차 책이 아니라, <b>다음에 읽을 회차</b>의 책을 요청해요. 한 회차에 1인 30,000원까지예요.</span></p>
+                <div class="split">
+                  <div class="split-col" data-doan-id="vo-form">
+                    <div class="block-head"><h2 class="t-heading">새 요청</h2></div>
+                    <div class="form">
+                      <div class="field">
+                        <span class="label">대상 회차</span>
+                        <div class="fixed-val">12월 회차 · 요청 받는 중<span>접수 중인 회차가 1개라 자동으로 정해졌어요</span></div>
+                        <p class="msg msg-info" data-doan-id="vo-form-msg"><svg class="ic"><use href="#i-lock"/></svg>보기 전용이라 책을 요청할 수 없어요.</p>
+                      </div>
+                      <div class="field">
+                        <label class="label" for="vr-url">책 링크 <small>yes24 · 교보문고 도서만</small></label>
+                        <input class="input" id="vr-url" placeholder="https://www.yes24.com/product/goods/…" disabled>
+                      </div>
+                      <div class="field">
+                        <span class="label">서점 <small>링크에서 자동 선택</small></span>
+                        <div class="radios rq-store"><label class="radio"><input type="radio" disabled>yes24</label><label class="radio"><input type="radio" disabled>교보문고</label></div>
+                      </div>
+                      <div class="field"><label class="label" for="vr-title">책 제목</label><input class="input" id="vr-title" placeholder="링크를 넣으면 채워져요" disabled></div>
+                      <div class="field"><label class="label" for="vr-price">금액 <small>판매가 기준</small></label><div class="input-unit"><input class="input" id="vr-price" placeholder="0" disabled><span>원</span></div></div>
+                      <button class="btn btn-primary btn-block" type="button" disabled>요청하기</button>
+                    </div>
+                  </div>
+                  <div class="split-col">
+                    <div class="block-head"><h2 class="t-heading">내 12월 회차 요청 · 0권</h2></div>
+                    <div class="empty"><strong>요청한 책이 없어요</strong><p>보기 전용은 책을 요청하지 않아요.</p></div>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">구매 요청 · 모바일 390 <span>· 아래 탭은 운영진과 같은 다섯 칸</span><span class="nc">코드에 없음</span></p>
+        <div class="frame mob app-frame" data-doan-frame="self-mobile" data-doan-title="보기 전용 · 구매 요청 · 모바일" data-doan-implements="src/app/(app)/requests/request-form.tsx">
+          <div class="shell">
+            <div class="maincol">
+              <header class="appbar"><a class="logo" href="#">시끌북적</a><div class="appbar-right"><span class="mono" aria-hidden="true">지</span></div></header>
+              <main>
+                <div class="page-head">
+                  <div>
+                    <h1 class="t-title">책 요청</h1>
+                    <p class="page-sub">12월 회차 요청 마감 <b>11/20(금)</b></p>
+                  </div>
+                </div>
+                <p class="vo-bar"><svg class="ic"><use href="#i-lock"/></svg><span><b>보기 전용</b> · 모든 화면을 볼 수 있지만 버튼은 눌리지 않아요.</span></p>
+                <div class="split-col">
+                  <div class="block-head"><h2 class="t-heading">새 요청</h2><span>12월 회차</span></div>
+                  <div class="form">
+                    <p class="msg msg-info"><svg class="ic"><use href="#i-lock"/></svg>보기 전용이라 책을 요청할 수 없어요.</p>
+                    <div class="field"><label class="label" for="vm-url">책 링크 <small>yes24 · 교보문고 도서만</small></label><input class="input" id="vm-url" placeholder="https://www.yes24.com/product/goods/…" disabled></div>
+                    <div class="field"><label class="label" for="vm-title">책 제목</label><input class="input" id="vm-title" placeholder="링크를 넣으면 채워져요" disabled></div>
+                    <button class="btn btn-primary btn-block" type="button" disabled>요청하기</button>
+                  </div>
+                </div>
+              </main>
+            </div>
+            <nav class="tabs" aria-label="하단 메뉴" data-doan-id="self-tabs"><a href="#">홈</a><a href="#" aria-current="page">구매 요청</a><a href="#">일지</a><a href="#">내 기록</a><a href="#">운영</a></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">멤버 화면별로 <span>· 대부분 지금 코드 그대로 보여요</span></p>
+        <div class="frame spec" data-doan-frame="self-spec" data-doan-title="보기 전용 · 멤버 화면별 정리">
+          <h3>멤버 화면별 · 보기 전용일 때</h3>
+          <table class="tbl">
+            <thead><tr><th>화면</th><th>보기 전용에게 보이는 모습</th><th style="width:300px">바꿀 것</th></tr></thead>
+            <tbody>
+              <tr><td>홈</td><td>그대로. 참가 회차가 없어 할 일이 없으니 머리 줄은 "지우님, 오늘은 할 일이 없어요.", [책 요청하기] 버튼은 원래 안 떠요</td><td class="muted">바꿀 것 없음</td></tr>
+              <tr><td>구매 요청</td><td>폼은 보이고 입력 칸·[요청하기] 비활성화, 내 요청 0권</td><td class="muted">"참가자 아님" 문구를 보기 전용 문구로, 입력 칸 잠그기, 맨 위 줄</td></tr>
+              <tr><td>일지 쓰기</td><td>그대로. 받은 책이 없어 "12월 회차에 신청한 책이 없어 쓸 일지가 없어요"가 떠요. 모두의 일지 읽기는 돼요</td><td class="muted">바꿀 것 없음</td></tr>
+              <tr><td>내 기록</td><td>그대로. 보기 전용이 되기 전 기록이 있으면 그대로 보여요</td><td class="muted">바꿀 것 없음</td></tr>
+              <tr><td>벌점</td><td>누적 현황·내역 그대로. "내 벌점" 칸은 0점 대신 "보기 전용이라 벌점 대상이 아니에요"</td><td class="muted">내 벌점 칸 문구만</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
