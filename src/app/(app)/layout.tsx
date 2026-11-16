@@ -8,10 +8,10 @@ import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const me = await requireMe();
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
-  // 운영진 목차의 활동 사진 옆 숫자. 곁들이는 정보라 실패해도 화면은 그린다
-  const photoPending = me.isAdmin ? await photoPendingCount().catch(() => 0) : 0;
+  // 운영 목차의 활동 사진 옆 숫자(보기 전용도 같이 본다). 곁들이는 정보라 실패해도 화면은 그린다
+  const photoPending = me.isAdmin || me.isViewer ? await photoPendingCount().catch(() => 0) : 0;
   return (
-    <AppShell me={{ name: me.name, isAdmin: me.isAdmin, roleTitle: me.roleTitle, photoPending }} theme={theme}>
+    <AppShell me={{ name: me.name, isAdmin: me.isAdmin, isViewer: me.isViewer, roleTitle: me.roleTitle, photoPending }} theme={theme}>
       {children}
     </AppShell>
   );

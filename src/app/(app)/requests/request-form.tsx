@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 import { BudgetGauge, BudgetLegend } from "@/components/budget-gauge";
 import { Icon } from "@/components/icon";
+import { useViewOnly, ViewOnlyFieldset } from "@/components/view-only";
 import { parseStoreUrl, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { md, won } from "@/lib/format";
 import { submitRequest, type ActionState } from "./actions";
@@ -102,6 +103,8 @@ export function RequestForm({ cycles, initialCycleKey, editing }: { cycles: Form
   // 회차가 정해져 있으면(수정 중이거나 접수 회차가 1개) 모바일은 구역 머리에 회차 이름만 보인다
   const fixed = !!editing || cycles.length === 1;
   const notParticipant = !!cycle && !cycle.participant;
+  // 보기 전용: 폼은 보이고 입력 칸·[요청하기]는 통째로 잠근다 (회차 참가자가 아니라 서버도 받지 않는다)
+  const viewOnly = useViewOnly();
 
   return (
     <form action={formAction} className="split-col" aria-labelledby="form-h">
@@ -111,137 +114,141 @@ export function RequestForm({ cycles, initialCycleKey, editing }: { cycles: Form
         {editing && <Link className="btn btn-sm btn-ghost" href="/requests">수정 취소</Link>}
       </div>
 
-      <div className="form">
-        <div className={`field${fixed && !notParticipant ? " only-desk" : ""}`}>
-          <span className="label">대상 회차</span>
-          {fixed ? (
-            <div className="fixed-val">
-              {cycle?.label}
-              {!editing && <span>접수 중인 회차가 1개라 자동으로 정해졌어요</span>}
+      <ViewOnlyFieldset>
+        <div className="form">
+          <div className={`field${fixed && !notParticipant ? " only-desk" : ""}`}>
+            <span className="label">대상 회차</span>
+            {fixed ? (
+              <div className="fixed-val">
+                {cycle?.label}
+                {!editing && <span>접수 중인 회차가 1개라 자동으로 정해졌어요</span>}
+              </div>
+            ) : (
+              <div className="cyc-pick" role="radiogroup" aria-label="대상 회차">
+                {cycles.map((c) => (
+                  <label key={c.id} className="cyc-opt">
+                    <input className="sr-only-input" type="radio" name="cycle-pick" value={c.id} checked={c.id === cycleId} onChange={() => setCycleId(c.id)} />
+                    <b>{c.label}</b>
+                    <span>
+                      {c.deadline ? `마감 ${md(c.deadline)} · ` : ""}남은 {won(c.budget - c.used - c.reserved)}원
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {notParticipant && (viewOnly ? (
+              <p className="msg msg-info"><Icon name="lock" />보기 전용이라 책을 요청할 수 없어요.</p>
+            ) : (
+              <p className="msg msg-err"><Icon name="alertc" />이 회차의 참가자로 등록되어 있지 않아요. 총무에게 문의해 주세요.</p>
+            ))}
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="f-url">책 링크 <small>yes24 · 교보문고 도서만</small></label>
+            <input
+              className={`input${urlBad ? " is-err" : ""}`}
+              id="f-url"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              placeholder="https://www.yes24.com/product/goods/…"
+              value={url}
+              disabled={!!editing}
+              onChange={(e) => onUrlChange(e.target.value)}
+              onPaste={(e) => { const v = e.clipboardData.getData("text"); clearTimeout(timer.current); setUrl(v); runLookup(v); e.preventDefault(); }}
+              aria-describedby="url-msg"
+            />
+            <div id="url-msg" aria-live="polite">
+              {lookup === "idle" && <p className="hint">링크를 붙여넣으면 서점·제목·금액을 자동으로 채워요.</p>}
+              {lookup === "loading" && <p className="msg msg-info"><Icon name="history" />책 정보를 불러오는 중…</p>}
+              {lookup === "filled" && !editing && <p className="msg msg-ok"><Icon name="checkc" />{store && STORE_NAME[store]} · 정보를 채웠어요. 제목과 금액을 확인해 주세요.</p>}
+              {lookup === "failed" && <p className="msg msg-info"><Icon name="info" />{store && STORE_NAME[store]} 링크예요. 정보를 못 가져와서 제목과 금액을 직접 입력해 주세요.</p>}
+              {urlBad && <p className="msg msg-err"><Icon name="alertc" />{LOOKUP_ERROR[lookup]}</p>}
             </div>
-          ) : (
-            <div className="cyc-pick" role="radiogroup" aria-label="대상 회차">
-              {cycles.map((c) => (
-                <label key={c.id} className="cyc-opt">
-                  <input className="sr-only-input" type="radio" name="cycle-pick" value={c.id} checked={c.id === cycleId} onChange={() => setCycleId(c.id)} />
-                  <b>{c.label}</b>
-                  <span>
-                    {c.deadline ? `마감 ${md(c.deadline)} · ` : ""}남은 {won(c.budget - c.used - c.reserved)}원
-                  </span>
+          </div>
+
+          <div className="field">
+            <span className="label">서점 <small>링크에서 자동 선택</small></span>
+            <div className="radios rq-store">
+              {(["yes24", "kyobo"] as const).map((s) => (
+                <label key={s} className="radio">
+                  <input type="radio" name="store-view" checked={store === s} disabled readOnly />
+                  {STORE_NAME[s]}
                 </label>
               ))}
             </div>
-          )}
-          {notParticipant && (
-            <p className="msg msg-err"><Icon name="alertc" />이 회차의 참가자로 등록되어 있지 않아요. 총무에게 문의해 주세요.</p>
-          )}
-        </div>
-
-        <div className="field">
-          <label className="label" htmlFor="f-url">책 링크 <small>yes24 · 교보문고 도서만</small></label>
-          <input
-            className={`input${urlBad ? " is-err" : ""}`}
-            id="f-url"
-            type="url"
-            inputMode="url"
-            autoComplete="off"
-            placeholder="https://www.yes24.com/product/goods/…"
-            value={url}
-            disabled={!!editing}
-            onChange={(e) => onUrlChange(e.target.value)}
-            onPaste={(e) => { const v = e.clipboardData.getData("text"); clearTimeout(timer.current); setUrl(v); runLookup(v); e.preventDefault(); }}
-            aria-describedby="url-msg"
-          />
-          <div id="url-msg" aria-live="polite">
-            {lookup === "idle" && <p className="hint">링크를 붙여넣으면 서점·제목·금액을 자동으로 채워요.</p>}
-            {lookup === "loading" && <p className="msg msg-info"><Icon name="history" />책 정보를 불러오는 중…</p>}
-            {lookup === "filled" && !editing && <p className="msg msg-ok"><Icon name="checkc" />{store && STORE_NAME[store]} · 정보를 채웠어요. 제목과 금액을 확인해 주세요.</p>}
-            {lookup === "failed" && <p className="msg msg-info"><Icon name="info" />{store && STORE_NAME[store]} 링크예요. 정보를 못 가져와서 제목과 금액을 직접 입력해 주세요.</p>}
-            {urlBad && <p className="msg msg-err"><Icon name="alertc" />{LOOKUP_ERROR[lookup]}</p>}
           </div>
-        </div>
 
-        <div className="field">
-          <span className="label">서점 <small>링크에서 자동 선택</small></span>
-          <div className="radios rq-store">
-            {(["yes24", "kyobo"] as const).map((s) => (
-              <label key={s} className="radio">
-                <input type="radio" name="store-view" checked={store === s} disabled readOnly />
-                {STORE_NAME[s]}
-              </label>
-            ))}
+          <div className="field">
+            <label className="label" htmlFor="f-title">책 제목</label>
+            <input className="input" id="f-title" name="title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={lookup === "loading"} placeholder="링크를 넣으면 채워져요" maxLength={200} />
           </div>
-        </div>
-
-        <div className="field">
-          <label className="label" htmlFor="f-title">책 제목</label>
-          <input className="input" id="f-title" name="title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={lookup === "loading"} placeholder="링크를 넣으면 채워져요" maxLength={200} />
-        </div>
-        <div className="field">
-          <label className="label" htmlFor="f-price">금액 <small>판매가 기준</small></label>
-          <div className="input-unit">
-            <input
-              className={`input${err ? " is-err" : ""}`}
-              id="f-price"
-              name="price"
-              inputMode="numeric"
-              value={price ? won(Number(price)) : ""}
-              onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, "").slice(0, 7))}
-              disabled={lookup === "loading"}
-              placeholder="0"
-            />
-            <span>원</span>
+          <div className="field">
+            <label className="label" htmlFor="f-price">금액 <small>판매가 기준</small></label>
+            <div className="input-unit">
+              <input
+                className={`input${err ? " is-err" : ""}`}
+                id="f-price"
+                name="price"
+                inputMode="numeric"
+                value={price ? won(Number(price)) : ""}
+                onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, "").slice(0, 7))}
+                disabled={lookup === "loading"}
+                placeholder="0"
+              />
+              <span>원</span>
+            </div>
           </div>
-        </div>
 
-        <div className="field">
-          <span className="label">
-            예산 · {cycle ? cycle.label : "회차 미선택"} <small>한도 {won(cycle?.budget ?? 30000)}원</small>
-          </span>
-          {cycle ? (
-            <>
-              <BudgetGauge budget={cycle.budget} used={used} reserved={reserved} pending={amount} />
-              <BudgetLegend budget={cycle.budget} used={used} reserved={reserved} pending={amount} />
-            </>
-          ) : (
-            <>
-              <BudgetGauge budget={30000} used={0} off />
-              <p className="hint">회차를 먼저 골라 주세요.</p>
-            </>
-          )}
-        </div>
-
-        {err === "one" && cycle && (
-          <p className="note note-warn" role="alert">
-            <Icon name="alertc" />
-            <span>한 권이 <b>{won(cycle.budget)}원</b>을 넘어 신청할 수 없어요.</span>
-          </p>
-        )}
-        {err === "sum" && (
-          <p className="note note-warn" role="alert">
-            <Icon name="alertc" />
-            <span>
-              한도를 <b>{won(used + reserved + amount - (cycle?.budget ?? 0))}원</b> 넘어요.{" "}
-              {editing ? `이 책은 최대 ${won(remaining)}원까지 바꿀 수 있어요.` : `남은 금액은 ${won(remaining)}원이에요.`}
+          <div className="field">
+            <span className="label">
+              예산 · {cycle ? cycle.label : "회차 미선택"} <small>한도 {won(cycle?.budget ?? 30000)}원</small>
             </span>
-          </p>
-        )}
-        {editing && !err && <p className="hint">이 책은 최대 {won(remaining)}원까지 바꿀 수 있어요 (남은 한도 + 기존 금액).</p>}
-        {state && (
-          <p className={`note ${state.ok ? "note-ok" : "note-danger"}`} role="status">
-            <Icon name={state.ok ? "checkc" : "alertc"} />
-            <span>{state.message}</span>
-          </p>
-        )}
+            {cycle ? (
+              <>
+                <BudgetGauge budget={cycle.budget} used={used} reserved={reserved} pending={amount} />
+                <BudgetLegend budget={cycle.budget} used={used} reserved={reserved} pending={amount} />
+              </>
+            ) : (
+              <>
+                <BudgetGauge budget={30000} used={0} off />
+                <p className="hint">회차를 먼저 골라 주세요.</p>
+              </>
+            )}
+          </div>
 
-        {editing && <input type="hidden" name="id" value={editing.id} />}
-        <input type="hidden" name="cycleId" value={cycleId} />
-        <input type="hidden" name="url" value={canonical} />
-        <input type="hidden" name="author" value={author} />
-        <button className="btn btn-primary btn-block" type="submit" disabled={blocked}>
-          {pending ? "저장하는 중…" : editing ? "수정 저장" : "요청하기"}
-        </button>
-      </div>
+          {err === "one" && cycle && (
+            <p className="note note-warn" role="alert">
+              <Icon name="alertc" />
+              <span>한 권이 <b>{won(cycle.budget)}원</b>을 넘어 신청할 수 없어요.</span>
+            </p>
+          )}
+          {err === "sum" && (
+            <p className="note note-warn" role="alert">
+              <Icon name="alertc" />
+              <span>
+                한도를 <b>{won(used + reserved + amount - (cycle?.budget ?? 0))}원</b> 넘어요.{" "}
+                {editing ? `이 책은 최대 ${won(remaining)}원까지 바꿀 수 있어요.` : `남은 금액은 ${won(remaining)}원이에요.`}
+              </span>
+            </p>
+          )}
+          {editing && !err && <p className="hint">이 책은 최대 {won(remaining)}원까지 바꿀 수 있어요 (남은 한도 + 기존 금액).</p>}
+          {state && (
+            <p className={`note ${state.ok ? "note-ok" : "note-danger"}`} role="status">
+              <Icon name={state.ok ? "checkc" : "alertc"} />
+              <span>{state.message}</span>
+            </p>
+          )}
+
+          {editing && <input type="hidden" name="id" value={editing.id} />}
+          <input type="hidden" name="cycleId" value={cycleId} />
+          <input type="hidden" name="url" value={canonical} />
+          <input type="hidden" name="author" value={author} />
+          <button className="btn btn-primary btn-block" type="submit" disabled={blocked}>
+            {pending ? "저장하는 중…" : editing ? "수정 저장" : "요청하기"}
+          </button>
+        </div>
+      </ViewOnlyFieldset>
     </form>
   );
 }

@@ -10,9 +10,10 @@ import { AddPenaltyButton, DeletePenaltyButton, type PenaltyItem } from "./forms
 
 export const metadata: Metadata = { title: "벌점" };
 
-/** 벌점: 멤버 모두가 누적 현황과 내역을 보고, 추가·지우기는 운영진에게만 보인다 */
+/** 벌점: 멤버 모두가 누적 현황과 내역을 보고, 추가·지우기는 운영진에게만 보인다 (보기 전용에게는 비활성화로 보인다) */
 export default async function PenaltiesPage() {
   const me = await requireMe();
+  const staff = me.isAdmin || me.isViewer;
   const today = kstToday();
   const [rows, members] = await Promise.all([listPenalties(), activeMembers()]);
   const history = namePenalties(rows, members);
@@ -34,7 +35,7 @@ export default async function PenaltiesPage() {
           <h1 className="t-title">벌점</h1>
           <p className="page-sub">{PENALTY_OUT}점이 쌓이면 퇴출돼요 · 동아리 멤버 모두가 볼 수 있어요</p>
         </div>
-        {me.isAdmin && (
+        {staff && (
           <AddPenaltyButton
             members={[...totals].sort((a, b) => a.name.localeCompare(b.name, "ko")).map((t) => ({ id: t.member_id, name: t.name, total: t.total }))}
             today={today}
@@ -46,11 +47,17 @@ export default async function PenaltiesPage() {
         <div className="pen-side">
           <section className="pen-mine" aria-labelledby="pen-my-h">
             <h2 id="pen-my-h">내 벌점<span className="only-mob"> · {me.name}</span></h2>
-            <div className="score">
-              <PenaltyPips total={mine} size="lg" />
-              <span>{mine}<small> / {PENALTY_OUT}점</small></span>
-            </div>
-            <p>{penaltyStanding(mine).message}</p>
+            {me.isViewer ? (
+              <p>보기 전용이라 벌점 대상이 아니에요.</p>
+            ) : (
+              <>
+                <div className="score">
+                  <PenaltyPips total={mine} size="lg" />
+                  <span>{mine}<small> / {PENALTY_OUT}점</small></span>
+                </div>
+                <p>{penaltyStanding(mine).message}</p>
+              </>
+            )}
           </section>
 
           <section aria-labelledby="pen-sum-h">
@@ -97,7 +104,7 @@ export default async function PenaltiesPage() {
                       <th className="c-name">이름</th>
                       <th className="num c-pts">점수</th>
                       <th>사유</th>
-                      {me.isAdmin && <th className="c-act"><span className="sr-only">작업</span></th>}
+                      {staff && <th className="c-act"><span className="sr-only">작업</span></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -107,7 +114,7 @@ export default async function PenaltiesPage() {
                         <td className="strong">{p.name}{you(p.member_id)}</td>
                         <td className="num strong red">+{p.points}</td>
                         <td className="p-reason">{p.reason}</td>
-                        {me.isAdmin && (
+                        {staff && (
                           <td>
                             {/* 확인창이 칸의 글자 정렬을 물려받지 않도록 정렬은 감싼 칸이 맡는다 */}
                             <span className="pen-act"><DeletePenaltyButton item={itemOf(p)} /></span>
@@ -123,7 +130,7 @@ export default async function PenaltiesPage() {
                   <li key={p.id} className={p.member_id === me.id ? "is-me" : undefined}>
                     <span className="t">{p.name}{you(p.member_id)} <span className="red">+{p.points}</span></span>
                     <span className="m">{md(p.given_on)} · {p.reason}</span>
-                    {me.isAdmin && (
+                    {staff && (
                       <span className="r">
                         <DeletePenaltyButton item={itemOf(p)} />
                       </span>

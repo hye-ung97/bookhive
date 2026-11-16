@@ -71,6 +71,7 @@ body {
 .nav small { font: 700 11px/1 var(--font-sans); color: var(--red); }
 .nav[aria-current="page"] small { color: var(--on); }
 .grp-t { padding: 24px 24px 8px; border-top: 2px solid var(--ink); font: 700 12px/16px var(--font-sans); letter-spacing: 0.04em; color: var(--ink2); }
+.grp-t small { margin-left: 6px; font: 700 11px/16px var(--font-sans); letter-spacing: 0; }
 .who { margin-top: auto; padding: 16px 24px 0; border-top: 2px solid var(--ink); font: 400 13px/20px var(--font-sans); color: var(--ink2); }
 .who b { display: block; font: 700 15px/22px var(--font-sans); color: var(--ink); }
 .signout { display: inline; }
@@ -101,6 +102,11 @@ main {
   padding-right: max(48px, env(safe-area-inset-right, 0px));
 }
 main > * { min-width: 0; }
+/* 보기 전용: 버튼이 비활성화된 화면 맨 위 한 줄, 폼 통째로 잠그는 fieldset(상자 없이) */
+.vo-bar { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1.5px dashed var(--ink); font: 500 14px/20px var(--font-sans); color: var(--ink); }
+.vo-bar .ic { margin-top: 2px; }
+.vo-bar b { font-weight: 800; }
+fieldset.vo-fs { display: contents; min-width: 0; margin: 0; padding: 0; border: 0; }
 /* 푸터: 본문과 같은 폭에 회색 작은 글씨 한 줄. 짧은 화면에서는 바닥에 붙는다. 윗줄은 본문 글자 폭만큼 */
 .foot {
   width: 100%; max-width: 1136px; margin: auto auto 0;
@@ -166,6 +172,7 @@ main > * { min-width: 0; }
 .btn-ghost:disabled { background: transparent; border-color: transparent; }
 .link { padding: 0; border: 0; background: none; color: inherit; font: 600 13px/18px var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .link:hover { color: var(--red); }
+.link:disabled { color: var(--past); cursor: not-allowed; }
 .icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; background: transparent; color: var(--ink2); cursor: pointer; }
 .icon-btn:hover { background: var(--fill); color: var(--ink); }
 .icon-btn[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
@@ -253,6 +260,8 @@ input[type="date"].input { padding-right: 8px; }
 input[type="checkbox"] { appearance: none; flex: none; width: 18px; height: 18px; margin: 0; border: 1.5px solid var(--ink); border-radius: 0; background: var(--bg) center / 14px no-repeat; vertical-align: middle; cursor: pointer; }
 input[type="checkbox"]:checked { background-color: var(--ink); background-image: var(--check); }
 input[type="checkbox"]:disabled { border-color: var(--rule); background-color: var(--fill); cursor: not-allowed; }
+/* 잠근 체크 칸(마감 회차·보기 전용)도 체크가 보이게: 흰 체크가 회색 바탕에 묻히지 않도록 진한 회색 */
+input[type="checkbox"]:checked:disabled { border-color: var(--ink2); background-color: var(--ink2); }
 /* 분할 버튼: 지금 보기는 검게 */
 .seg { display: inline-flex; border: 1px solid var(--ink); }
 .seg a, .seg .seg-btn { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 0; background: var(--bg); color: var(--ink); font: 600 13px/1 var(--font-sans); text-decoration: none; white-space: nowrap; cursor: pointer; }
@@ -473,6 +482,19 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .mem-tbl tr.mem-left td { color: var(--ink2); }
 .mem-left .mark.ok::before { background: var(--past); }
 .mem-left .tag { border-color: var(--rule); color: var(--ink2); }
+/* 보기 전용: 직책 칸(검은 테두리)과 헷갈리지 않게 점선 칸, 활동 멤버 아래 묶음(머리 줄은 회색 바탕) */
+.tag.mem-vo { border-style: dashed; border-color: var(--ink2); color: var(--ink2); }
+.mem-tbl tr.vo-head td { padding-top: 10px; padding-bottom: 10px; background: var(--fill); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+.mem-tbl tr.vo-head b { margin-right: 10px; color: var(--ink); font-weight: 800; }
+.mem-tbl tr.is-vo td:not(:first-child) { color: var(--ink2); }
+.mem-rows > li.vo-head { display: block; padding: 10px 12px; border-bottom: 0; background: var(--fill); font: 500 13px/20px var(--font-sans); color: var(--ink2); }
+.mem-rows > li.vo-head b { display: block; color: var(--ink); font-weight: 800; }
+.mem-dash { color: var(--past); }
+/* 권한에서 보기 전용을 고르면 나오는 안내 */
+.role-note { padding: 10px 12px; border-left: 3px solid var(--ink); background: var(--fill); font: 500 13px/20px var(--font-sans); color: var(--ink); }
+.role-note b { font-weight: 800; }
+.role-note ul { margin-top: 4px; color: var(--ink2); }
+.role-note li::before { content: "– "; }
 .mem-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; }
 .mem-cycles { display: grid; gap: 8px; }
 .mem-check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; font: 500 14px/20px var(--font-sans); }
@@ -487,6 +509,7 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .mem-meta { display: flex; flex-wrap: wrap; align-items: center; row-gap: 2px; }
 .mem-meta > span + span::before { content: "·"; content: "·" / ""; margin: 0 6px; }
 .mem-add-m > summary { list-style: none; }
+.mem-add-m > summary[aria-disabled="true"] { pointer-events: none; border-color: var(--rule); background: var(--fill); color: var(--past); }
 .mem-add-m > summary::-webkit-details-marker { display: none; }
 .mem-add-m[open] > summary { margin-bottom: 20px; background: var(--bg); color: var(--ink); }
 .mem-add-m[open] > summary .ic { transform: rotate(45deg); }
@@ -499,6 +522,10 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .slk { display: inline-flex; align-items: center; height: 32px; margin: -6px -6px; padding: 0 6px; border: 0; background: none; color: var(--ink); cursor: pointer; white-space: nowrap; }
 .slk:hover .mark { text-decoration: underline; text-underline-offset: 3px; }
 .slk-dash { color: var(--past); }
+/* 보기 전용: 상태만 보이고 눌리지 않는다 */
+.slk:disabled, .slk-m:disabled { cursor: not-allowed; }
+.slk:disabled:hover .mark { text-decoration: none; }
+.slk-m:disabled { text-decoration: none; }
 /* 모바일 줄의 Slack 글자 버튼: 미연결은 빨갛게. 누르기 쉽게 위아래 여백을 넓힌다 */
 .slk-m { display: inline; margin: -6px 0; padding: 6px 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--past); }
 .slk-m.no { color: var(--red); font-weight: 700; text-decoration-color: currentColor; }
@@ -706,9 +733,13 @@ dialog.dlg::backdrop { background: var(--overlay); }
 .rc-x { display: grid; place-items: center; flex: none; width: 28px; height: 100%; border: 0; border-left: 1px solid var(--rule); background: transparent; color: var(--ink2); cursor: pointer; }
 .rc-x:hover { background: var(--red-soft); color: var(--red); }
 .rc-x .ic { width: 12px; height: 12px; }
+.rc-x:disabled { color: var(--past); cursor: not-allowed; }
+.rc-x:disabled:hover { background: transparent; color: var(--past); }
 .rc-add { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px dashed var(--ink); background: transparent; color: var(--ink); font: 600 12px/1 var(--font-sans); white-space: nowrap; cursor: pointer; }
 .rc-add:hover { background: var(--fill); }
 .rc-add .ic { width: 14px; height: 14px; }
+/* 보기 전용: 올리기·링크 칸은 보이되 눌리지 않게 */
+.rc-add:disabled, .rc-add[aria-disabled="true"] { border-color: var(--rule); color: var(--past); background: transparent; cursor: not-allowed; }
 .rc:has(> input[type="file"]:focus-visible) label.rc-add { outline: 2px solid var(--red); outline-offset: 2px; }
 
 /* Slack 미리보기: 옅은 바탕 + 왼쪽 굵은 검은 줄, 첫 줄은 굵게, 멘션은 빨갛게. 스레드 답글은 옅은 줄로 들여 쓴다 */
@@ -731,6 +762,7 @@ dialog.dlg::backdrop { background: var(--overlay); }
 /* 알림 대상 칩의 × (이번 회차 알림에서 빼기) · "다시 넣기" */
 .badge-x { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: -6px; padding: 0; border: 0; background: none; color: var(--ink2); font: inherit; cursor: pointer; }
 .badge-x:hover { color: var(--red); }
+.badge-x:disabled, .badge-x:disabled:hover { color: var(--past); cursor: not-allowed; }
 .badge-x .ic { width: 12px; height: 12px; }
 .badge-undo { width: auto; margin-right: -4px; padding: 0 2px; color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 /* 회사 제출 문서 (활동 계획서·보고서 링크): 구역 머리 아래 두 칸. 비어 있으면 빨간 글자 */

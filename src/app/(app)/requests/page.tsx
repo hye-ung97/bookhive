@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DdayChip, StatusBadge } from "@/components/badges";
 import { Icon } from "@/components/icon";
+import { ViewOnlyBar } from "@/components/view-only";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { getMyRequest, listCycles, myBudgets, myPhotoCycles, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
@@ -93,6 +94,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
           )}
         </div>
       </div>
+      <ViewOnlyBar />
       <p className="note">
         <Icon name="info" />
         <span>
@@ -131,8 +133,12 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                   </ul>
                 ) : (
                   <div className="empty">
-                    <strong>아직 요청한 책이 없어요</strong>
-                    <p><span className="rq-left">왼쪽</span><span className="rq-up">위</span>에서 첫 책을 요청해 보세요.</p>
+                    <strong>{me.isViewer ? "요청한 책이 없어요" : "아직 요청한 책이 없어요"}</strong>
+                    {me.isViewer ? (
+                      <p>보기 전용은 책을 요청하지 않아요.</p>
+                    ) : (
+                      <p><span className="rq-left">왼쪽</span><span className="rq-up">위</span>에서 첫 책을 요청해 보세요.</p>
+                    )}
                   </div>
                 )}
                 <div className="sumline">

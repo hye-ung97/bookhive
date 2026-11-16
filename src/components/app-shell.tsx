@@ -7,6 +7,7 @@ import { applyTheme, type Theme } from "@/lib/theme";
 import { ReadingRoom } from "./reading-room";
 import { SiteFooter } from "./site-footer";
 import { ThemeMenu } from "./theme-menu";
+import { ViewOnlyProvider } from "./view-only";
 
 type NavItem = { href: string; label: string; short?: string; noTab?: boolean };
 
@@ -35,7 +36,7 @@ export function AppShell({
   theme: initialTheme,
   children,
 }: {
-  me: { name: string; isAdmin: boolean; roleTitle: string | null; photoPending?: number };
+  me: { name: string; isAdmin: boolean; isViewer: boolean; roleTitle: string | null; photoPending?: number };
   theme: Theme;
   children: ReactNode;
 }) {
@@ -51,7 +52,9 @@ export function AppShell({
       {badge(item.href) && <small>{badge(item.href)}</small>}
     </Link>
   );
-  const tabs: NavItem[] = [...MEMBER_NAV.filter((t) => !t.noTab), ...(me.isAdmin ? [{ href: "/admin/rounds", label: "운영" }] : [])];
+  // 보기 전용도 운영 화면을 운영진과 똑같이 본다 (버튼만 비활성화)
+  const staff = me.isAdmin || me.isViewer;
+  const tabs: NavItem[] = [...MEMBER_NAV.filter((t) => !t.noTab), ...(staff ? [{ href: "/admin/rounds", label: "운영" }] : [])];
   // 탭에 없는 화면은 들어오는 탭에 불을 켠다 (운영 화면 → 운영, 벌점 → 내 기록)
   const tabActive = (href: string) =>
     href.startsWith("/admin") ? isActive(pathname, "/admin") : navActive(href) || (href === "/me" && isActive(pathname, "/penalties"));
@@ -78,16 +81,16 @@ export function AppShell({
             </Link>
             <nav className="navlist" aria-label="메뉴">
               {MEMBER_NAV.map(link)}
-              {me.isAdmin && (
+              {staff && (
                 <>
-                  <p className="grp-t">운영</p>
+                  <p className="grp-t">운영{me.isViewer && <small>보기 전용</small>}</p>
                   {ADMIN_NAV.map(link)}
                 </>
               )}
             </nav>
             <div className="who">
               <b>{me.name}</b>
-              {me.roleTitle ?? (me.isAdmin ? "관리자" : "멤버")}
+              {me.roleTitle ?? (me.isAdmin ? "관리자" : me.isViewer ? "보기 전용" : "멤버")}
               <div className="who-acts">
                 {signout}
                 <ThemeMenu theme={theme} onChange={changeTheme} placement="up" />
@@ -104,7 +107,9 @@ export function AppShell({
               <span className="mono" aria-hidden="true">{initial}</span>
             </div>
           </header>
-          <main>{children}</main>
+          <main>
+            <ViewOnlyProvider value={me.isViewer}>{children}</ViewOnlyProvider>
+          </main>
           <SiteFooter />
         </div>
         <nav className="tabs" aria-label="하단 메뉴">

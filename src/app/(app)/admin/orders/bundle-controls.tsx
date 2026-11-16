@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState, useTransition, type DragEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icon";
 import { SlackPreview } from "@/components/slack-preview";
+import { useViewOnly, ViewOnlyFieldset } from "@/components/view-only";
 import { kstToday, won } from "@/lib/format";
 import { deliveryNoticeText, deliveryThreadText, ORDER_THREAD_BUTTON, orderNoticeText, orderThreadText } from "@/lib/notice-text";
 import type { ReceiptView } from "@/lib/receipts";
@@ -25,11 +26,12 @@ function Result({ state }: { state: ActionState }) {
 
 /** 장바구니 묶음에서 한 권 빼기 (마지막 책이면 빈 묶음은 자동 삭제) */
 export function RemoveItem({ requestId, title }: { requestId: string; title: string }) {
+  const viewOnly = useViewOnly();
   const [pending, start] = useTransition();
   const [state, setState] = useState<ActionState>(null);
   return (
     <>
-      <button className="btn btn-sm btn-ghost" type="button" disabled={pending} aria-label={`${title} 빼기`}
+      <button className="btn btn-sm btn-ghost" type="button" disabled={pending || viewOnly} aria-label={`${title} 빼기`}
         onClick={() => start(async () => setState(await removeFromBundle(requestId)))}>
         {pending ? "빼는 중…" : "빼기"}
       </button>
@@ -40,10 +42,11 @@ export function RemoveItem({ requestId, title }: { requestId: string; title: str
 
 /** 장바구니 묶음 카드: 미배정 요청을 끌어다 놓으면 이 묶음에 담는다 */
 export function CartDropZone({ bundleId, label, children }: { bundleId: string; label: string; children: ReactNode }) {
+  const viewOnly = useViewOnly();
   const [over, setOver] = useState(false);
   const [pending, start] = useTransition();
   const [state, setState] = useState<ActionState>(null);
-  const accepts = (e: DragEvent) => e.dataTransfer.types.includes(REQUEST_DRAG);
+  const accepts = (e: DragEvent) => !viewOnly && e.dataTransfer.types.includes(REQUEST_DRAG);
   const drop = (e: DragEvent) => {
     if (!accepts(e)) return;
     e.preventDefault();
@@ -82,13 +85,14 @@ export function CartDropZone({ bundleId, label, children }: { bundleId: string; 
 
 /** 주문 후 품절 등으로 못 산 책 취소 (한 번 더 확인) */
 export function CancelItem({ requestId, title }: { requestId: string; title: string }) {
+  const viewOnly = useViewOnly();
   const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
   const [state, setState] = useState<ActionState>(null);
   if (!confirming) {
     return (
       <>
-        <button className="btn btn-sm btn-ghost" type="button" onClick={() => setConfirming(true)}>품절 취소</button>
+        <button className="btn btn-sm btn-ghost" type="button" disabled={viewOnly} onClick={() => setConfirming(true)}>품절 취소</button>
         {state && !state.ok && <span className="msg msg-err">{state.message}</span>}
       </>
     );
@@ -194,40 +198,42 @@ export function CartPanel({ base, books, requestTotal, receipts }: {
 
   return (
     <div className="stack" style={{ gap: 14 }}>
-      <div className="order-form">
-        <div className="field">
-          <label className="label" htmlFor={`od-${base.bundleId}`}>주문일</label>
-          <input className="input" id={`od-${base.bundleId}`} form={formId} name="orderedAt" type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} />
-        </div>
-        <div className="field">
-          <label className="label" htmlFor={`eta-${base.bundleId}`}>도착 예정일</label>
-          <input className="input" id={`eta-${base.bundleId}`} form={formId} name="eta" type="date" value={eta} onChange={(e) => setEta(e.target.value)} />
-        </div>
-        <div className="field">
-          <label className="label" htmlFor={`paid-${base.bundleId}`}>실결제액</label>
-          <div className="input-unit">
-            <input className="input" id={`paid-${base.bundleId}`} form={formId} name="paid" inputMode="numeric" placeholder={won(requestTotal)}
-              value={paid ? won(Number(paid)) : ""} onChange={(e) => setPaid(e.target.value.replace(/[^\d]/g, "").slice(0, 8))} />
-            <span>원</span>
+      <ViewOnlyFieldset>
+        <div className="order-form">
+          <div className="field">
+            <label className="label" htmlFor={`od-${base.bundleId}`}>주문일</label>
+            <input className="input" id={`od-${base.bundleId}`} form={formId} name="orderedAt" type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} />
           </div>
-          {paid ? (
-            <span className="hint" role="status">
-              {Number(paid) === requestTotal ? "요청액과 같아요"
-                : `요청액보다 ${won(Math.abs(Number(paid) - requestTotal))}원 ${Number(paid) > requestTotal ? "많아요" : "적어요"}`}
-            </span>
-          ) : requestTotal > 0 && (
-            <button className="link" type="button" style={{ justifySelf: "start" }} onClick={() => setPaid(String(requestTotal))}>요청액 그대로 입력</button>
-          )}
+          <div className="field">
+            <label className="label" htmlFor={`eta-${base.bundleId}`}>도착 예정일</label>
+            <input className="input" id={`eta-${base.bundleId}`} form={formId} name="eta" type="date" value={eta} onChange={(e) => setEta(e.target.value)} />
+          </div>
+          <div className="field">
+            <label className="label" htmlFor={`paid-${base.bundleId}`}>실결제액</label>
+            <div className="input-unit">
+              <input className="input" id={`paid-${base.bundleId}`} form={formId} name="paid" inputMode="numeric" placeholder={won(requestTotal)}
+                value={paid ? won(Number(paid)) : ""} onChange={(e) => setPaid(e.target.value.replace(/[^\d]/g, "").slice(0, 8))} />
+              <span>원</span>
+            </div>
+            {paid ? (
+              <span className="hint" role="status">
+                {Number(paid) === requestTotal ? "요청액과 같아요"
+                  : `요청액보다 ${won(Math.abs(Number(paid) - requestTotal))}원 ${Number(paid) > requestTotal ? "많아요" : "적어요"}`}
+              </span>
+            ) : requestTotal > 0 && (
+              <button className="link" type="button" style={{ justifySelf: "start" }} onClick={() => setPaid(String(requestTotal))}>요청액 그대로 입력</button>
+            )}
+          </div>
         </div>
-      </div>
-      {missing && <p className="msg msg-err" role="alert"><Icon name="alertc" />주문일·도착 예정일·실결제액을 입력해 주세요.</p>}
-      <div className="bundle-foot">
-        <span className="hint">장바구니에 담긴 요청은 멤버가 수정·삭제할 수 없어요.</span>
-        <span className="row-gap bundle-acts">
-          <DissolveButton bundleId={base.bundleId} label={base.label} count={base.count} />
-          <button className="btn btn-primary" type="button" onClick={open}><Icon name="hash" />주문완료 처리 · Slack 공지</button>
-        </span>
-      </div>
+        {missing && <p className="msg msg-err" role="alert"><Icon name="alertc" />주문일·도착 예정일·실결제액을 입력해 주세요.</p>}
+        <div className="bundle-foot">
+          <span className="hint">장바구니에 담긴 요청은 멤버가 수정·삭제할 수 없어요.</span>
+          <span className="row-gap bundle-acts">
+            <DissolveButton bundleId={base.bundleId} label={base.label} count={base.count} />
+            <button className="btn btn-primary" type="button" onClick={open}><Icon name="hash" />주문완료 처리 · Slack 공지</button>
+          </span>
+        </div>
+      </ViewOnlyFieldset>
       <Result state={state} />
 
       <dialog ref={dialog} className="dlg" aria-labelledby={`od-t-${base.bundleId}`}>
@@ -284,6 +290,7 @@ function DissolveButton({ bundleId, label, count }: { bundleId: string; label: s
 export function DeliverButton({ base, books, receipts, orderSentAt }: {
   base: NoticeBase; books: { name: string; title: string }[]; receipts: ReceiptView[]; orderSentAt: string | null;
 }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const [message, setMessage] = useState("");
   const [attached, setAttached] = useState<Set<string>>(new Set());
@@ -295,7 +302,7 @@ export function DeliverButton({ base, books, receipts, orderSentAt }: {
   }, null);
   return (
     <>
-      <button className="btn btn-primary" type="button" onClick={() => {
+      <button className="btn btn-primary" type="button" disabled={viewOnly} onClick={() => {
         setMessage(deliveryNoticeText(base));
         setAttached(new Set(orderSentAt ? receipts.filter((r) => new Date(r.created_at) > new Date(orderSentAt)).map((r) => r.id) : []));
         dialog.current?.showModal();
@@ -329,24 +336,26 @@ export function DeliverButton({ base, books, receipts, orderSentAt }: {
 }
 
 export function RevertButton({ bundleId, to }: { bundleId: string; to: string }) {
+  const viewOnly = useViewOnly();
   const [state, action, pending] = useActionState<ActionState, FormData>(revertBundle, null);
   return (
     <form action={action} className="row-gap">
       <input type="hidden" name="bundleId" value={bundleId} />
-      <button className="link" type="submit" disabled={pending}>{to}(으)로 되돌리기</button>
+      <button className="link" type="submit" disabled={pending || viewOnly}>{to}(으)로 되돌리기</button>
       <Result state={state} />
     </form>
   );
 }
 
 export function ResendButton({ bundleId, cycleId, kind }: { bundleId: string; cycleId: string; kind: string }) {
+  const viewOnly = useViewOnly();
   const [state, action, pending] = useActionState<ActionState, FormData>(resendNotice, null);
   return (
     <form action={action} className="row-gap">
       <input type="hidden" name="bundleId" value={bundleId} />
       <input type="hidden" name="cycleId" value={cycleId} />
       <input type="hidden" name="kind" value={kind} />
-      <button className="link" type="submit" disabled={pending}>{pending ? "보내는 중…" : "공지 다시 보내기"}</button>
+      <button className="link" type="submit" disabled={pending || viewOnly}>{pending ? "보내는 중…" : "공지 다시 보내기"}</button>
       <Result state={state} />
     </form>
   );

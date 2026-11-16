@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { RoundPicker } from "@/components/round-picker";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminView } from "@/lib/auth";
 import { findByKey, listCycles, openCycles, photoRoster, readingCycle } from "@/lib/data";
 import { kstToday, roundKey, roundLabel, won } from "@/lib/format";
 import { PhotoBoard } from "./photo-board";
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "활동 사진" };
  * 체크한 사람의 요청만 주문·배송에서 묶음에 담을 수 있다. 처음 여는 회차는 주문·배송과 같다
  */
 export default async function PhotosPage({ searchParams }: { searchParams: Promise<{ round?: string }> }) {
-  await requireAdmin();
+  await requireAdminView();
   const sp = await searchParams;
   const today = kstToday();
   const cycles = await listCycles();

@@ -3,7 +3,7 @@ import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { Receipts } from "@/components/receipts";
 import { RoundPicker } from "@/components/round-picker";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminView } from "@/lib/auth";
 import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { bundlesForCycle, findByKey, listCycles, openCycles, photoChecks, readingCycle, unassignedRequests, type BundleView } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
@@ -186,7 +186,7 @@ function BundleCard({ b, cycleId, cycleKey, round, photoPending }: {
 }
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ round?: string }> }) {
-  await requireAdmin();
+  await requireAdminView();
   const sp = await searchParams;
   const today = kstToday();
   const cycles = await listCycles();

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly } from "@/components/view-only";
 import type { PhotoPerson } from "@/lib/data";
 import { kstToday, md, won } from "@/lib/format";
 import { savePhotoChecks, type ActionState } from "./actions";
@@ -40,6 +41,8 @@ function statusOf(p: PhotoPerson, want: boolean, changed: boolean): { text: stri
  * 체크 전 칸은 굵은 검은 칸(할 일), 체크한 칸은 옅은 테두리, 저장 전에 바꾼 칸은 회색 바탕
  */
 export function PhotoBoard({ cycleId, people, closed }: { cycleId: string; people: PhotoPerson[]; closed: boolean }) {
+  // 보기 전용: 마감 회차처럼 체크 칸을 잠그고 [모두 체크]는 보이되 눌리지 않게 (보기 전환은 그대로)
+  const viewOnly = useViewOnly();
   const [filter, setFilter] = useState<Filter>("all");
   // 저장 전에 바꾼 사람: member_id → 바꾼 뒤 체크 상태
   const [changes, setChanges] = useState<Map<string, boolean>>(new Map());
@@ -104,7 +107,7 @@ export function PhotoBoard({ cycleId, people, closed }: { cycleId: string; peopl
             ))}
           </div>
           {!closed && notYet.length > 0 && (
-            <button className="btn btn-sm" type="button" onClick={checkAll} disabled={pending}>
+            <button className="btn btn-sm" type="button" onClick={checkAll} disabled={pending || viewOnly}>
               <span className="only-desk">아직인 {notYet.length}명&nbsp;</span>모두 체크
             </button>
           )}
@@ -128,7 +131,7 @@ export function PhotoBoard({ cycleId, people, closed }: { cycleId: string; peopl
             return (
               <label key={p.member_id} className={`ph${changed ? " is-changed" : on ? " is-done" : ""}`}>
                 {changed && <span className="ph-tag">저장 전</span>}
-                <input type="checkbox" checked={on} disabled={closed || pending} onChange={() => toggle(p)} />
+                <input type="checkbox" checked={on} disabled={closed || viewOnly || pending} onChange={() => toggle(p)} />
                 <span className="nm">
                   {p.name}
                   {p.role_title && <small>{p.role_title}</small>}

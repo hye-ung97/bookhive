@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminView } from "@/lib/auth";
 import { coffeePlans, cycleBudgets, findByKey, listCycles, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
 import { overdueDocs } from "@/lib/rounds";
@@ -19,7 +19,7 @@ const FILTERS = [
 ] as const;
 
 export default async function RoundsPage({ searchParams }: { searchParams: Promise<{ round?: string; filter?: string }> }) {
-  await requireAdmin();
+  await requireAdminView();
   const sp = await searchParams;
   const today = kstToday();
   const cycles = await listCycles();

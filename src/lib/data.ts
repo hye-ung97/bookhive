@@ -63,16 +63,24 @@ export async function getMyRequest(id: string, memberId: string): Promise<Reques
   return (data as RequestRow | null) ?? null;
 }
 
+/** 활동 멤버 수 (보기 전용은 회차에 참가하지 않아 뺀다) */
 export async function activeMemberCount(): Promise<number> {
   const supabase = await createClient();
-  const { count } = await supabase.from("members").select("id", { count: "exact", head: true }).eq("status", "active");
+  const { count } = await supabase
+    .from("members")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "active")
+    .neq("role", "viewer");
   return count ?? 0;
 }
 
-/** 활동 중인 멤버 이름 (멤버 목록은 이름까지 모두에게 공개라 RPC 없이 읽는다) */
+/**
+ * 활동 중인 멤버 이름 (멤버 목록은 이름까지 모두에게 공개라 RPC 없이 읽는다).
+ * 보기 전용은 요청·일지·벌점 대상이 아니라 활동 명단(요청 안 한 사람, 벌점 현황)에서 뺀다
+ */
 export async function activeMembers(): Promise<Participant[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("members").select("id, name").eq("status", "active");
+  const { data, error } = await supabase.from("members").select("id, name").eq("status", "active").neq("role", "viewer");
   if (error) throw error;
   return (data ?? []).map((m) => ({ member_id: m.id as string, name: m.name as string }));
 }
@@ -457,7 +465,7 @@ export type AdminMember = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "member";
+  role: "admin" | "member" | "viewer";
   role_title: string | null;
   status: "active" | "left";
   slack_user_id: string | null;
@@ -470,7 +478,7 @@ export type AdminMember = {
   left_on: string | null;
 };
 
-/** 이메일은 RLS로 본인만 보이므로 관리자 전용 DB 함수로 읽는다 */
+/** 이메일은 RLS로 본인만 보이므로 운영 화면용 DB 함수로 읽는다 (관리자·보기 전용) */
 export async function adminMembers(): Promise<AdminMember[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_list_members");

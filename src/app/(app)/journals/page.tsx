@@ -64,13 +64,13 @@ export default async function JournalsPage({ searchParams }: { searchParams: Pro
           <span>아직 이 회차 일지를 쓰지 않았어요. <Link className="link" href={`/journal?round=${key}`}>일지 쓰기</Link></span>
         </p>
       )}
-      {me.isAdmin && journals.length > 0 && (
+      {(me.isAdmin || me.isViewer) && journals.length > 0 && (
         <div className="row-gap">
           <a className="btn btn-sm" href={`/journals/export?round=${key}`} download>
             <Icon name="file" />CSV 내려받기
           </a>
           {sheetEnabled() && <UploadJournals key={key} round={key} />}
-          <span className="hint">운영진에게만 보여요</span>
+          <span className="hint">운영진·보기 전용에게만 보여요</span>
         </div>
       )}
       {pending.length > 0 && (

@@ -1,7 +1,8 @@
 "use client";
 
-import { startTransition, useActionState, useRef, type FormEvent } from "react";
+import { startTransition, useActionState, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly, ViewOnlyFieldset } from "@/components/view-only";
 import type { AdminMember } from "@/lib/data";
 import { saveMember, setMemberStatus, type ActionState } from "./actions";
 
@@ -26,6 +27,10 @@ function Fields({ prefix, member, cycles, joinedDefault, grid }: {
   /** 추가 폼은 한 줄 5칸(mem-form), 수정 창은 2칸(form-grid) */
   grid: "mem-form" | "form-grid";
 }) {
+  // 보기 전용을 고르면 회차 참가·Slack 연결이 필요 없어 잠그고, 무엇이 달라지는지 바로 아래에 보여 준다
+  const [role, setRole] = useState<AdminMember["role"]>(member?.role ?? "member");
+  const viewer = role === "viewer";
+  const becomesViewer = viewer && !!member && member.role !== "viewer" && member.status === "active";
   return (
     <>
       {member && <input type="hidden" name="id" value={member.id} />}
@@ -40,9 +45,10 @@ function Fields({ prefix, member, cycles, joinedDefault, grid }: {
         </div>
         <div className="field">
           <label className="label" htmlFor={`${prefix}-role`}>권한</label>
-          <select className="select" id={`${prefix}-role`} name="role" defaultValue={member?.role ?? "member"}>
+          <select className="select" id={`${prefix}-role`} name="role" value={role} onChange={(e) => setRole(e.target.value as AdminMember["role"])}>
             <option value="member">멤버</option>
             <option value="admin">운영진 (관리 화면 사용)</option>
+            <option value="viewer">보기 전용 (모든 화면 보기만)</option>
           </select>
         </div>
         <div className="field">
@@ -54,12 +60,24 @@ function Fields({ prefix, member, cycles, joinedDefault, grid }: {
           <input className="input" id={`${prefix}-joined`} name="joinedOn" type="date" defaultValue={member ? (member.joined_on ?? "") : joinedDefault} />
         </div>
       </div>
+      {viewer && (
+        <div className="role-note" role="note">
+          <b>{becomesViewer ? "멤버 → 보기 전용" : "보기 전용"}</b> · 운영 화면까지 모든 화면을 볼 수 있지만 버튼은 눌리지 않아요.
+          <ul>
+            {becomesViewer && <li>저장하면 진행 중 회차 참가자에서 빠져요 (지난 회차 기록은 그대로)</li>}
+            <li>책 요청·활동 사진·일지·벌점·마감 알림 대상이 아니에요</li>
+            <li>활동 명단과 인원수에 나오지 않아요</li>
+          </ul>
+        </div>
+      )}
       {/* Slack은 추가할 때만 받는다. 이미 있는 멤버는 표의 Slack 칸에서 연결·바꾸기 */}
       {!member && (
         <div className="field mem-slack">
           <label className="label" htmlFor={`${prefix}-slack`}>Slack 멤버 ID <small>선택</small></label>
-          <input className="input slk-id" id={`${prefix}-slack`} name="slackId" placeholder="U04AB12CD3E" autoComplete="off" spellCheck={false} />
-          <p className="hint">비워 두면 첫 알림 때 이메일로 찾아요. 나중에 멤버 목록의 Slack에서도 넣을 수 있어요.</p>
+          <input className="input slk-id" id={`${prefix}-slack`} name="slackId" placeholder="U04AB12CD3E" autoComplete="off" spellCheck={false} disabled={viewer} />
+          <p className="hint">
+            {viewer ? "보기 전용은 알림을 받지 않아 넣지 않아도 돼요." : "비워 두면 첫 알림 때 이메일로 찾아요. 나중에 멤버 목록의 Slack에서도 넣을 수 있어요."}
+          </p>
         </div>
       )}
       {cycles.length > 0 && (
@@ -68,12 +86,14 @@ function Fields({ prefix, member, cycles, joinedDefault, grid }: {
             <span className="label" id={`${prefix}-cyc`}>진행 중 회차에 참가자로 넣기</span>
             {cycles.map((c) => (
               <label key={c.id}>
-                <input type="checkbox" name="cycleIds" value={c.id} />
+                <input type="checkbox" name="cycleIds" value={c.id} disabled={viewer} />
                 <span>{c.label} <span className="muted">· 한도 {c.budget.toLocaleString("ko-KR")}원</span></span>
               </label>
             ))}
           </div>
-          <p className="hint">이미 참가 중인 회차는 그대로예요. 체크하지 않으면 다음에 만드는 회차부터 참가해요.</p>
+          <p className="hint">
+            {viewer ? "보기 전용은 회차에 참가하지 않아요." : "이미 참가 중인 회차는 그대로예요. 체크하지 않으면 다음에 만드는 회차부터 참가해요."}
+          </p>
         </div>
       )}
     </>
@@ -97,34 +117,43 @@ export function AddMemberForm({ prefix, cycles, today }: { prefix: string; cycle
   };
   return (
     <form ref={form} onSubmit={submit} className="block mem-add">
-      <Fields prefix={prefix} cycles={cycles} joinedDefault={today} grid="mem-form" />
-      <div className="row-gap mem-submit">
-        <button className="btn btn-primary" type="submit" disabled={pending}>
-          <Icon name="plus" />
-          {pending ? "추가하는 중…" : "멤버 추가"}
-        </button>
-        <Result state={state} />
-      </div>
+      <ViewOnlyFieldset>
+        <Fields prefix={prefix} cycles={cycles} joinedDefault={today} grid="mem-form" />
+        <div className="row-gap mem-submit">
+          <button className="btn btn-primary" type="submit" disabled={pending}>
+            <Icon name="plus" />
+            {pending ? "추가하는 중…" : "멤버 추가"}
+          </button>
+          <Result state={state} />
+        </div>
+      </ViewOnlyFieldset>
     </form>
   );
 }
 
 /** scope: 데스크톱 표와 모바일 목록에 같은 버튼을 두 번 그리므로 확인창 id를 나눈다 */
 export function EditMemberButton({ member, cycles, scope }: { member: AdminMember; cycles: OpenCycle[]; scope: string }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
+  // 열 때마다 입력칸을 지금 값으로 다시 그린다 (취소한 권한 선택이 남지 않게)
+  const [round, setRound] = useState(0);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await saveMember(prev, fd);
     if (result?.ok) dialog.current?.close();
     return result;
   }, null);
+  const open = () => {
+    setRound((n) => n + 1);
+    dialog.current?.showModal();
+  };
   return (
     <>
-      <button className="btn btn-sm btn-ghost" type="button" onClick={() => dialog.current?.showModal()}>수정</button>
+      <button className="btn btn-sm btn-ghost" type="button" disabled={viewOnly} onClick={open}>수정</button>
       <dialog ref={dialog} className="dlg" aria-labelledby={`edit-${scope}-${member.id}`}>
         <form action={action} className="dlg-body">
           <h2 id={`edit-${scope}-${member.id}`}>{member.name} 님 정보</h2>
           {member.signed_in && <p className="hint">이미 로그인한 적이 있어요. 이메일을 바꿔도 지금 연결된 계정은 그대로 써요.</p>}
-          <Fields prefix={`e-${scope}-${member.id}`} member={member} cycles={member.status === "active" ? cycles : []} joinedDefault="" grid="form-grid" />
+          <Fields key={round} prefix={`e-${scope}-${member.id}`} member={member} cycles={member.status === "active" ? cycles : []} joinedDefault="" grid="form-grid" />
           {state && !state.ok && <Result state={state} />}
           <div className="dlg-acts">
             <button className="btn btn-ghost" type="button" onClick={() => dialog.current?.close()}>취소</button>
@@ -137,6 +166,7 @@ export function EditMemberButton({ member, cycles, scope }: { member: AdminMembe
 }
 
 export function StatusButton({ member, scope }: { member: AdminMember; scope: string }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const leaving = member.status === "active";
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
@@ -146,7 +176,7 @@ export function StatusButton({ member, scope }: { member: AdminMember; scope: st
   }, null);
   return (
     <>
-      <button className="btn btn-sm btn-ghost" type="button" onClick={() => dialog.current?.showModal()}>
+      <button className="btn btn-sm btn-ghost" type="button" disabled={viewOnly} onClick={() => dialog.current?.showModal()}>
         {leaving ? "탈퇴 처리" : "복귀"}
       </button>
       <dialog ref={dialog} className="dlg" aria-labelledby={`st-${scope}-${member.id}`}>

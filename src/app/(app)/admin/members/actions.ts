@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export type ActionState = { ok: boolean; message: string } | null;
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
+const roleOf = (v: string) => (v === "admin" || v === "viewer" ? v : "member");
 
 type SlackCheck = { ok: true; slackId: string; name: string | null; checked: boolean } | { ok: false; message: string };
 
@@ -40,7 +41,8 @@ export async function saveMember(_prev: ActionState, formData: FormData): Promis
   const id = text(formData, "id") || null;
 
   // Slack ID는 멤버를 만들기 전에 확인한다 (틀린 ID 때문에 멤버만 생기고 폼이 남는 일이 없게)
-  const rawSlack = id ? "" : text(formData, "slackId");
+  // 보기 전용은 마감 알림 대상이 아니라 Slack을 연결하지 않는다
+  const rawSlack = id || roleOf(text(formData, "role")) === "viewer" ? "" : text(formData, "slackId");
   let slack: { slackId: string; name: string | null; checked: boolean } | null = null;
   if (rawSlack) {
     const check = await checkSlackId(rawSlack);
@@ -54,7 +56,7 @@ export async function saveMember(_prev: ActionState, formData: FormData): Promis
     p_id: id,
     p_name: text(formData, "name"),
     p_email: text(formData, "email"),
-    p_role: text(formData, "role") === "admin" ? "admin" : "member",
+    p_role: roleOf(text(formData, "role")),
     p_role_title: text(formData, "roleTitle") || null,
     p_joined_on: /^\d{4}-\d{2}-\d{2}$/.test(text(formData, "joinedOn")) ? text(formData, "joinedOn") : null,
     p_cycle_ids: formData.getAll("cycleIds").map(String),

@@ -4,6 +4,7 @@ import { Fragment, useActionState, useRef, useState } from "react";
 import { StatusBadge } from "@/components/badges";
 import { Icon } from "@/components/icon";
 import { Receipts } from "@/components/receipts";
+import { useViewOnly } from "@/components/view-only";
 import type { CoffeePlanView, MemberBudgetRow } from "@/lib/data";
 import { won } from "@/lib/format";
 import type { RequestRow } from "@/lib/types";
@@ -45,6 +46,8 @@ function StateMark({ r }: { r: BudgetRow }) {
 
 /** 사람별 예산 표 + 잔액 있는 사람을 골라 커피 예정으로 묶기 */
 export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId: string; rows: BudgetRow[]; canPlan: boolean; defaultTitle: string }) {
+  // 보기 전용: 고르는 체크 칸만 잠근다 (행을 펼쳐 요청한 책을 보는 건 그대로)
+  const viewOnly = useViewOnly();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<Set<string>>(new Set());
   const dialog = useRef<HTMLDialogElement>(null);
@@ -54,9 +57,9 @@ export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId:
     return result;
   }, null);
 
-  const eligible = (r: BudgetRow) => canPlan && r.request_count > 0 && r.remaining > 0 && r.coffee !== "planned";
+  const eligible = (r: BudgetRow) => canPlan && !viewOnly && r.request_count > 0 && r.remaining > 0 && r.coffee !== "planned";
   const why = (r: BudgetRow) =>
-    r.request_count === 0 ? "책을 요청한 사람만 묶을 수 있어요" : r.coffee === "planned" ? "이미 커피 예정에 묶여 있어요" : r.remaining <= 0 ? "잔액이 없어요" : "";
+    viewOnly ? "보기 전용이라 고를 수 없어요" : r.request_count === 0 ? "책을 요청한 사람만 묶을 수 있어요" : r.coffee === "planned" ? "이미 커피 예정에 묶여 있어요" : r.remaining <= 0 ? "잔액이 없어요" : "";
   const picked = rows.filter((r) => selected.has(r.member_id));
   const total = picked.reduce((a, r) => a + r.remaining, 0);
   const toggle = (id: string, on: boolean) => setSelected((prev) => { const next = new Set(prev); if (on) next.add(id); else next.delete(id); return next; });
@@ -193,6 +196,7 @@ export function BudgetTable({ cycleId, rows, canPlan, defaultTitle }: { cycleId:
 }
 
 function UsedButton({ plan }: { plan: CoffeePlanView }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await markCoffeeUsed(prev, fd);
@@ -201,7 +205,7 @@ function UsedButton({ plan }: { plan: CoffeePlanView }) {
   }, null);
   return (
     <>
-      <button className="btn btn-sm" type="button" onClick={() => dialog.current?.showModal()}>사용완료 처리</button>
+      <button className="btn btn-sm" type="button" disabled={viewOnly} onClick={() => dialog.current?.showModal()}>사용완료 처리</button>
       <dialog ref={dialog} className="dlg" aria-labelledby={`use-${plan.id}`}>
         <form action={action} className="dlg-body">
           <h2 id={`use-${plan.id}`}>&quot;{plan.title}&quot; 사용완료 처리</h2>
@@ -227,11 +231,12 @@ function UsedButton({ plan }: { plan: CoffeePlanView }) {
 }
 
 function CancelButton({ plan }: { plan: CoffeePlanView }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action, pending] = useActionState<ActionState, FormData>(cancelCoffeePlan, null);
   return (
     <>
-      <button className="btn btn-sm btn-ghost" type="button" onClick={() => dialog.current?.showModal()}>풀기</button>
+      <button className="btn btn-sm btn-ghost" type="button" disabled={viewOnly} onClick={() => dialog.current?.showModal()}>풀기</button>
       <dialog ref={dialog} className="dlg" aria-labelledby={`cc-${plan.id}`}>
         <form action={action} className="dlg-body">
           <h2 id={`cc-${plan.id}`}>&quot;{plan.title}&quot; 예약을 풀까요?</h2>

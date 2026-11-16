@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly } from "@/components/view-only";
 import { buyLink, STORE_NAME, type Store } from "@/lib/books/parse-store-url";
 import { won } from "@/lib/format";
 import { addToBundle, putIntoBundles, type ActionState } from "./actions";
@@ -59,6 +60,8 @@ export function UnassignedPanel({
   /** 구매처별 새로 만들 묶음 이름 */
   nextLabel: Record<Store, string>;
 }) {
+  // 보기 전용: 고르기·끌어다 놓기·담기는 비활성화 (상품 페이지 링크는 그대로)
+  const viewOnly = useViewOnly();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // "auto" · "bundle:{id}" · "new:{store}"
   const [target, setTarget] = useState("auto");
@@ -117,18 +120,18 @@ export function UnassignedPanel({
             <div key={store} className="un-group">
               <div className="un-group-h">
                 <span>{STORE_NAME[store]} 요청 · {list.length}건</span>
-                <button className="link" type="button" onClick={() => list.forEach((i) => toggle(i.id, true))}>모두 선택</button>
+                <button className="link" type="button" disabled={viewOnly} onClick={() => list.forEach((i) => toggle(i.id, true))}>모두 선택</button>
               </div>
               {list.map((i) => {
                 const at = buyAt(i);
                 const buy = at !== i.store ? buyLink(i, at) : null;
                 return (
-                  <div key={i.id} className="un-item" draggable
+                  <div key={i.id} className="un-item" draggable={!viewOnly}
                     onDragStart={(e) => {
                       e.dataTransfer.setData(REQUEST_DRAG, JSON.stringify(selected.has(i.id) ? picked.map((p) => p.id) : [i.id]));
                       e.dataTransfer.effectAllowed = "move";
                     }}>
-                    <input type="checkbox" id={`un-${i.id}`} checked={selected.has(i.id)} onChange={(e) => toggle(i.id, e.target.checked)} />
+                    <input type="checkbox" id={`un-${i.id}`} checked={selected.has(i.id)} disabled={viewOnly} onChange={(e) => toggle(i.id, e.target.checked)} />
                     <span className="un-main">
                       <label className="t" htmlFor={`un-${i.id}`}>{i.title}</label>
                       <span className="m">
@@ -155,7 +158,7 @@ export function UnassignedPanel({
             <div className="sumline"><span>선택</span><span>{picked.length}권 · {won(total)}원</span></div>
             <div className="field">
               <label className="label" htmlFor="un-target">담을 곳</label>
-              <select className="select" id="un-target" value={value} onChange={(e) => setTarget(e.target.value)}>
+              <select className="select" id="un-target" value={value} disabled={viewOnly} onChange={(e) => setTarget(e.target.value)}>
                 <option value="auto">요청한 서점대로</option>
                 {carts.length > 0 && (
                   <optgroup label="장바구니 묶음">
@@ -187,7 +190,7 @@ export function UnassignedPanel({
                 <Icon name={state.ok ? "checkc" : "alertc"} />{state.message}
               </p>
             )}
-            <button className="btn btn-primary" type="button" disabled={!picked.length || pending} onClick={submit}>
+            <button className="btn btn-primary" type="button" disabled={!picked.length || pending || viewOnly} onClick={submit}>
               {pending ? "담는 중…" : "묶음에 담기"}
             </button>
           </div>

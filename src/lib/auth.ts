@@ -8,6 +8,8 @@ export type Me = {
   name: string;
   email: string;
   isAdmin: boolean;
+  /** 보기 전용: 운영 화면까지 모두 보지만 바꾸지 못하고, 회차 참가자가 아니다 */
+  isViewer: boolean;
   roleTitle: string | null;
 };
 
@@ -20,11 +22,18 @@ export const getMe = cache(async (): Promise<Me | null> => {
     id: string;
     name: string;
     email: string;
-    role: "member" | "admin";
+    role: "member" | "admin" | "viewer";
     role_title: string | null;
   }>();
   if (!data) return null;
-  return { id: data.id, name: data.name, email: data.email, isAdmin: data.role === "admin", roleTitle: data.role_title };
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    isAdmin: data.role === "admin",
+    isViewer: data.role === "viewer",
+    roleTitle: data.role_title,
+  };
 });
 
 /** 로그인 세션은 있는지 (명단에서 빠진 사용자를 로그아웃시키기 위해 구분) */
@@ -44,9 +53,16 @@ export async function requireMe(): Promise<Me> {
   return me;
 }
 
-/** 관리자(회장·부회장·총무)가 아니면 404 */
+/** 관리자(회장·부회장·총무)가 아니면 404. 바꾸는 일(서버 액션)은 이걸로 막는다 */
 export async function requireAdmin(): Promise<Me> {
   const me = await requireMe();
   if (!me.isAdmin) notFound();
+  return me;
+}
+
+/** 운영 화면 보기: 관리자 또는 보기 전용. 아니면 404. 보기 전용은 화면만 보고 버튼은 비활성화된다 */
+export async function requireAdminView(): Promise<Me> {
+  const me = await requireMe();
+  if (!me.isAdmin && !me.isViewer) notFound();
   return me;
 }

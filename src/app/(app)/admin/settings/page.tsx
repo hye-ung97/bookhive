@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CYCLE_STATUS_LABEL } from "@/components/badges";
 import { Icon } from "@/components/icon";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminView } from "@/lib/auth";
 import { activeMemberCount, cycleBudgets, cycleWarnings, findByKey, listCycles, openCycles, readingCycle } from "@/lib/data";
 import { SlackPreview } from "@/components/slack-preview";
 import { kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
@@ -36,7 +36,7 @@ function nextMonth(cycles: Cycle[], today: string): string {
 }
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ round?: string; created?: string }> }) {
-  await requireAdmin();
+  const me = await requireAdminView();
   const sp = await searchParams;
   const today = kstToday();
   const [cycles, memberCount] = await Promise.all([listCycles(), activeMemberCount()]);
@@ -201,8 +201,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <p className="muted">마감된 회차라 알림이 없어요.</p>
             ) : (
               <>
-                <ReminderBlock kind="request_reminder" cycle={cycle} reminder={requestReminder} today={today} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("request_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
-                <ReminderBlock kind="journal_reminder" cycle={cycle} reminder={journalReminder} today={today} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("journal_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
+                <ReminderBlock kind="request_reminder" cycle={cycle} reminder={requestReminder} today={today} viewOnly={me.isViewer} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("request_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
+                <ReminderBlock kind="journal_reminder" cycle={cycle} reminder={journalReminder} today={today} viewOnly={me.isViewer} alreadyToday={logs.some((l) => l.dedupe_key.startsWith("journal_reminder:") && l.dedupe_key.endsWith(`:${today}`))} />
               </>
             )}
             <p className="hint">
@@ -245,12 +245,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 }
 
 /** 알림 종류 하나: 언제부터 나가는지, 누구에게, 어떤 메시지로 */
-function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
+function ReminderBlock({ kind, cycle, reminder, today, alreadyToday, viewOnly }: {
   kind: ReminderKind;
   cycle: Cycle;
   reminder: DueReminder | null;
   today: string;
   alreadyToday: boolean;
+  /** 보기 전용: 알림에서 빼기·다시 넣기 칩 버튼을 비활성화 */
+  viewOnly: boolean;
 }) {
   const isRequest = kind === "request_reminder";
   const name = isRequest ? "구매 요청 마감 알림" : "일지 마감 알림";
@@ -299,7 +301,7 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
           <input type="hidden" name="cycleId" value={cycle.id} />
           <input type="hidden" name="memberId" value={t.memberId} />
           <input type="hidden" name="skip" value="0" />
-          <button className="badge-x badge-undo" type="submit" aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
+          <button className="badge-x badge-undo" type="submit" disabled={viewOnly} aria-label={`${t.name} 다시 알림 받기`}>다시 넣기</button>
         </form>
       ))}
     </div>
@@ -322,7 +324,7 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday }: {
                   <input type="hidden" name="cycleId" value={cycle.id} />
                   <input type="hidden" name="memberId" value={t.memberId} />
                   <input type="hidden" name="skip" value="1" />
-                  <button className="badge-x" type="submit" aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
+                  <button className="badge-x" type="submit" disabled={viewOnly} aria-label={`${t.name} 이번 회차 알림에서 빼기`} title="이번 회차 알림에서 빼기">
                     <Icon name="x" />
                   </button>
                 </form>

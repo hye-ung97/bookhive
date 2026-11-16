@@ -2,11 +2,13 @@
 
 import { useActionState, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly, ViewOnlyFieldset } from "@/components/view-only";
 import type { CycleStatus } from "@/lib/types";
 import { createCycle, sendReminderNow, setCycleStatus, updateDeadlines, type ActionState } from "./actions";
 
 /** [지금 보내기] (한 번 더 확인) */
 export function SendReminderNow({ cycleId, count, alreadyToday }: { cycleId: string; count: number; alreadyToday: boolean }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await sendReminderNow(prev, fd);
@@ -15,7 +17,7 @@ export function SendReminderNow({ cycleId, count, alreadyToday }: { cycleId: str
   }, null);
   return (
     <div className="row-gap">
-      <button className="btn btn-sm" type="button" onClick={() => dialog.current?.showModal()}>
+      <button className="btn btn-sm" type="button" disabled={viewOnly} onClick={() => dialog.current?.showModal()}>
         <Icon name="hash" />지금 보내기
       </button>
       <Result state={state} />
@@ -59,6 +61,7 @@ export function StatusControl({ cycleId, transitions }: { cycleId: string; trans
 }
 
 function TransitionButton({ cycleId, t }: { cycleId: string; t: Transition }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await setCycleStatus(prev, fd);
@@ -68,7 +71,7 @@ function TransitionButton({ cycleId, t }: { cycleId: string; t: Transition }) {
 
   return (
     <>
-      <button className={`btn ${t.primary ? "btn-primary" : "btn-ghost"}`} type="button" onClick={() => dialog.current?.showModal()}>
+      <button className={`btn ${t.primary ? "btn-primary" : "btn-ghost"}`} type="button" disabled={viewOnly} onClick={() => dialog.current?.showModal()}>
         {t.button}
         {t.primary && <Icon name="arrowR" />}
       </button>
@@ -116,23 +119,25 @@ export function DeadlinesForm({ cycleId, request, journal, disabled, children }:
   return (
     <form action={action} className="block">
       <input type="hidden" name="cycleId" value={cycleId} />
-      <div className="set-kv">
-        <div className="field">
-          <label className="label" htmlFor="d-req">구매 요청 마감일</label>
-          <input className="input" id="d-req" name="requestDeadline" type="date" defaultValue={request ?? ""} disabled={disabled} />
+      <ViewOnlyFieldset>
+        <div className="set-kv">
+          <div className="field">
+            <label className="label" htmlFor="d-req">구매 요청 마감일</label>
+            <input className="input" id="d-req" name="requestDeadline" type="date" defaultValue={request ?? ""} disabled={disabled} />
+          </div>
+          <div className="field">
+            <label className="label" htmlFor="d-jrn">일지 마감일</label>
+            <input className="input" id="d-jrn" name="journalDeadline" type="date" defaultValue={journal ?? ""} disabled={disabled} />
+          </div>
+          {children}
         </div>
-        <div className="field">
-          <label className="label" htmlFor="d-jrn">일지 마감일</label>
-          <input className="input" id="d-jrn" name="journalDeadline" type="date" defaultValue={journal ?? ""} disabled={disabled} />
-        </div>
-        {children}
-      </div>
-      {!disabled && (
-        <div className="row-gap set-save">
-          <button className="btn" type="submit" disabled={pending}>{pending ? "저장하는 중…" : "마감일 저장"}</button>
-          <Result state={state} />
-        </div>
-      )}
+        {!disabled && (
+          <div className="row-gap set-save">
+            <button className="btn" type="submit" disabled={pending}>{pending ? "저장하는 중…" : "마감일 저장"}</button>
+            <Result state={state} />
+          </div>
+        )}
+      </ViewOnlyFieldset>
     </form>
   );
 }
@@ -155,31 +160,33 @@ export function CreateCycleForm({ suggestedMonth, memberCount }: { suggestedMont
   const [journalDeadline, setJournalDeadline] = useState<string | null>(null);
   return (
     <form action={action} className="block">
-      <div className="set-new">
-        <div className="field">
-          <label className="label" htmlFor="nc-month">회차 (읽는 달)</label>
-          <input className="input" id="nc-month" name="month" type="month" value={month} onChange={(e) => setMonth(e.target.value)} required />
+      <ViewOnlyFieldset>
+        <div className="set-new">
+          <div className="field">
+            <label className="label" htmlFor="nc-month">회차 (읽는 달)</label>
+            <input className="input" id="nc-month" name="month" type="month" value={month} onChange={(e) => setMonth(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label className="label" htmlFor="nc-req">구매 요청 마감일</label>
+            <input className="input" id="nc-req" name="requestDeadline" type="date" value={requestDeadline ?? defaultRequestDeadline(month)} onChange={(e) => setRequestDeadline(e.target.value)} />
+          </div>
+          <div className="field">
+            <label className="label" htmlFor="nc-jrn">일지 마감일</label>
+            <input className="input" id="nc-jrn" name="journalDeadline" type="date" value={journalDeadline ?? defaultJournalDeadline(month)} onChange={(e) => setJournalDeadline(e.target.value)} />
+          </div>
         </div>
-        <div className="field">
-          <label className="label" htmlFor="nc-req">구매 요청 마감일</label>
-          <input className="input" id="nc-req" name="requestDeadline" type="date" value={requestDeadline ?? defaultRequestDeadline(month)} onChange={(e) => setRequestDeadline(e.target.value)} />
+        <p className="note">
+          <Icon name="info" />
+          <span>만들면 바로 요청을 받기 시작해요. 활동 멤버 {memberCount}명 전원이 참가자로 들어가고, 1인 한도는 30,000원이에요.</span>
+        </p>
+        <div className="row-gap set-save">
+          <button className="btn btn-primary" type="submit" disabled={pending}>
+            <Icon name="plus" />
+            {pending ? "만드는 중…" : "회차 만들기"}
+          </button>
+          <Result state={state} />
         </div>
-        <div className="field">
-          <label className="label" htmlFor="nc-jrn">일지 마감일</label>
-          <input className="input" id="nc-jrn" name="journalDeadline" type="date" value={journalDeadline ?? defaultJournalDeadline(month)} onChange={(e) => setJournalDeadline(e.target.value)} />
-        </div>
-      </div>
-      <p className="note">
-        <Icon name="info" />
-        <span>만들면 바로 요청을 받기 시작해요. 활동 멤버 {memberCount}명 전원이 참가자로 들어가고, 1인 한도는 30,000원이에요.</span>
-      </p>
-      <div className="row-gap set-save">
-        <button className="btn btn-primary" type="submit" disabled={pending}>
-          <Icon name="plus" />
-          {pending ? "만드는 중…" : "회차 만들기"}
-        </button>
-        <Result state={state} />
-      </div>
+      </ViewOnlyFieldset>
     </form>
   );
 }

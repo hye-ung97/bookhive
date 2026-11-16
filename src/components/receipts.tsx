@@ -6,6 +6,7 @@ import { attachReceipt, attachReceiptLink, deleteReceipt, prepareReceiptUpload, 
 import type { ReceiptView } from "@/lib/receipts";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { Icon } from "./icon";
+import { useViewOnly } from "./view-only";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const fmtSize = (n: number) => (n < 1048576 ? `${Math.max(1, Math.round(n / 1024))}KB` : `${(n / 1048576).toFixed(1)}MB`);
@@ -52,6 +53,8 @@ export function Receipts({
   lastDeleteWarning?: string;
 }) {
   const router = useRouter();
+  // 보기 전용: 영수증 열기는 되고, 올리기·링크 붙이기·삭제는 비활성화
+  const viewOnly = useViewOnly();
   const inputId = `rc-${owner.kind}-${owner.id}`;
   const [pending, setPending] = useState<Pending[]>([]);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -124,7 +127,7 @@ export function Receipts({
   const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    if (e.dataTransfer.files.length) upload([...e.dataTransfer.files]);
+    if (!viewOnly && e.dataTransfer.files.length) upload([...e.dataTransfer.files]);
   };
   const confirming = receipts.find((r) => r.id === confirmId);
 
@@ -132,7 +135,7 @@ export function Receipts({
     <div className="stack" style={{ gap: 8 }}>
       <div
         className={`rc${dragging ? " is-drag" : ""}`}
-        onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDragging(true); } }}
+        onDragOver={(e) => { if (!viewOnly && e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDragging(true); } }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
         onDrop={onDrop}
       >
@@ -155,7 +158,7 @@ export function Receipts({
                 <span className="rc-name">{r.file_name}</span>
                 <small>{r.size_bytes ? fmtSize(r.size_bytes) : link ? (/drive\.google|docs\.google/.test(link) ? "Google Drive" : "링크") : "시트 기록"}</small>
               </a>
-              <button className="rc-x" type="button" aria-label={`영수증 ${r.file_name} 삭제`} title="삭제" onClick={() => setConfirmId(r.id)}>
+              <button className="rc-x" type="button" aria-label={`영수증 ${r.file_name} 삭제`} title="삭제" disabled={viewOnly} onClick={() => setConfirmId(r.id)}>
                 <Icon name="x" />
               </button>
             </div>
@@ -168,10 +171,10 @@ export function Receipts({
             <small>{p.label}</small>
           </div>
         ))}
-        <label className="rc-add" htmlFor={inputId}>
+        <label className="rc-add" htmlFor={inputId} aria-disabled={viewOnly || undefined}>
           <Icon name="plus" />이미지·PDF
         </label>
-        <button className="rc-add" type="button" aria-expanded={linkOpen} onClick={() => setLinkOpen((v) => !v)}>
+        <button className="rc-add" type="button" aria-expanded={linkOpen} disabled={viewOnly} onClick={() => setLinkOpen((v) => !v)}>
           <Icon name="link" />링크
         </button>
         <input
@@ -180,6 +183,7 @@ export function Receipts({
           type="file"
           accept="image/*,application/pdf,.heic,.heif"
           multiple
+          disabled={viewOnly}
           onChange={(e) => { const files = [...(e.target.files ?? [])]; e.target.value = ""; if (files.length) upload(files); }}
         />
       </div>

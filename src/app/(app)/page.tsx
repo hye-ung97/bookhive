@@ -502,7 +502,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   <Link href={roundHref()} aria-current={!mineOnly} scroll={false}>전체</Link>
                   <Link href={roundHref("mine")} aria-current={mineOnly} scroll={false}>내 요청</Link>
                 </div>
-                {me.isAdmin && (
+                {(me.isAdmin || me.isViewer) && (
                   <CopyButton
                     text={toTsv(requestSheetRows(shown))}
                     label="시트용 복사"

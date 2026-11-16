@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly } from "@/components/view-only";
 import type { AdminMember } from "@/lib/data";
 import { parseSlackId, slackIdError } from "@/lib/slack-id";
 import { fillSlackName, findSlackByEmail, linkSlack } from "./actions";
@@ -17,10 +18,12 @@ type Props = {
 
 /**
  * 멤버 표의 Slack 칸(데스크톱) · 줄의 Slack 글자(모바일). 상태만 보여 주고, 누르면 연결 창이 뜬다.
- * 연결 / 미연결(빨강) / 확인 전(봇 설정 전에 형식만 보고 넣은 ID) / 탈퇴: 비움.
+ * 연결 / 미연결(빨강) / 확인 전(봇 설정 전에 형식만 보고 넣은 ID) / 탈퇴·보기 전용(알림 대상 아님): 비움.
+ * 보기 전용으로 로그인했으면 상태만 보이고 눌리지 않는다.
  * Slack 이름·ID는 창 안에서 본다 (이름이 있는 줄과 ID만 있는 줄이 섞이지 않게)
  */
 export function SlackCell({ member, scope, slackReady }: Props) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   // 창 안은 열 때 처음 그리고, 열 때마다 새로 그려 지난 입력·오류를 지운다
   // (닫힌 채로 그려 두면 멤버 수만큼 Slack 이름을 미리 불러오게 된다)
@@ -30,18 +33,19 @@ export function SlackCell({ member, scope, slackReady }: Props) {
     dialog.current?.showModal();
   };
 
-  if (member.status === "left") {
-    return scope === "d" ? <span className="slk-dash" aria-label="탈퇴 멤버라 Slack 연결 없음">—</span> : <>Slack —</>;
+  if (member.status === "left" || member.role === "viewer") {
+    const why = member.status === "left" ? "탈퇴 멤버라" : "보기 전용은 알림 대상이 아니라";
+    return scope === "d" ? <span className="slk-dash" aria-label={`${why} Slack 연결 없음`}>—</span> : <>Slack —</>;
   }
 
   const [state, tone] = !member.slack_user_id ? ["미연결", "no"] : member.slack_checked ? ["연결", "ok"] : ["확인 전", "off"];
   const trigger =
     scope === "d" ? (
-      <button className="slk" type="button" onClick={open} aria-label={`${member.name} 님 Slack ${state} · 설정`}>
+      <button className="slk" type="button" disabled={viewOnly} onClick={open} aria-label={`${member.name} 님 Slack ${state} · 설정`}>
         <span className={`mark ${tone}`}>{state}</span>
       </button>
     ) : (
-      <button className={`slk-m ${tone}`} type="button" onClick={open} aria-label={`${member.name} 님 Slack ${state} · 설정`}>
+      <button className={`slk-m ${tone}`} type="button" disabled={viewOnly} onClick={open} aria-label={`${member.name} 님 Slack ${state} · 설정`}>
         Slack {state}
       </button>
     );

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly } from "@/components/view-only";
 import type { CycleDoc } from "@/lib/rounds";
 import { updateDocLinks, type ActionState } from "./actions";
 
@@ -33,6 +34,7 @@ function Result({ state }: { state: ActionState }) {
 export function DocLinks({ cycleId, title, plan, report, overdue }: {
   cycleId: string; title: string; plan: string | null; report: string | null; overdue: CycleDoc[];
 }) {
+  const viewOnly = useViewOnly();
   const [editing, setEditing] = useState(false);
   const [state, action, pending] = useActionState<ActionState, FormData>(async (prev, fd) => {
     const result = await updateDocLinks(prev, fd);
@@ -46,7 +48,7 @@ export function DocLinks({ cycleId, title, plan, report, overdue }: {
       <div className="block-head">
         <h2 className="t-heading" id="doc-h">{title}</h2>
         {!editing && (
-          <button className="btn btn-sm" type="button" onClick={() => setEditing(true)}>
+          <button className="btn btn-sm" type="button" disabled={viewOnly} onClick={() => setEditing(true)}>
             <Icon name="pen" />{plan || report ? "링크 수정" : "링크 넣기"}
           </button>
         )}

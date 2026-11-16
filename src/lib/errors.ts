@@ -51,6 +51,8 @@ export function toUserMessage(error: DbError): string {
       return "이미 등록된 이메일이에요.";
     case "LAST_ADMIN":
       return "마지막 관리자는 바꾸거나 탈퇴 처리할 수 없어요. 다른 관리자를 먼저 지정해 주세요.";
+    case "VIEWER_HAS_REQUESTS":
+      return "진행 중 회차에 요청한 책이나 커피 예약이 있어 보기 전용으로 바꿀 수 없어요. 요청을 먼저 취소하거나, 회차가 마감된 뒤에 바꿔 주세요.";
     case "MEMBER_NOT_FOUND":
       return "멤버를 찾을 수 없어요. 새로고침해 주세요.";
     case "SLACK_ID_INVALID":

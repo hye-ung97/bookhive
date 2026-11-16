@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
+import { useViewOnly } from "@/components/view-only";
 import { PENALTY_OUT } from "@/lib/penalties";
 import { addPenalty, deletePenalty, type ActionState } from "./actions";
 
@@ -20,6 +21,7 @@ function Result({ state }: { state: ActionState }) {
 
 /** 운영진: 멤버·날짜·점수·사유로 벌점 추가. 이번 벌점으로 퇴출 기준에 닿으면 미리 알려 준다 */
 export function AddPenaltyButton({ members, today }: { members: PenaltyMember[]; today: string }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   const [memberId, setMemberId] = useState("");
   const [points, setPoints] = useState(1);
@@ -36,7 +38,7 @@ export function AddPenaltyButton({ members, today }: { members: PenaltyMember[];
   const after = target ? target.total + points : 0;
   return (
     <>
-      <button className="btn btn-primary pen-add" type="button" onClick={() => dialog.current?.showModal()}>
+      <button className="btn btn-primary pen-add" type="button" disabled={viewOnly} onClick={() => dialog.current?.showModal()}>
         <Icon name="plus" />
         벌점 추가
       </button>
@@ -93,6 +95,7 @@ export function AddPenaltyButton({ members, today }: { members: PenaltyMember[];
 
 /** 운영진: 잘못 넣은 벌점 지우기. 지우면 누적이 몇 점이 되는지 보여 주고 확인받는다 */
 export function DeletePenaltyButton({ item }: { item: PenaltyItem }) {
+  const viewOnly = useViewOnly();
   const dialog = useRef<HTMLDialogElement>(null);
   // 데스크톱 표와 모바일 목록에 한 번씩 그려지므로 제목 id는 그릴 때마다 따로 만든다
   const headingId = useId();
@@ -103,7 +106,7 @@ export function DeletePenaltyButton({ item }: { item: PenaltyItem }) {
   }, null);
   return (
     <>
-      <button className="btn btn-sm btn-ghost" type="button" aria-label={`${item.when} ${item.name} 벌점 지우기`} onClick={() => dialog.current?.showModal()}>
+      <button className="btn btn-sm btn-ghost" type="button" disabled={viewOnly} aria-label={`${item.when} ${item.name} 벌점 지우기`} onClick={() => dialog.current?.showModal()}>
         지우기
       </button>
       <dialog ref={dialog} className="dlg" aria-labelledby={headingId}>
