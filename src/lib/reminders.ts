@@ -37,11 +37,19 @@ export async function reminderFor(cycle: CycleRow, kind: ReminderKind | null = a
   if (!kind || !deadline) return null;
 
   const db = createAdminClient();
-  const [{ data: participants }, { data: requests }, { data: journals }] = await Promise.all([
-    db.from("cycle_participants").select("member_id, skip_reminders, members!inner(name, status, slack_user_id, slack_checked)").eq("cycle_id", cycle.id),
+  // cycle_participants → members 외래키가 둘(member_id, photo_checked_by)이라 어느 쪽으로 붙일지 꼭 지정한다.
+  // 안 하면 PostgREST가 PGRST201로 거절하고, 에러를 삼키면 대상이 0명이 되어 알림이 조용히 멈춘다
+  const [participantsRes, requestsRes, journalsRes] = await Promise.all([
+    db.from("cycle_participants")
+      .select("member_id, skip_reminders, members!cycle_participants_member_id_fkey!inner(name, status, slack_user_id, slack_checked)")
+      .eq("cycle_id", cycle.id),
     db.from("purchase_requests").select("member_id").eq("cycle_id", cycle.id).is("cancelled_at", null),
     db.from("journals").select("member_id").eq("cycle_id", cycle.id),
   ]);
+  for (const { error } of [participantsRes, requestsRes, journalsRes]) if (error) throw error;
+  const { data: participants } = participantsRes;
+  const { data: requests } = requestsRes;
+  const { data: journals } = journalsRes;
   const requested = new Set((requests ?? []).map((r) => r.member_id as string));
   const wrote = new Set((journals ?? []).map((j) => j.member_id as string));
 
