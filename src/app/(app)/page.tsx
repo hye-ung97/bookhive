@@ -6,7 +6,18 @@ import { Icon } from "@/components/icon";
 import { RoundPicker } from "@/components/round-picker";
 import { requireMe } from "@/lib/auth";
 import { STORE_NAME } from "@/lib/books/parse-store-url";
-import { activeMembers, findByKey, journalProgress, listCycles, myBudgets, myJournals, openCycles, readingCycle, requestsForCycle } from "@/lib/data";
+import {
+  activeMembers,
+  findByKey,
+  journalProgress,
+  listCycles,
+  myBudgets,
+  myJournals,
+  openCycles,
+  readingCycles,
+  requestsForCycle,
+  type JournalRow,
+} from "@/lib/data";
 import { dday, kstToday, md, roundKey, roundLabel, won } from "@/lib/format";
 import {
   boardDay,
@@ -90,21 +101,47 @@ function money(budget: Budget) {
   return { total, used, reserved, remaining: total - used - reserved, count: budget.request_count };
 }
 
+/** 읽는 회차 하나의 내 책 · 내 일지 · 동아리 제출 현황 */
+type ReadingRound = { cycle: Cycle; books: RequestRow[]; journal: JournalRow | undefined; progress: { writers: number; submitted: number } };
+
+async function readingRound(cycle: Cycle, memberId: string): Promise<ReadingRound> {
+  const [books, [journal], progress] = await Promise.all([requestsForCycle(cycle.id, memberId), myJournals(memberId, cycle.id), journalProgress(cycle.id)]);
+  return { cycle, books, journal, progress };
+}
+
+const journalHref = (c: Cycle) => `/journal?round=${roundKey(c.month)}`;
+const journalsHref = (c: Cycle) => `/journals?round=${roundKey(c.month)}`;
+const bookTitles = (r: ReadingRound) => r.books.map((b) => b.title).join(", ");
+
+function JournalMark({ r }: { r: ReadingRound }) {
+  if (r.journal) return <span className="mark ok">일지 제출함</span>;
+  return r.books.length ? <span className="mark no">일지 미작성</span> : null;
+}
+
+function JournalAction({ r }: { r: ReadingRound }) {
+  if (!r.books.length) return null;
+  return (
+    <Link className={`btn${r.journal ? "" : " btn-primary"}`} href={journalHref(r.cycle)}>
+      {r.journal ? "내 일지 보기" : "일지 쓰기"}
+      <Icon name="arrowR" />
+    </Link>
+  );
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ round?: string; view?: string }> }) {
   const me = await requireMe();
   const sp = await searchParams;
   const today = kstToday();
   const [cycles, budgets, members] = await Promise.all([listCycles(), myBudgets(me.id), activeMembers()]);
   const open = openCycles(cycles);
-  const reading = readingCycle(cycles);
+  const reading = readingCycles(cycles);
   const tableRound = findByKey(cycles, sp.round) ?? pickDefaultRound(cycles);
   const mineOnly = sp.view === "mine";
-  const [rows, myReadingBooks, myReadingJournal, progress] = await Promise.all([
+  const [rows, readingRounds] = await Promise.all([
     tableRound ? requestsForCycle(tableRound.id) : Promise.resolve([]),
-    reading ? requestsForCycle(reading.id, me.id) : Promise.resolve([]),
-    reading ? myJournals(me.id, reading.id).then((j) => j[0]) : Promise.resolve(undefined),
-    reading ? journalProgress(reading.id) : Promise.resolve({ writers: 0, submitted: 0 }),
+    Promise.all(reading.map((c) => readingRound(c, me.id))),
   ]);
+  const readingById = new Map(readingRounds.map((r) => [r.cycle.id, r]));
   const shown = mineOnly ? rows.filter((r) => r.member_id === me.id) : rows;
   // 하단 "N / M명 요청"과 명단은 같은 기준으로 센다 (보기 전환과 상관없이 회차 전체)
   const roster = requestRoster(rows, members);
@@ -116,10 +153,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   };
 
   const name = me.name.length > 2 ? me.name.slice(1) : me.name;
-  const readingTitles = myReadingBooks.map((b) => b.title).join(", ");
   const todos = homeTodos(
     open.map((cycle) => ({ cycle, requestCount: budgets.get(cycle.id)?.request_count ?? null })),
-    reading ? { cycle: reading, books: myReadingBooks.length, submitted: !!myReadingJournal } : null,
+    readingRounds.map((r) => ({ cycle: r.cycle, books: r.books.length, submitted: !!r.journal })),
   );
   const isTodo = (cycle: Cycle, kind: Lane["kind"]) => todos.some((t) => t.cycle.id === cycle.id && t.kind === kind);
   const requestHref = (cycle: Cycle) => `/requests?cycle=${roundKey(cycle.month)}`;
@@ -167,18 +203,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     </li>
   );
 
-  const readingStep = routeStep("reading", myReadingBooks.map((b) => b.status));
-  const journalMark = myReadingJournal ? (
-    <span className="mark ok">일지 제출함</span>
-  ) : myReadingBooks.length ? (
-    <span className="mark no">일지 미작성</span>
-  ) : null;
-  const journalAction = myReadingBooks.length > 0 && (
-    <Link className={`btn${myReadingJournal ? "" : " btn-primary"}`} href="/journal">
-      {myReadingJournal ? "내 일지 보기" : "일지 쓰기"}
-      <Icon name="arrowR" />
-    </Link>
-  );
+  const readingStep = (r: ReadingRound) => routeStep("reading", r.books.map((b) => b.status));
   const changeHint = (c: Cycle) =>
     c.request_deadline && dday(c.request_deadline, today) >= 0 ? `${md(c.request_deadline)}까지 바꿀 수 있어요` : null;
 
@@ -285,6 +310,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {board.map((it) => {
             const left = dday(it.date, today);
             const act = isTodo(it.cycle, it.kind);
+            const r = readingById.get(it.cycle.id);
             let status: string;
             if (it.kind === "request") {
               const budget = budgets.get(it.cycle.id);
@@ -293,11 +319,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 const m = money(budget);
                 status = `${m.count ? `${m.count}권 요청` : "아직 요청 안 함"} · ${won(m.remaining)}원 남음`;
               }
-            } else if (it.cycle.status === "reading") {
-              status = myReadingJournal
-                ? `제출함${readingTitles ? ` · ${readingTitles}` : ""}`
-                : myReadingBooks.length
-                  ? `일지 미작성 · ${readingTitles}`
+            } else if (r) {
+              const titles = bookTitles(r);
+              status = r.journal
+                ? `제출함${titles ? ` · ${titles}` : ""}`
+                : r.books.length
+                  ? `일지 미작성 · ${titles}`
                   : "이 회차에 요청한 책이 없어요";
             } else {
               status = `${monthName(it.cycle.month, today)}에 읽을 책으로`;
@@ -326,7 +353,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               {monthName(cta.cycle.month, today)} 책 요청하기
             </Link>
           ) : (
-            <Link className="btn btn-primary btn-block home-cta" href="/journal">
+            <Link className="btn btn-primary btn-block home-cta" href={journalHref(cta.cycle)}>
               {roundLabel(cta.cycle.month, today)} 일지 쓰기
               <Icon name="arrowR" />
             </Link>
@@ -401,34 +428,34 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                       </tr>
                     );
                   })}
-                  {reading && (
-                    <tr>
+                  {readingRounds.map((r) => (
+                    <tr key={r.cycle.id}>
                       <td>
-                        <b className="home-round">{roundLabel(reading.month, today)}</b>
-                        <span className="home-sub">읽는 중{reading.budget_note ? ` · ${reading.budget_note}` : ""}</span>
+                        <b className="home-round">{roundLabel(r.cycle.month, today)}</b>
+                        <span className="home-sub">읽는 중{r.cycle.budget_note ? ` · ${r.cycle.budget_note}` : ""}</span>
                       </td>
                       <td>
-                        <Stops step={readingStep} />
+                        <Stops step={readingStep(r)} />
                       </td>
                       <td className="home-state">
-                        {journalMark}
-                        <span>{myReadingBooks.length ? `읽을 책: ${readingTitles}` : "이 회차에 요청한 책이 없어요"}</span>
+                        <JournalMark r={r} />
+                        <span>{r.books.length ? `읽을 책: ${bookTitles(r)}` : "이 회차에 요청한 책이 없어요"}</span>
                         <span>
-                          동아리 {progress.submitted} / {progress.writers}명 제출
+                          동아리 {r.progress.submitted} / {r.progress.writers}명 제출
                         </span>
                       </td>
                       <td>
                         <div className="home-do">
-                          {journalAction}
-                          {progress.submitted > 0 && (
-                            <Link className="link" href="/journals">
+                          <JournalAction r={r} />
+                          {r.progress.submitted > 0 && (
+                            <Link className="link" href={journalsHref(r.cycle)}>
                               모두의 일지 읽기
                             </Link>
                           )}
                         </div>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -465,35 +492,35 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   </div>
                 );
               })}
-              {reading && (
-                <div className="home-mroute">
+              {readingRounds.map((r) => (
+                <div key={r.cycle.id} className="home-mroute">
                   <div className="home-mroute-head">
-                    <b>{roundLabel(reading.month, today)}</b>
-                    {journalMark}
+                    <b>{roundLabel(r.cycle.month, today)}</b>
+                    <JournalMark r={r} />
                   </div>
-                  <Stops step={readingStep} />
-                  <p>{myReadingBooks.length ? `읽을 책: ${readingTitles}` : "이 회차에 요청한 책이 없어요"}</p>
+                  <Stops step={readingStep(r)} />
+                  <p>{r.books.length ? `읽을 책: ${bookTitles(r)}` : "이 회차에 요청한 책이 없어요"}</p>
                   <p>
-                    동아리 {progress.submitted} / {progress.writers}명 제출
-                    {progress.submitted > 0 && (
+                    동아리 {r.progress.submitted} / {r.progress.writers}명 제출
+                    {r.progress.submitted > 0 && (
                       <>
                         {" · "}
-                        <Link className="link" href="/journals">
+                        <Link className="link" href={journalsHref(r.cycle)}>
                           모두의 일지 읽기
                         </Link>
                       </>
                     )}
-                    {myReadingBooks.length > 0 && (
+                    {r.books.length > 0 && (
                       <>
                         {" · "}
-                        <Link className="link" href="/journal">
-                          {myReadingJournal ? "내 일지 보기" : "일지 쓰기"}
+                        <Link className="link" href={journalHref(r.cycle)}>
+                          {r.journal ? "내 일지 보기" : "일지 쓰기"}
                         </Link>
                       </>
                     )}
                   </p>
                 </div>
-              )}
+              ))}
             </div>
           </>
         )}
@@ -504,7 +531,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <p>다음 회차가 열리면 알려 드려요.</p>
           </div>
         )}
-        {!reading && (
+        {!reading.length && (
           <div className="empty">
             <strong>지금 읽는 회차가 없어요</strong>
             <p>책이 도착하면 총무가 회차를 열어요.</p>

@@ -29,6 +29,8 @@ const cycle = (month: string, status: CycleStatus, request_deadline: string | nu
 
 const dec = cycle("2026-12", "requesting", "2026-11-13", "2026-12-30");
 const nov = cycle("2026-11", "reading", "2026-10-14", "2026-11-27");
+// 12월 요청을 마감한 뒤(11/13~): 11월 일지 마감 전까지 11월·12월 회차가 함께 읽는 중
+const decReading: Cycle = { ...dec, status: "reading" };
 
 describe("홈 날짜 표시", () => {
   it("제목 날짜와 회차 달 이름", () => {
@@ -106,18 +108,25 @@ describe("이번 달 일정 막대", () => {
 
   it("줄 순서: 요청 받는 회차(요청 마감) 다음에 읽는 회차(일지 마감)", () => {
     const jan = cycle("2027-01", "requesting", "2026-12-12", null);
-    expect(homeLanes([dec, jan], nov).map((l) => [l.cycle.id, l.kind, l.deadline])).toEqual([
+    expect(homeLanes([dec, jan], [nov]).map((l) => [l.cycle.id, l.kind, l.deadline])).toEqual([
       ["2026-12", "request", "2026-11-13"],
       ["2027-01", "request", "2026-12-12"],
       ["2026-11", "journal", "2026-11-27"],
     ]);
-    expect(homeLanes([], undefined)).toEqual([]);
+    expect(homeLanes([], [])).toEqual([]);
+  });
+
+  it("읽는 회차가 겹치면 둘 다 빠른 달부터 일지 마감 줄로", () => {
+    expect(homeLanes([], [nov, decReading]).map((l) => [l.cycle.id, l.kind, l.deadline])).toEqual([
+      ["2026-11", "journal", "2026-11-27"],
+      ["2026-12", "journal", "2026-12-30"],
+    ]);
   });
 });
 
 describe("할 일", () => {
   it("아직 요청 안 한 회차와 안 낸 일지를 마감 순으로", () => {
-    const todos = homeTodos([{ cycle: dec, requestCount: 0 }], { cycle: nov, books: 2, submitted: false });
+    const todos = homeTodos([{ cycle: dec, requestCount: 0 }], [{ cycle: nov, books: 2, submitted: false }]);
     expect(todos.map((t) => [t.cycle.id, t.kind])).toEqual([
       ["2026-12", "request"],
       ["2026-11", "journal"],
@@ -125,28 +134,51 @@ describe("할 일", () => {
   });
 
   it("요청했거나 참가자가 아니면 요청 할 일 없음, 책이 없거나 일지를 냈으면 일지 할 일 없음", () => {
-    expect(homeTodos([{ cycle: dec, requestCount: 2 }], { cycle: nov, books: 2, submitted: true })).toEqual([]);
-    expect(homeTodos([{ cycle: dec, requestCount: null }], { cycle: nov, books: 0, submitted: false })).toEqual([]);
-    expect(homeTodos([], null)).toEqual([]);
+    expect(homeTodos([{ cycle: dec, requestCount: 2 }], [{ cycle: nov, books: 2, submitted: true }])).toEqual([]);
+    expect(homeTodos([{ cycle: dec, requestCount: null }], [{ cycle: nov, books: 0, submitted: false }])).toEqual([]);
+    expect(homeTodos([], [])).toEqual([]);
   });
 
   it("마감일이 없는 할 일은 뒤로", () => {
     const undated = cycle("2027-01", "requesting", null, null);
-    const todos = homeTodos([{ cycle: undated, requestCount: 0 }], { cycle: nov, books: 1, submitted: false });
+    const todos = homeTodos([{ cycle: undated, requestCount: 0 }], [{ cycle: nov, books: 1, submitted: false }]);
     expect(todos.map((t) => t.cycle.id)).toEqual(["2026-11", "2027-01"]);
+  });
+
+  it("읽는 회차가 겹치면 회차마다 안 낸 일지를 마감 순으로", () => {
+    const both = homeTodos([], [
+      { cycle: decReading, books: 1, submitted: false },
+      { cycle: nov, books: 2, submitted: false },
+    ]);
+    expect(both.map((t) => [t.cycle.id, t.kind])).toEqual([
+      ["2026-11", "journal"],
+      ["2026-12", "journal"],
+    ]);
+    const novDone = homeTodos([], [
+      { cycle: nov, books: 2, submitted: true },
+      { cycle: decReading, books: 1, submitted: false },
+    ]);
+    expect(novDone.map((t) => t.cycle.id)).toEqual(["2026-12"]);
   });
 });
 
 describe("다가오는 마감 (모바일)", () => {
   it("오늘 이후 요청·일지 마감을 날짜순, 지난 마감은 뺀다", () => {
-    const items = upcomingDeadlines([dec], nov, "2026-11-03");
+    const items = upcomingDeadlines([dec], [nov], "2026-11-03");
     expect(items.map((i) => [i.date, i.cycle.id, i.kind])).toEqual([
       ["2026-11-13", "2026-12", "request"],
       ["2026-11-27", "2026-11", "journal"],
       ["2026-12-30", "2026-12", "journal"],
     ]);
-    expect(upcomingDeadlines([dec], nov, "2026-11-14").map((i) => i.date)).toEqual(["2026-11-27", "2026-12-30"]);
-    expect(upcomingDeadlines([dec], nov, "2026-11-13")[0].date).toBe("2026-11-13");
+    expect(upcomingDeadlines([dec], [nov], "2026-11-14").map((i) => i.date)).toEqual(["2026-11-27", "2026-12-30"]);
+    expect(upcomingDeadlines([dec], [nov], "2026-11-13")[0].date).toBe("2026-11-13");
+  });
+
+  it("읽는 회차가 겹치면 회차마다 일지 마감", () => {
+    expect(upcomingDeadlines([], [nov, decReading], "2026-11-19").map((i) => [i.date, i.cycle.id, i.kind])).toEqual([
+      ["2026-11-27", "2026-11", "journal"],
+      ["2026-12-30", "2026-12", "journal"],
+    ]);
   });
 });
 

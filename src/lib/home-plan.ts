@@ -68,11 +68,12 @@ export type LaneKind = "request" | "journal";
 /** 일정 줄 한 칸: 요청 받는 회차는 요청 마감까지, 읽는 회차는 일지 마감까지 */
 export type Lane = { cycle: Cycle; kind: LaneKind; deadline: string | null };
 
-/** 일정 줄 순서: 요청 받는 회차(빠른 달부터) 다음에 읽는 회차 */
-export function homeLanes(open: Cycle[], reading: Cycle | undefined): Lane[] {
-  const lanes: Lane[] = open.map((cycle) => ({ cycle, kind: "request", deadline: cycle.request_deadline }));
-  if (reading) lanes.push({ cycle: reading, kind: "journal", deadline: reading.journal_deadline });
-  return lanes;
+/** 일정 줄 순서: 요청 받는 회차(빠른 달부터) 다음에 읽는 회차(빠른 달부터) */
+export function homeLanes(open: Cycle[], reading: Cycle[]): Lane[] {
+  return [
+    ...open.map((cycle): Lane => ({ cycle, kind: "request", deadline: cycle.request_deadline })),
+    ...reading.map((cycle): Lane => ({ cycle, kind: "journal", deadline: cycle.journal_deadline })),
+  ];
 }
 
 /** 일정 범례 날짜: 이번 달이면 '13(금)', 다른 달이면 '12/30(수)' */
@@ -100,34 +101,36 @@ const byDeadline = (a: { deadline: string | null }, b: { deadline: string | null
 /**
  * 내 할 일 (마감이 이른 것부터, 마감 없는 것은 뒤):
  * - 요청 받는 회차에 아직 한 권도 요청하지 않았으면 책 요청 (참가자가 아니면 요청할 수 없으니 빼고, requestCount를 null로 준다)
- * - 읽는 회차에 읽을 책이 있는데 일지를 내지 않았으면 일지
+ * - 읽는 회차마다, 읽을 책이 있는데 일지를 내지 않았으면 일지
  */
 export function homeTodos(
   open: { cycle: Cycle; requestCount: number | null }[],
-  reading: { cycle: Cycle; books: number; submitted: boolean } | null,
+  reading: { cycle: Cycle; books: number; submitted: boolean }[],
 ): Todo[] {
-  const todos: Todo[] = open
+  const requests = open
     .filter((o) => o.requestCount === 0)
-    .map((o) => ({ cycle: o.cycle, kind: "request", deadline: o.cycle.request_deadline }));
-  if (reading && reading.books > 0 && !reading.submitted) {
-    todos.push({ cycle: reading.cycle, kind: "journal", deadline: reading.cycle.journal_deadline });
-  }
-  return todos.sort(byDeadline);
+    .map((o): Todo => ({ cycle: o.cycle, kind: "request", deadline: o.cycle.request_deadline }));
+  const journals = reading
+    .filter((r) => r.books > 0 && !r.submitted)
+    .map((r): Todo => ({ cycle: r.cycle, kind: "journal", deadline: r.cycle.journal_deadline }));
+  return [...requests, ...journals].sort(byDeadline);
 }
 
 export type BoardItem = { cycle: Cycle; kind: LaneKind; date: string };
 
 /**
  * 모바일 마감 판: 오늘(포함) 이후의 마감을 날짜순으로.
- * 요청 받는 회차는 요청 마감과 (다음 달) 일지 마감 둘 다, 읽는 회차는 일지 마감
+ * 요청 받는 회차는 요청 마감과 (다음 달) 일지 마감 둘 다, 읽는 회차는 회차마다 일지 마감
  */
-export function upcomingDeadlines(open: Cycle[], reading: Cycle | undefined, today: string): BoardItem[] {
+export function upcomingDeadlines(open: Cycle[], reading: Cycle[], today: string): BoardItem[] {
   const items: BoardItem[] = [];
   for (const cycle of open) {
     if (cycle.request_deadline) items.push({ cycle, kind: "request", date: cycle.request_deadline.slice(0, 10) });
     if (cycle.journal_deadline) items.push({ cycle, kind: "journal", date: cycle.journal_deadline.slice(0, 10) });
   }
-  if (reading?.journal_deadline) items.push({ cycle: reading, kind: "journal", date: reading.journal_deadline.slice(0, 10) });
+  for (const cycle of reading) {
+    if (cycle.journal_deadline) items.push({ cycle, kind: "journal", date: cycle.journal_deadline.slice(0, 10) });
+  }
   return items.filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date));
 }
 

@@ -25,8 +25,15 @@ export const findByKey = (cycles: Cycle[], key: string | undefined) =>
 export const openCycles = (cycles: Cycle[]) =>
   cycles.filter((c) => c.status === "requesting").sort((a, b) => a.month.localeCompare(b.month));
 
-export const readingCycle = (cycles: Cycle[]) =>
-  cycles.filter((c) => c.status === "reading").sort((a, b) => a.month.localeCompare(b.month))[0];
+/**
+ * 읽는 중인 회차 (빠른 달부터). 다음 달 회차의 요청을 마감하면(→ 읽는 중) 이번 달 회차를 마감할 때까지
+ * 둘이 겹친다 (예: 12월 요청 마감 11/13 ~ 11월 일지 마감 11/23)
+ */
+export const readingCycles = (cycles: Cycle[]) =>
+  cycles.filter((c) => c.status === "reading").sort((a, b) => a.month.localeCompare(b.month));
+
+/** 읽는 중인 회차 중 가장 이른 것: 회차를 하나만 골라 여는 화면의 기본값 */
+export const readingCycle = (cycles: Cycle[]) => readingCycles(cycles)[0];
 
 /** 내 회차별 예산 (RLS로 본인 행만 보인다) */
 export async function myBudgets(memberId: string): Promise<Map<string, Budget>> {
