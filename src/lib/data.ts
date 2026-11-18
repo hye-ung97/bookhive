@@ -445,7 +445,7 @@ export async function photoPendingCount(): Promise<number> {
 
 // ───────── 벌점 ─────────
 
-/** 벌점 내역 (멤버 모두에게 공개). 최근 순. memberId를 주면 그 사람 것만 */
+/** 벌점 내역. 최근 순. memberId를 주면 그 사람 것만. 멤버는 RLS로 자기 것만, 운영진·보기 전용은 모두 보인다 */
 export async function listPenalties(memberId?: string): Promise<PenaltyRow[]> {
   const supabase = await createClient();
   let query = supabase

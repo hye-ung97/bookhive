@@ -1,17 +1,21 @@
--- 벌점: 멤버 누구나 읽기 (기록한 운영진은 숨김), 추가·삭제는 운영진 함수로만, 지운 기록은 감사 로그에
+-- 벌점: 멤버는 자기 것만, 운영진·보기 전용은 모두 읽기 (기록한 운영진은 숨김), 추가·삭제는 운영진 함수로만, 지운 기록은 감사 로그에
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(21);
 
 insert into public.members (id, name, email, role, status) values
   ('a0000000-0000-0000-0000-0000000000a1', '운영P', 'padmin@t.test', 'admin', 'active'),
   ('a0000000-0000-0000-0000-0000000000a2', '멤버P', 'pmember@t.test', 'member', 'active'),
-  ('a0000000-0000-0000-0000-0000000000a3', '탈퇴P', 'pleft@t.test', 'member', 'left');
+  ('a0000000-0000-0000-0000-0000000000a3', '탈퇴P', 'pleft@t.test', 'member', 'left'),
+  ('a0000000-0000-0000-0000-0000000000a4', '다른멤버P', 'pother@t.test', 'member', 'active'),
+  ('a0000000-0000-0000-0000-0000000000a5', '보기전용P', 'pviewer@t.test', 'viewer', 'active');
 insert into auth.users (id, email) values
   ('a0000000-0000-0000-0000-0000000000b1', 'padmin@t.test'),
-  ('a0000000-0000-0000-0000-0000000000b2', 'pmember@t.test');
+  ('a0000000-0000-0000-0000-0000000000b2', 'pmember@t.test'),
+  ('a0000000-0000-0000-0000-0000000000b5', 'pviewer@t.test');
 insert into public.penalties (id, member_id, given_on, points, reason, created_by) values
-  ('a0000000-0000-0000-0000-0000000000d1', 'a0000000-0000-0000-0000-0000000000a2', '2036-01-10', 1, '일지 미제출', 'a0000000-0000-0000-0000-0000000000a1');
+  ('a0000000-0000-0000-0000-0000000000d1', 'a0000000-0000-0000-0000-0000000000a2', '2036-01-10', 1, '일지 미제출', 'a0000000-0000-0000-0000-0000000000a1'),
+  ('a0000000-0000-0000-0000-0000000000d2', 'a0000000-0000-0000-0000-0000000000a4', '2036-01-12', 0.5, '활동 사진 누락', 'a0000000-0000-0000-0000-0000000000a1');
 
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -24,9 +28,10 @@ grant execute on function pg_temp.login(uuid) to authenticated;
 
 select ok(not has_function_privilege('anon', 'public.admin_add_penalty(uuid, date, numeric, text)', 'execute'), '비로그인은 추가 함수를 못 부름');
 
--- 일반 멤버: 읽기만
+-- 일반 멤버: 자기 것만 읽기
 select pg_temp.login('a0000000-0000-0000-0000-0000000000b2');
-select is((select reason from public.penalties where id = 'a0000000-0000-0000-0000-0000000000d1'), '일지 미제출', '멤버도 벌점 내역을 봄');
+select is((select reason from public.penalties where id = 'a0000000-0000-0000-0000-0000000000d1'), '일지 미제출', '멤버는 자기 벌점 내역을 봄');
+select is((select count(*)::int from public.penalties where member_id <> 'a0000000-0000-0000-0000-0000000000a2'), 0, '멤버는 다른 사람의 벌점을 못 봄');
 select throws_ok($$ select created_by from public.penalties $$, '42501', null, '기록한 운영진은 멤버에게 안 보임');
 select throws_ok($$ insert into public.penalties (member_id, given_on, points, reason) values ('a0000000-0000-0000-0000-0000000000a2', '2036-01-11', 1, '직접') $$,
   '42501', null, '테이블에 직접 넣을 수 없음');
@@ -35,8 +40,17 @@ select throws_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-000
 select throws_ok($$ select public.admin_delete_penalty('a0000000-0000-0000-0000-0000000000d1') $$,
   'P0001', 'NOT_ADMIN', '일반 멤버는 벌점을 지울 수 없음');
 
--- 운영진: 추가·검증·삭제
+-- 보기 전용: 모두 읽지만 바꾸지 못함
+select pg_temp.login('a0000000-0000-0000-0000-0000000000b5');
+select is((select count(*)::int from public.penalties where id in ('a0000000-0000-0000-0000-0000000000d1', 'a0000000-0000-0000-0000-0000000000d2')), 2,
+  '보기 전용은 모든 멤버의 벌점을 봄');
+select throws_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 1, '사유') $$,
+  'P0001', 'NOT_ADMIN', '보기 전용은 벌점을 줄 수 없음');
+
+-- 운영진: 모두 읽기·추가·검증·삭제
 select pg_temp.login('a0000000-0000-0000-0000-0000000000b1');
+select is((select count(*)::int from public.penalties where id in ('a0000000-0000-0000-0000-0000000000d1', 'a0000000-0000-0000-0000-0000000000d2')), 2,
+  '운영진은 모든 멤버의 벌점을 봄');
 select lives_ok($$ select public.admin_add_penalty('a0000000-0000-0000-0000-0000000000a2', null, 2, '  모임 불참 ') $$, '운영진은 벌점을 줌');
 select is(
   (select given_on::text || '/' || points || '/' || reason from public.penalties where reason = '모임 불참'),

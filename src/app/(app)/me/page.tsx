@@ -35,7 +35,7 @@ export default async function MePage() {
         <PenaltyPips total={penaltyTotal} />
         <span className="score">{penaltyTotal}<small> / {PENALTY_OUT}점</small></span>
         <span className="pen-msg">{penaltyStanding(penaltyTotal).message}</span>
-        <span className="link go">전체 보기</span>
+        <span className="link go">내역 보기</span>
       </Link>
       {!mine.length ? (
         <div className="empty"><strong>아직 기록이 없어요</strong></div>

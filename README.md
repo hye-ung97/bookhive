@@ -45,6 +45,11 @@ npm run dev                 # http://localhost:3000
 - 관리자 목차의 "활동 사진 · 아직 N"은 주문·배송이 처음 여는 회차(요청 중 → 읽는 중)의 체크 전 활동 멤버 수
 - 이 기능 전에 요청을 마감한 회차(읽는 중·마감)는 마이그레이션에서 모두 체크로 옮겼다(화면에 "확인 · 이 기능 전 회차"). 시안은 Doan 캔버스 `activity-photo`
 
+## 벌점
+
+- 0.5점 단위, 3점이 쌓이면 퇴출 대상. 추가·지우기는 운영진만 DB 함수(`admin_add_penalty`·`admin_delete_penalty`)로 한다
+- 멤버는 벌점 화면(`/penalties`)·내 기록에서 자기 벌점과 내역만 본다. 누적 현황과 다른 사람의 내역은 운영진·보기 전용만 보고, 주소나 API로 불러도 RLS(`penalties_select`)가 자기 행만 돌려준다
+
 ## 일지·AI 초안·마감 알림 (4단계)
 
 - 일지 쓰기: 읽는 중인 회차에, 그 회차에 본인이 신청한 책으로 한 편(500자 이내). 일지 마감일이 지나도 쓸 수 있고 "지각"으로 표시된다. 회차를 마감하면 읽기 전용
@@ -114,7 +119,7 @@ Slack 연결: `.env.local`에 `SLACK_BOT_TOKEN`(scopes: `chat:write`, `files:wri
 ```bash
 npm run typecheck && npm run lint
 npm test                   # 단위: URL 판정·서점 페이지 추출·날짜/금액·에러 문구·Slack 호출·Slack 멤버 ID 입력·공지 문구·글자 수·AI 공급자 전환·알림 문구·시트 파서·일지 내보내기(CSV)·벌점 누적·같이 읽는 중 자리 계산
-npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한·멤버 Slack 연결·활동 사진 (214개)
+npm run test:db            # pgTAP: 한도·잠금·권한·가입 훅·묶음·커피·영수증·감사 로그·일지·AI 횟수·미작성자·함수 권한·이관 예외·벌점·같이 읽는 중 채널 권한·멤버 Slack 연결·활동 사진·보기 전용 (234개)
 npm run test:integration   # 실제 동시 요청으로 한도 검증 (로컬 Supabase 필요)
 ```
 
