@@ -310,7 +310,8 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday, viewOnly }:
   return (
     <div className="remind">
       <div className="remind-head">
-        <b>{name} · 미제출 {reminder.targets.length}명</b>
+        {/* 요청 받는 중의 일지 알림은 미리보기: 아직 일지를 쓸 수 없으니 "미제출"이 아니라 지금 요청한 사람 기준 "대상" */}
+        <b>{name}{active ? ` · 미제출 ${reminder.targets.length}명` : reminder.targets.length ? ` · 대상 ${reminder.targets.length}명` : ""}</b>
         <span>{schedule}</span>
       </div>
       {reminder.targets.length ? (
@@ -330,7 +331,9 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday, viewOnly }:
                 </form>
               ))}
             </div>
-            <p className="hint">지금 기준 대상이에요. {isRequest ? "요청하면" : "일지를 쓰면"} 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
+            <p className="hint">
+              {active ? "지금 기준 대상이에요." : "지금까지 책을 요청한 멤버예요. 요청 마감 후"} {isRequest ? "요청하면" : "일지를 쓰면"} 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.
+            </p>
             {unlinked.length > 0 && (
               <p className="note note-warn">
                 <Icon name="alert" />
@@ -357,7 +360,13 @@ function ReminderBlock({ kind, cycle, reminder, today, alreadyToday, viewOnly }:
       ) : (
         <div className="remind-body is-one">
           <div>
-            <p className="note note-ok"><Icon name="checkc" />{isRequest ? "모두 요청했어요." : "모두 제출했어요."}</p>
+            {active ? (
+              <p className="note note-ok"><Icon name="checkc" />{isRequest ? "모두 요청했어요." : "모두 제출했어요."}</p>
+            ) : (
+              // 일지 대상은 "책을 요청했는데 일지가 없는 사람"이라, 요청 받는 중에 아무도 요청 안 했으면 0명이 된다 (다 쓴 게 아님).
+              // 요청한 사람을 모두 알림에서 뺀 경우도 0명이라 "요청한 멤버가 없다"고 단정하지 않는다
+              <p className="note"><Icon name="info" />아직 대상이 없어요. 일지 알림은 요청을 마감한 뒤, 책을 요청하고 일지를 안 쓴 멤버에게 나가요.</p>
+            )}
             {skipped}
           </div>
         </div>
