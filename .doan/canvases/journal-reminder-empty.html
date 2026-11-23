@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="doan:canvas" content="journal-reminder-empty">
+<meta name="doan:width" content="1960">
+<title>일지 알림 빈 상태 시안</title>
+<link rel="stylesheet" href="../../src/app/globals.css">
+<style>
+/* 앱 글꼴: layout.tsx의 next/font(Pretendard) 대신 같은 파일을 직접 */
+@font-face { font-family: "Pretendard Variable"; src: url("../../src/app/fonts/PretendardVariable.woff2") format("woff2-variations"); font-weight: 45 920; font-display: swap; }
+:root { --font-pretendard: "Pretendard Variable"; }
+
+/* Tailwind preflight 중 화면에 보이는 것만 (globals.css 첫 줄 @import "tailwindcss"는 캔버스에서 풀리지 않는다) */
+*, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+button, input, select { font: inherit; color: inherit; background: transparent; }
+ol, ul { list-style: none; }
+h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; }
+a { color: inherit; text-decoration: inherit; }
+table { border-collapse: collapse; }
+svg { display: block; vertical-align: middle; }
+
+/* ───────── 보드 ───────── */
+body { background: var(--fill2); }
+.board { width: 1960px; padding: 96px 80px; display: flex; flex-direction: column; gap: 112px; }
+.frames { display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start; }
+.fw { display: flex; flex-direction: column; gap: 12px; }
+.cap { font: 700 14px/20px var(--font-sans); color: var(--ink); }
+.cap span { font-weight: 400; color: var(--ink2); }
+.frame { position: relative; overflow: hidden; background: var(--bg); box-shadow: var(--shadow); }
+/* .cap span(회색 400)보다 앞서게 */
+.cap .nc, .nc { display: inline-flex; align-items: center; height: 20px; margin-left: 6px; padding: 0 6px; border: 1px dashed var(--red); color: var(--red); font: 700 11px/1 var(--font-sans); vertical-align: 1px; }
+
+/* 개요 */
+.brief { width: 1800px; padding: 56px 64px 60px; background: var(--bg); border: 2px solid var(--ink); }
+.brief h1 { font: 800 44px/52px var(--font-sans); letter-spacing: -0.03em; }
+.lead { margin-top: 14px; max-width: 96ch; font: 500 17px/28px var(--font-sans); color: var(--ink2); }
+.lead b { color: var(--ink); }
+.brief-cols { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 48px; }
+.brief-cols h3 { padding-bottom: 8px; border-bottom: 2px solid var(--ink); font: 800 15px/22px var(--font-sans); }
+.brief-cols li { padding: 10px 0; border-bottom: 1px solid var(--rule); font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.brief-cols li b { color: var(--ink); }
+.brief code, .spec code { padding: 1px 4px; background: var(--fill); font: 500 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+.brief q { quotes: "“" "”"; color: var(--ink); font-weight: 600; }
+
+/* 묶음 머리 */
+.grp { display: flex; flex-direction: column; gap: 32px; }
+.grp-top { display: grid; grid-template-columns: 88px 620px 1fr; gap: 32px; align-items: end; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.grp-top .no { font: 800 56px/56px var(--font-sans); letter-spacing: -0.04em; color: var(--past); }
+.grp-top h2 { font: 800 32px/40px var(--font-sans); letter-spacing: -0.02em; }
+.grp-top .route { margin-top: 6px; font: 500 14px/20px var(--font-sans); color: var(--ink2); }
+.grp-top .notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; font: 400 14px/22px var(--font-sans); color: var(--ink2); }
+.grp-top .notes b { color: var(--ink); }
+.grp-top .notes div > b:first-child { display: block; margin-bottom: 4px; }
+
+/* 설정 화면 본문 칸: 1280 화면에서 왼쪽 목차 232 · 여백 48×2 · 회차 목록 220+40을 뺀 폭 */
+.set { width: 844px; padding: 32px; }
+.set .set-main { width: 780px; }
+
+/* 고친 자리 · 문제 자리 표시 (캔버스 전용) */
+.chg, .bad { position: relative; outline: 2px dashed var(--red); outline-offset: 4px; }
+.bad { outline-style: solid; }
+/* .remind-head span(회색 12px)보다 앞서게 .frame을 붙인다 */
+.frame .pin { position: absolute; right: -4px; top: -16px; z-index: 1; padding: 2px 6px; background: var(--red); color: var(--on); font: 700 11px/14px var(--font-sans); white-space: nowrap; }
+.before .cap b { color: var(--ink2); }
+
+/* 상태 표 */
+.spec { width: 1800px; padding: 36px 40px 40px; }
+.spec h3 { padding-bottom: 10px; border-bottom: 2px solid var(--ink); font: 800 20px/28px var(--font-sans); }
+.spec > .tbl > thead th { font-size: 12px; }
+.spec > .tbl > tbody > tr > td { vertical-align: top; padding-top: 16px; padding-bottom: 16px; font-size: 13px; line-height: 20px; }
+.spec > .tbl > tbody > tr > td:first-child { width: 220px; font-weight: 800; }
+.spec > .tbl > tbody > tr > td:nth-child(2), .spec > .tbl > tbody > tr > td:nth-child(3) { width: 470px; }
+.spec .ex { display: block; margin-top: 4px; font-size: 12px; line-height: 18px; color: var(--ink2); font-weight: 500; }
+.spec .n { color: var(--ink2); }
+.spec .tag { display: flex; width: fit-content; height: 22px; padding: 0 8px; font-size: 12px; margin-top: 6px; }
+.mini { border: 1px solid var(--ink); }
+.mini .remind-head { padding: 8px 12px; }
+.mini .remind-head b { font-size: 13px; line-height: 20px; }
+.mini .body { padding: 10px 12px; border-top: 1px solid var(--ink); }
+.mini .note { padding: 8px 12px; font-size: 13px; line-height: 19px; }
+.mini .note .ic { width: 14px; height: 14px; margin-top: 2px; }
+.mini .chips .chip { height: 24px; font-size: 12px; }
+.same { color: var(--ink2); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- source: src/components/icon.tsx -->
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-checkc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <!-- ═══════════ 개요 ═══════════ -->
+  <section class="brief" data-doan-frame="brief" data-doan-title="개요 · 일지 알림 빈 상태">
+    <h1>일지 마감 알림 — 요청 받는 중엔 “모두 제출했어요”를 띄우지 않기</h1>
+    <p class="lead">설정 › 회차 › Slack 알림의 <b>일지 마감 알림</b> 칸. 일지 알림 대상은 <b>책을 요청했는데 일지를 안 쓴 멤버</b>라서, 막 연 1월 회차처럼 아직 아무도 요청하지 않았으면 대상이 0명이 돼요. 지금 화면은 이 0명을 “다 썼다”로 읽어서 <b>미제출 0명 · 모두 제출했어요</b>를 보여 줘요. 일지 알림은 원래 ‘읽는 중’ 단계에서만 나가서, 잘못 나간 알림은 없어요. 화면 문구만 바로잡아요.</p>
+    <div class="brief-cols">
+      <div>
+        <h3>바뀌는 것 · 요청 받는 중일 때만</h3>
+        <ul>
+          <li><b>대상 0명</b> · 초록 <q>모두 제출했어요</q> 대신 회색 안내 <q>아직 대상이 없어요. …</q></li>
+          <li><b>제목 줄</b> · <q>미제출 0명</q>을 떼고 <q>일지 마감 알림</q>만. 대상이 생기면 <q>대상 N명</q></li>
+          <li><b>이름 칩 아래 설명</b> · <q>지금까지 책을 요청한 멤버예요. 요청 마감 후 일지를 쓰면 빠지고 …</q></li>
+        </ul>
+      </div>
+      <div>
+        <h3>그대로인 것</h3>
+        <ul>
+          <li><b>읽는 중 단계</b> · <q>미제출 N명</q> · <q>모두 제출했어요</q> · 지금 보내기 버튼 모두 지금처럼</li>
+          <li><b>구매 요청 마감 알림 칸</b> · 바뀌는 것 없음</li>
+          <li><b>알림 대상 계산 · 발송 시점</b> · <code>reminders.ts</code> 손대지 않음. 이름 옆 × 빼기도 그대로</li>
+        </ul>
+      </div>
+      <div>
+        <h3>코드 상태</h3>
+        <ul>
+          <li><b>새 문구 3개</b>는 <code>admin/settings/page.tsx</code>의 <code>ReminderBlock</code>에 넣어 두었어요. <b>아직 커밋 전</b>이에요.</li>
+          <li><b>“요청한 멤버가 없어요”라고 하지 않은 이유</b> · 요청한 사람을 모두 ×로 알림에서 뺐을 때도 대상이 0명이라, 어느 경우에도 맞는 <q>아직 대상이 없어요</q>로.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 01 지금 1월 회차 ═══════════ -->
+  <section class="grp" data-doan-id="g-empty">
+    <div class="grp-top">
+      <span class="no">01</span>
+      <div><h2>요청 받는 중 · 아직 요청 0명</h2><p class="route">설정 · 2027년 1월 회차 · Slack 알림 — 지금 화면과 같은 상황</p></div>
+      <div class="notes">
+        <div><b>왼쪽이 지금, 오른쪽이 바뀐 후</b>위 구매 요청 마감 알림 칸은 똑같고, 맨 아래 일지 마감 알림 칸만 달라요. 빨간 테두리가 바뀌는 자리예요.</div>
+        <div><b>초록 → 회색</b>초록 체크는 “할 일 끝”이라는 뜻이라 빼고, 설정 화면의 다른 안내와 같은 회색 <code>.note</code>로 언제 누구에게 나가는지만 알려 줘요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw before">
+        <p class="cap"><b>지금</b> <span>· 미제출 0명 · 모두 제출했어요</span></p>
+        <div class="frame set" data-doan-frame="empty-before" data-doan-title="지금 · 요청 0명" data-doan-implements="src/app/(app)/admin/settings/page.tsx">
+          <div class="set-main">
+            <section class="block">
+              <div class="block-head"><h2 class="t-heading">Slack 알림</h2><span>평일 오전 9시대 · 동아리 채널</span></div>
+              <div class="remind">
+                <div class="remind-head"><b>구매 요청 마감 알림 · 미제출 24명</b><span>12/15(화) 오전 9시대부터 평일 자동 발송</span></div>
+                <div class="remind-body">
+                  <div>
+                    <div class="chips">
+                      <div class="chip"><span>강민재</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>고유나</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>권태오</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>김하늘</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>남궁별</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>노은솔</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>류하진</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>문여름</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>배수아</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>백시우</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>서도현</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>송다빈</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>신유찬</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>오세린</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>윤슬기</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>이서연</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>임채원</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>장보름</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>정다온</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>조아라</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>최도윤</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>한지우</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>허준서</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>황보윤</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                    </div>
+                    <p class="hint">지금 기준 대상이에요. 요청하면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
+                  </div>
+                  <div>
+                    <p class="hint">지금 보내면 나가는 메시지</p>
+                    <div class="slack">
+                      <p class="slack-meta"><b>시끌북적 봇</b><span>지금</span></p>
+                      <p class="slack-title">📢 [1월 회차 구매 요청 마감 D-22] - 2026년 11월 23일</p>
+                      <div class="slack-thread">
+                        <p class="slack-meta"><b>시끌북적 봇</b><span>스레드 답글</span></p>
+                        <p class="slack-text"><span class="mention">@강민재</span>, <span class="mention">@고유나</span>, <span class="mention">@권태오</span>, <span class="mention">@김하늘</span>, <span class="mention">@남궁별</span>, <span class="mention">@노은솔</span>, <span class="mention">@류하진</span>, <span class="mention">@문여름</span>, <span class="mention">@배수아</span>, <span class="mention">@백시우</span>, <span class="mention">@서도현</span>, <span class="mention">@송다빈</span>, <span class="mention">@신유찬</span>, <span class="mention">@오세린</span>, <span class="mention">@윤슬기</span>, <span class="mention">@이서연</span>, <span class="mention">@임채원</span>, <span class="mention">@장보름</span>, <span class="mention">@정다온</span>, <span class="mention">@조아라</span>, <span class="mention">@최도윤</span>, <span class="mention">@한지우</span>, <span class="mention">@허준서</span>, <span class="mention">@황보윤</span><br><br>1월 회차 구매 요청 마감일(12/15(화))까지 <b>22일</b> 남았어요!<br>아직 요청하지 않았다면 미리 부탁드려요 🙏<br><br><i>미작성 인원: 24명</i></p>
+                        <span class="slack-btn">▶ 1월 회차 구매 요청하기</span>
+                      </div>
+                    </div>
+                    <div class="row-gap"><button class="btn btn-sm" type="button"><svg class="ic"><use href="#i-hash"/></svg>지금 보내기</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="remind bad" data-doan-id="jr-empty-before">
+                <span class="pin">문제 · 아무도 안 썼는데 “다 냈다”</span>
+                <div class="remind-head"><b>일지 마감 알림 · 미제출 0명</b><span>요청 마감 후 1/22(금) 오전 9시대부터 평일 자동 발송</span></div>
+                <div class="remind-body is-one"><div><p class="note note-ok"><svg class="ic"><use href="#i-checkc"/></svg>모두 제출했어요.</p></div></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">바뀐 후 <span>· 회색 안내로</span><span class="nc">새 문구</span></p>
+        <div class="frame set" data-doan-frame="empty-after" data-doan-title="바뀐 후 · 요청 0명" data-doan-implements="src/app/(app)/admin/settings/page.tsx">
+          <div class="set-main">
+            <section class="block">
+              <div class="block-head"><h2 class="t-heading">Slack 알림</h2><span>평일 오전 9시대 · 동아리 채널</span></div>
+              <div class="remind">
+                <div class="remind-head"><b>구매 요청 마감 알림 · 미제출 24명</b><span>12/15(화) 오전 9시대부터 평일 자동 발송</span></div>
+                <div class="remind-body">
+                  <div>
+                    <div class="chips">
+                      <div class="chip"><span>강민재</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>고유나</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>권태오</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>김하늘</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>남궁별</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>노은솔</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>류하진</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>문여름</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>배수아</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>백시우</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>서도현</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>송다빈</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>신유찬</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>오세린</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>윤슬기</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>이서연</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>임채원</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>장보름</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>정다온</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>조아라</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>최도윤</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>한지우</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>허준서</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                      <div class="chip"><span>황보윤</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                    </div>
+                    <p class="hint">지금 기준 대상이에요. 요청하면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
+                  </div>
+                  <div>
+                    <p class="hint">지금 보내면 나가는 메시지</p>
+                    <div class="slack">
+                      <p class="slack-meta"><b>시끌북적 봇</b><span>지금</span></p>
+                      <p class="slack-title">📢 [1월 회차 구매 요청 마감 D-22] - 2026년 11월 23일</p>
+                      <div class="slack-thread">
+                        <p class="slack-meta"><b>시끌북적 봇</b><span>스레드 답글</span></p>
+                        <p class="slack-text"><span class="mention">@강민재</span>, <span class="mention">@고유나</span>, <span class="mention">@권태오</span>, <span class="mention">@김하늘</span>, <span class="mention">@남궁별</span>, <span class="mention">@노은솔</span>, <span class="mention">@류하진</span>, <span class="mention">@문여름</span>, <span class="mention">@배수아</span>, <span class="mention">@백시우</span>, <span class="mention">@서도현</span>, <span class="mention">@송다빈</span>, <span class="mention">@신유찬</span>, <span class="mention">@오세린</span>, <span class="mention">@윤슬기</span>, <span class="mention">@이서연</span>, <span class="mention">@임채원</span>, <span class="mention">@장보름</span>, <span class="mention">@정다온</span>, <span class="mention">@조아라</span>, <span class="mention">@최도윤</span>, <span class="mention">@한지우</span>, <span class="mention">@허준서</span>, <span class="mention">@황보윤</span><br><br>1월 회차 구매 요청 마감일(12/15(화))까지 <b>22일</b> 남았어요!<br>아직 요청하지 않았다면 미리 부탁드려요 🙏<br><br><i>미작성 인원: 24명</i></p>
+                        <span class="slack-btn">▶ 1월 회차 구매 요청하기</span>
+                      </div>
+                    </div>
+                    <div class="row-gap"><button class="btn btn-sm" type="button"><svg class="ic"><use href="#i-hash"/></svg>지금 보내기</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="remind chg" data-doan-id="jr-empty-after">
+                <span class="pin">바뀜</span>
+                <div class="remind-head"><b>일지 마감 알림</b><span>요청 마감 후 1/22(금) 오전 9시대부터 평일 자동 발송</span></div>
+                <div class="remind-body is-one"><div><p class="note"><svg class="ic"><use href="#i-info"/></svg>아직 대상이 없어요. 일지 알림은 요청을 마감한 뒤, 책을 요청하고 일지를 안 쓴 멤버에게 나가요.</p></div></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 요청한 사람이 생기면 ═══════════ -->
+  <section class="grp" data-doan-id="g-some">
+    <div class="grp-top">
+      <span class="no">02</span>
+      <div><h2>요청 받는 중 · 요청한 사람이 생기면</h2><p class="route">설정 · 1월 회차 · 일지 마감 알림 칸만 (김하늘 · 이서연 · 최도윤 3명이 요청한 예)</p></div>
+      <div class="notes">
+        <div><b>대상 미리보기는 그대로</b>요청한 사람이 칩으로 보이고, 오른쪽에 마감일(1/22) 첫 알림 미리보기가 나와요. 지금처럼 ×로 미리 뺄 수 있어요.</div>
+        <div><b>“미제출” → “대상”</b>요청 받는 중엔 아직 일지를 쓸 수 없어서 “안 냈다”가 아니라 “나중에 받을 사람”이에요. 그래서 제목과 칩 아래 설명만 바꿔요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw before">
+        <p class="cap"><b>지금</b> <span>· 미제출 3명</span></p>
+        <div class="frame set" data-doan-frame="some-before" data-doan-title="지금 · 요청 3명" data-doan-implements="src/app/(app)/admin/settings/page.tsx">
+          <div class="set-main">
+            <div class="remind">
+              <div class="remind-head"><b class="bad">일지 마감 알림 · 미제출 3명</b><span>요청 마감 후 1/22(금) 오전 9시대부터 평일 자동 발송</span></div>
+              <div class="remind-body">
+                <div>
+                  <div class="chips">
+                    <div class="chip"><span>김하늘</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                    <div class="chip"><span>이서연</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                    <div class="chip"><span>최도윤</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                  </div>
+                  <p class="hint">지금 기준 대상이에요. 일지를 쓰면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
+                </div>
+                <div>
+                  <p class="hint">1/22(금) 첫 알림 미리보기</p>
+                  <div class="slack">
+                    <p class="slack-meta"><b>시끌북적 봇</b><span>지금</span></p>
+                    <p class="slack-title">🚨 [1월 회차 동아리 일지 작성 마감일] - 2027년 01월 22일</p>
+                    <div class="slack-thread">
+                      <p class="slack-meta"><b>시끌북적 봇</b><span>스레드 답글</span></p>
+                      <p class="slack-text"><span class="mention">@김하늘</span>, <span class="mention">@이서연</span>, <span class="mention">@최도윤</span><br><br>오늘이 <b>1월 회차 동아리 일지 작성 마감일</b>입니다!<br>잊지 말고 오늘 안에 작성해주세요 🙏<br><br><i>미작성 인원: 3명</i></p>
+                      <span class="slack-btn">▶ 1월 회차 일지 쓰기</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fw">
+        <p class="cap">바뀐 후 <span>· 대상 3명</span><span class="nc">새 문구</span></p>
+        <div class="frame set" data-doan-frame="some-after" data-doan-title="바뀐 후 · 요청 3명" data-doan-implements="src/app/(app)/admin/settings/page.tsx">
+          <div class="set-main">
+            <div class="remind" data-doan-id="jr-some-after">
+              <div class="remind-head"><b class="chg"><span class="pin">바뀜</span>일지 마감 알림 · 대상 3명</b><span>요청 마감 후 1/22(금) 오전 9시대부터 평일 자동 발송</span></div>
+              <div class="remind-body">
+                <div>
+                  <div class="chips">
+                    <div class="chip"><span>김하늘</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                    <div class="chip"><span>이서연</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                    <div class="chip"><span>최도윤</span><button class="badge-x" type="button"><svg class="ic"><use href="#i-x"/></svg></button></div>
+                  </div>
+                  <p class="hint chg"><span class="pin">바뀜</span>지금까지 책을 요청한 멤버예요. 요청 마감 후 일지를 쓰면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p>
+                </div>
+                <div>
+                  <p class="hint">1/22(금) 첫 알림 미리보기</p>
+                  <div class="slack">
+                    <p class="slack-meta"><b>시끌북적 봇</b><span>지금</span></p>
+                    <p class="slack-title">🚨 [1월 회차 동아리 일지 작성 마감일] - 2027년 01월 22일</p>
+                    <div class="slack-thread">
+                      <p class="slack-meta"><b>시끌북적 봇</b><span>스레드 답글</span></p>
+                      <p class="slack-text"><span class="mention">@김하늘</span>, <span class="mention">@이서연</span>, <span class="mention">@최도윤</span><br><br>오늘이 <b>1월 회차 동아리 일지 작성 마감일</b>입니다!<br>잊지 말고 오늘 안에 작성해주세요 🙏<br><br><i>미작성 인원: 3명</i></p>
+                      <span class="slack-btn">▶ 1월 회차 일지 쓰기</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 상태별 ═══════════ -->
+  <section class="grp" data-doan-id="g-states">
+    <div class="grp-top">
+      <span class="no">03</span>
+      <div><h2>단계별로 어떻게 보이나</h2><p class="route">일지 마감 알림 칸 · 회차 단계 × 대상 수</p></div>
+      <div class="notes">
+        <div><b>바뀌는 건 위 두 줄</b>요청 받는 중일 때만이에요. 읽는 중으로 넘어가면 지금 화면과 똑같아요.</div>
+        <div><b>마감된 회차는 그대로</b>알림 칸 없이 <q>마감된 회차라 알림이 없어요.</q> 한 줄만 나와요.</div>
+      </div>
+    </div>
+    <div class="frames">
+      <div class="fw">
+        <p class="cap">상태 5가지 <span>· 일지 마감 알림 칸</span></p>
+        <div class="frame spec" data-doan-frame="states" data-doan-title="일지 알림 칸 상태 5가지" data-doan-implements="src/app/(app)/admin/settings/page.tsx">
+          <h3>일지 마감 알림 칸</h3>
+          <table class="tbl">
+            <thead><tr><th>상태</th><th>지금</th><th>바뀐 후</th><th>메모</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>요청 받는 중 · 대상 0명<span class="ex">아무도 요청 안 함 · 또는 요청한 사람을 모두 ×로 뺌</span><span class="tag tag-on">바뀜</span></td>
+                <td><div class="mini"><div class="remind-head"><b>일지 마감 알림 · 미제출 0명</b></div><div class="body"><p class="note note-ok"><svg class="ic"><use href="#i-checkc"/></svg>모두 제출했어요.</p></div></div></td>
+                <td><div class="mini"><div class="remind-head"><b>일지 마감 알림</b></div><div class="body"><p class="note"><svg class="ic"><use href="#i-info"/></svg>아직 대상이 없어요. 일지 알림은 요청을 마감한 뒤, 책을 요청하고 일지를 안 쓴 멤버에게 나가요.</p></div></div></td>
+                <td class="n">모두 ×로 뺐다면 안내 아래에 <b>알림에서 뺀 사람</b> 줄과 <b>다시 넣기</b>가 지금처럼 붙어요.</td>
+              </tr>
+              <tr>
+                <td>요청 받는 중 · 대상 N명<span class="tag tag-on">바뀜</span></td>
+                <td><div class="mini"><div class="remind-head"><b>일지 마감 알림 · 미제출 3명</b></div><div class="body"><p class="hint">지금 기준 대상이에요. 일지를 쓰면 빠지고, …</p></div></div></td>
+                <td><div class="mini"><div class="remind-head"><b>일지 마감 알림 · 대상 3명</b></div><div class="body"><p class="hint">지금까지 책을 요청한 멤버예요. 요청 마감 후 일지를 쓰면 빠지고, …</p></div></div></td>
+                <td class="n">칩 · 첫 알림 미리보기 · × 빼기는 그대로. 지금 보내기 버튼은 원래 이 단계엔 없어요.</td>
+              </tr>
+              <tr>
+                <td>읽는 중 · 미제출 N명<span class="tag tag-off">그대로</span></td>
+                <td colspan="2"><div class="mini"><div class="remind-head"><b>일지 마감 알림 · 미제출 3명</b></div><div class="body"><p class="hint">지금 기준 대상이에요. 일지를 쓰면 빠지고, 이름 옆 ×로 이번 회차 알림에서 뺄 수 있어요.</p></div></div></td>
+                <td class="n">마감일부터 평일 자동 발송 · 지금 보내기 버튼 있음.</td>
+              </tr>
+              <tr>
+                <td>읽는 중 · 모두 씀<span class="tag tag-off">그대로</span></td>
+                <td colspan="2"><div class="mini"><div class="remind-head"><b>일지 마감 알림 · 미제출 0명</b></div><div class="body"><p class="note note-ok"><svg class="ic"><use href="#i-checkc"/></svg>모두 제출했어요.</p></div></div></td>
+                <td class="n">이때만 초록 체크가 맞는 말이에요.</td>
+              </tr>
+              <tr>
+                <td>일지 마감일 없음<span class="tag tag-off">그대로</span></td>
+                <td colspan="2"><div class="mini"><div class="remind-head"><b>일지 마감 알림</b><span>일지 마감일을 정하면 그날부터 알림이 나가요</span></div></div></td>
+                <td class="n same">단계와 상관없이 같아요.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
